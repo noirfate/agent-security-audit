@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.0",
+  "status": "source_grounded_recommendation_summaries_not_executed",
+  "source": {
+    "title": "CIS MCP Server Benchmark",
+    "version": "v1.0.0",
+    "publisher": "Center for Internet Security",
+    "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf",
+    "sha256": "af4d7a3e931c70691cc3529633171468848757dde80baa779746122241ab1aeb",
+    "target_mcp_protocol_version": "2026-07-28",
+    "scope": "MCP 本地 stdio 与远程 Streamable HTTP 服务器、启动并中介这些服务器的 host 应用，以及直接影响 MCP 安全的网关、授权设施、OS、容器与 VM。不是这些基础技术的完整加固基线，也不涵盖组织层的漏洞管理、应急响应或渗透测试计划。",
+    "assessment_prerequisites": [
+      "原文 Audit 参考 bash 与 Ubuntu 24.04，不保证适用于 /bin/sh 或其他系统。",
+      "多数原文命令需要 jq、curl；部分条目另需 ajv-cli、gitleaks、sudo、setfacl 等，具体见条目。",
+      "网络核查需能到达目标端点，并预先确定协议版本、目标工具、合法请求、身份、响应语义与部署日志路径。",
+      "Manual / Automated 是原文评估属性；本来源整理未运行命令、探测端点、修改配置或作出合规判定。"
+    ],
+    "version_boundary": "以上是该固定 PDF 自述的目标版本与行为。部署若使用 2025-11-25 或其他协议版本，应先选择对应规范和基线；不得把 2026-07-28 的无协议会话、元数据或错误语义直接当成所有 MCP 部署的通用要求。",
+    "source_refs": [
+      {"section": "Target Technology Details / Assessment Prerequisites", "pdf_page": 9, "printed_page": 8, "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}
+    ],
+    "page_numbering": "pdf_page / pdf_pages 为从 1 起算的 PDF 物理页；printed_page / printed_pages 为页面页脚数字。该文件目录中的若干页码与实际页脚不一致，本整理按正文实际位置核对。",
+    "adaptation_note": "仅整理指定 8 项 Recommendation 的中文摘要及原文支持的核查材料。标题保留来源英文；检查步骤不是原文脚本的全量替代，不是可一键执行的自动化审计器。"
+  },
+  "recommendations": {
+    "3.2.1": {
+      "id": "3.2.1",
+      "kind": "recommendation",
+      "title_en": "Ensure per-tool authorization policies are enforced",
+      "title_zh": "逐工具执行默认拒绝的授权策略",
+      "assessment_status": "Manual",
+      "profile": "Level 2",
+      "requirement": "在 MCP 服务器或网关按已认证身份与角色执行逐工具授权；默认拒绝，只允许策略列出的工具。每次允许和拒绝都记录工具名、调用身份、命中规则、时间及关联标识；不得只在模型或客户端判断权限。",
+      "audit_steps": [
+        "将工具注册表与按角色或身份定义的工具允许清单逐项比对，定位实际的服务器或网关授权执行点。",
+        "在受控环境准备同一特权工具及同一组有效参数：已授权身份调用应成功，最小权限身份应得到可归因的授权拒绝。",
+        "确认拒绝来自 HTTP 403 或部署明确记录的授权错误；鉴权失败、请求畸形、网络故障或其他不明错误不能当成逐工具授权有效的证据。",
+        "按关联标识查验两次受控请求的允许与拒绝记录，确认工具、身份、规则、时间和关联字段齐全。"
+      ],
+      "evidence": ["工具注册表与角色—工具授权清单", "服务器或网关授权中间件及身份映射配置", "同一工具与参数的已授权/最小权限测试记录", "与两次请求关联的授权允许和拒绝日志"],
+      "applicability": "MCP 逐工具调用授权。执行责任位于 server 或 gateway；原文线上探测采用远程 HTTP 端点、Bearer 测试身份及 2026-07-28 请求信封。不能把该 HTTP 示例原样用于无对应身份机制的本地 stdio 部署。",
+      "boundary": "身份认证成功不代表获得全部工具权限。策略应采用企业维护的工具风险分类，不依赖服务器提供的行为注解；本条不提供可跨实现通用的配置命令。",
+      "source_refs": [{"section": "3.2.1 / Description, Audit, Remediation", "pdf_pages": [91, 92, 93, 94, 95], "printed_pages": [90, 91, 92, 93, 94], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "Authorization for tool invocation is deny-by-default: tools are allowlisted per role or identity, and every authorization decision (allow and deny) is logged with the tool name, calling identity, the policy rule that matched, a timestamp, and a request or correlation identifier that ties the decision to the invocation. Authorization is enforced server-side or at the gateway, never in the model or client.",
+      "adaptation_note": "中文要求、检查步骤和材料清单根据本条 Description / Audit / Remediation 摘要；未复制或运行原文 curl、jq 探测脚本。"
+    },
+    "4.1.5": {
+      "id": "4.1.5",
+      "kind": "recommendation",
+      "title_en": "Ensure a human can deny tool invocations and sensitive or high-impact operations require confirmation",
+      "title_zh": "保留人工否决权，敏感和高影响操作执行前确认",
+      "assessment_status": "Manual",
+      "profile": "Level 2",
+      "requirement": "在 host 或网关保留人工拒绝工具调用的能力，调用前展示输入。敏感、高影响、不可逆操作和整体效果高影响的多步序列执行前需明确人工确认；普通非敏感读取可以免提示但必须记录。工具风险分类由运营方维护。",
+      "audit_steps": [
+        "检查 host / gateway / 策略引擎中的人工审批执行点、工具风险分类和调用前输入展示，确认分类独立于服务器提供的工具注解。",
+        "通过实际执行点提交运营方判为敏感或高影响的受控操作，核对执行前出现部署可明确归因的人工批准状态，并确认人可以拒绝。",
+        "另选常规读取验证免提示执行且有记录；对合计产生高影响的多步工作流核对整体批准要求。",
+        "将一般的 input_required、认证错误或协议错误与真正人工审批区分，前者本身不能证明审批门有效。"
+      ],
+      "evidence": ["由运营方维护的敏感/高影响工具与序列分类", "host 或网关审批策略及输入展示记录", "高影响操作的待批、拒绝与执行记录", "常规读取免提示执行及审计日志"],
+      "applicability": "MCP host/client 或 gateway 的同意与人工监督控制。只有 server 本身就是该部署的审批执行点时，才应直接以 server 端点核查；绕过 host 直接调用服务器不能证明 host 的审批行为。",
+      "boundary": "本条区分敏感/高影响操作与常规读取，不要求每次读取都弹窗。原文没有规定跨实现统一的批准响应结构；必须采用本部署记载的可归因信号。",
+      "source_refs": [{"section": "4.1.5 / Description, Audit, Remediation", "pdf_pages": [143, 144, 145, 146], "printed_pages": [142, 143, 144, 145], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "A human can always deny a tool invocation, and sensitive or high-impact operations require explicit confirmation before they execute. A compliant host makes clear which tools are exposed to the model, shows a clear indicator when a tool is invoked, and shows the tool inputs to the user before the call. Routine, non-sensitive read operations proceed without a prompt but are logged. Sensitive operations, and high-impact or irreversible operations such as external communications, financial or legal commitments, security-posture changes, and destructive writes, require explicit human confirmation or approval before execution.",
+      "adaptation_note": "按本条摘要审批要求和核查顺序；未运行原文 HTTP 探测，也未把示例 APPROVAL_JQ 误作所有产品统一接口。"
+    },
+    "5.1.1": {
+      "id": "5.1.1",
+      "kind": "recommendation",
+      "title_en": "Ensure tool schemas and argument types are validated",
+      "title_zh": "按工具模式校验参数与结构化结果",
+      "assessment_status": "Automated",
+      "profile": "Level 1",
+      "requirement": "在服务器分发工具前依据其声明的 JSON Schema 方言验证输入；已声明 outputSchema 的结构化结果返回前也要校验。请求结构畸形与工具参数违反模式采用相应错误语义。清理工具名、参数名、描述与输出等所有模式字段；禁止自动解引用外部 $ref，限制模式深度和验证耗时。",
+      "audit_steps": [
+        "收集所有公布的 inputSchema 和 outputSchema，按各自 $schema 声明的方言检查可编译性；未声明方言时按本基线的 2020-12 默认值。",
+        "在受控环境以遗漏必填项或错误类型构造有效 tools/call 信封，核对违规参数产生 result.isError=true 的工具执行错误且未触发工具逻辑。",
+        "检查服务器中间件与返回路径：结构性请求错误采用协议错误，声明 outputSchema 的结果经相应模式校验。",
+        "审阅验证器配置，确认不自动获取外部 $ref，深度和时间有界，并覆盖名称、描述等完整模式字段的清理。"
+      ],
+      "evidence": ["工具清单及输入/输出模式导出", "模式方言编译结果与验证器配置", "违规参数测试响应及工具未执行的记录", "服务端校验与字段清理代码或配置"],
+      "applicability": "MCP server 的工具注册、调用中间件和结果返回路径；原文接口探测采用 2026-07-28 Streamable HTTP，模式编译示例需 ajv-cli。输入根模式为 object，输出模式按该目标版本可包含数组或基本类型。",
+      "boundary": "严格类型校验不等于工具授权或业务参数安全已完成。外部 $ref / 不支持的方言在原文脚本中是 REVIEW，而不是可以忽略；原文错误语义与方言支持应按目标协议和实现版本核对。",
+      "source_refs": [{"section": "5.1.1 / Description, Audit, Remediation", "pdf_pages": [167, 168, 169, 170, 171, 172, 173], "printed_pages": [166, 167, 168, 169, 170, 171, 172], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "The server validates every tool input and output against the tool's advertised schema at the server middleware layer before the tool executes. Validation uses the JSON Schema dialect each schema declares in $schema, defaulting to 2020-12 when none is declared. A tools/call request that fails the CallToolRequest structure is a protocol error. A well-formed call whose arguments fail the tool's input schema is surfaced as a tool execution error in a normal result with isError set to true, not as a -32602 protocol error. Where a tool declares an outputSchema, the server returns structured results that conform to it.",
+      "adaptation_note": "摘要区分执行前输入校验与返回前输出校验；不提供原文命令的全量替代。原文 Automated 标记不意味着本项目已经实现或执行该自动化核查。"
+    },
+    "5.2.2": {
+      "id": "5.2.2",
+      "kind": "recommendation",
+      "title_en": "Ensure sessions are not used as authentication and, where present, are bound to user identity",
+      "title_zh": "连续性句柄不能替代认证，并须绑定身份与有效期",
+      "assessment_status": "Manual",
+      "profile": "Level 1",
+      "requirement": "远程 HTTP 请求每次独立认证授权，不能以会话标识、连续性句柄或客户端自报元数据代替凭据。应用如需跨调用状态，句柄应由密码学安全随机源生成、不可猜测，服务端绑定已认证身份，每次使用重新验证并按期限失效；多节点使用共享绑定存储。",
+      "audit_steps": [
+        "先确认部署协议版本与跨调用状态机制：本基线目标版本使用普通工具参数中的应用句柄；旧版可能仍有协议会话。",
+        "在受控环境提交结构正确、带既有句柄但不带独立认证凭据的请求，核对因缺少凭据返回 401；其他错误需确认归因。",
+        "审阅句柄生成与服务端绑定逻辑，确认密码学安全随机源、身份绑定、逐请求重新校验和过期机制；多节点检查共享存储。"
+      ],
+      "evidence": ["协议版本与状态/句柄设计说明", "缺少独立凭据的受控请求及拒绝响应", "句柄生成、身份绑定与过期校验代码或配置", "多节点共享绑定存储配置（如适用）"],
+      "applicability": "主要为远程 HTTP MCP server 的逐请求认证和应用连续性句柄。PDF 目标 2026-07-28 已去除协议级会话和 Mcp-Session-Id；原文说明同一原则也适用于仍采用 2025-11-25 的协议会话，不能混淆两种机制。",
+      "boundary": "本条不是要求所有 Agent 必须设计一个统一会话生命周期。没有跨调用句柄时，句柄部分按实际不适用处理，但远程请求仍需独立认证；_meta 中自报 clientInfo 不是身份凭证。",
+      "source_refs": [{"section": "5.2.2 / Description, Audit, Remediation", "pdf_pages": [187, 188, 189], "printed_pages": [186, 187, 188], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "Under the 2026-07-28 revision, the protocol-level session and the Mcp-Session-Id header are removed. Every request carries its protocol version, self-reported client identity metadata, and client capabilities in _meta, and none of these is authentication. For a remote HTTP server, authentication and authorization are established independently for each request through the transport authorization framework, and an invalid or absent credential is rejected, so a session identifier or a continuity handle is never proof of identity. Where an application needs continuity across calls, it uses an explicit, server-issued handle passed as an ordinary tool argument, which the specification treats as an application value rather than a credential.",
+      "adaptation_note": "摘要保留协议版本差异与身份归因要求；未提交原文认证探测请求，也不将 403 或一般 400 自动判为符合独立认证要求。"
+    },
+    "6.2": {
+      "id": "6.2",
+      "kind": "recommendation",
+      "title_en": "Ensure tokens and keys are protected in clients and servers",
+      "title_zh": "在受管存储中保护客户端和服务器凭据",
+      "assessment_status": "Automated",
+      "profile": "Level 1",
+      "requirement": "API token、OAuth 客户端秘密和服务账户密钥存放在系统钥匙串、受管秘密存储或 KMS 支持的存储中，部署配置与制品只引用秘密，运行时读取；按本基线立场，加密后的秘密值也不应嵌入部署制品。实施自动轮换和临近过期告警；轮换曾嵌入部署制品的凭据。",
+      "audit_steps": [
+        "确定实际部署配置和已安装制品目录，使用适合该环境且启用脱敏的秘密扫描器检查内联凭据，并区分扫描完成、发现和工具错误。",
+        "检查部署清单只保存受管存储引用，而不是明文或加密后的秘密值；核对运行时读取路径。",
+        "依据原文要求补充审阅自动轮换与临近过期告警配置；对曾嵌入配置或制品的凭据核对轮换处置。"
+      ],
+      "evidence": ["部署配置/制品清单及脱敏扫描结果", "受管秘密引用与访问配置", "凭据轮换和到期告警配置", "历史嵌入凭据的轮换处置记录（如适用）"],
+      "applicability": "MCP client/host 和 server 中的部署凭据处理。原文 Audit 示例用 gitleaks 扫描实际部署目录并人工检查清单；只扫描 Git 历史不能覆盖这里的部署制品范围。",
+      "boundary": "轮换与告警来自 Description / Remediation，原文 Audit 的直接检查重点是扫描与清单引用。本整理把二者并列便于检查要求完整性；一次扫描没有发现不能证明所有潜在秘密均不存在。",
+      "source_refs": [{"section": "6.2 / Description, Audit, Remediation", "pdf_pages": [221, 222, 223], "printed_pages": [220, 221, 222], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "All credentials (API tokens, OAuth client secrets, service-account keys) are stored in system keychains, managed secret stores, or KMS-backed stores. As a CIS hardening position, secret values are not embedded in deployed configuration or artifacts in any form, including encrypted, and are referenced from the managed store at runtime instead. Automated credential rotation is in place, with alerts for credentials approaching expiry.",
+      "adaptation_note": "根据原文摘要并标明 Audit 与 Description / Remediation 的范围差异；未执行扫描、读取凭据或实施轮换。"
+    },
+    "7.1.1": {
+      "id": "7.1.1",
+      "kind": "recommendation",
+      "title_en": "Ensure lifecycle and invocation metadata is recorded",
+      "title_zh": "记录可关联且防篡改的 MCP 调用与生命周期日志",
+      "assessment_status": "Automated",
+      "profile": "Level 1",
+      "requirement": "为发现、工具/资源/提示调用、认证、信息征询、批准/拒绝和 Task 生命周期等适用事件生成结构化审计记录，每条包含同步时间、事件类型、服务器身份和逐请求关联标识。按版本记录请求与服务器元数据；敏感工具避免完整参数载荷。日志由服务器采集并集中存储，配置完整性保护。",
+      "audit_steps": [
+        "抽查近期结构化日志，核对非空时间戳、关联标识、事件类型与服务器身份，并确认关联标识确实区分请求。",
+        "将日志中的事件类型清单与实际启用的发现、调用、认证、征询、审批和 Task 功能比对，检查应有类别是否缺失。",
+        "审阅 stderr / OpenTelemetry 等采集与集中转发管线，确认完整性保护；若有分布式追踪，trace/span 应补充而非取代请求关联字段。",
+        "检查敏感工具的参数记录策略与版本适配，避免用已弃用 MCP logging utility 代替本基线要求的服务器侧采集。"
+      ],
+      "evidence": ["近期脱敏审计日志样本与字段模式", "已启用 MCP 功能及应记录事件类型清单", "服务器采集、集中转发与存储完整性保护配置", "请求关联/追踪与敏感参数处理配置"],
+      "applicability": "MCP server 及相关 host/gateway 事件的审计日志与集中管线。server/discover、每请求 _meta、Task 与 logging utility 弃用等细节针对本 PDF 的 2026-07-28 协议目标。",
+      "boundary": "标题里的 lifecycle 是 MCP 操作和 Task 等事件，并不要求框架引入统一的 Agent lifetime 维度。少量样本字段齐全仍需人工确认事件覆盖与集中完整性控制。",
+      "source_refs": [{"section": "7.1.1 / Description, Audit, Remediation", "pdf_pages": [229, 230, 231], "printed_pages": [228, 229, 230], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "Inspect a sample of recent structured audit-log entries and confirm each carries a non-empty timestamp, correlation identifier, event type, and server identity. Review the event-type inventory the command prints against the classes the deployment is expected to produce, and separately confirm logs are shipped to a centralized store with integrity protection. Run the following command, adjusting LOG and the field names to the local schema:",
+      "adaptation_note": "检查步骤结合本条 Description / Audit / Remediation，未复制完整 jq 命令或运行日志取样；对隐私参数的核对是来源要求的配置检查。"
+    },
+    "9.2": {
+      "id": "9.2",
+      "kind": "recommendation",
+      "title_en": "Ensure the MCP server process is confined to its working set by OS-level kernel-enforced controls",
+      "title_zh": "以操作系统强制边界约束 MCP 文件工作集",
+      "assessment_status": "Automated",
+      "profile": "Level 1",
+      "requirement": "以服务账户的实际有效权限和内核强制机制，将 MCP server 限制在合法工作目录内；可按平台选择 POSIX ACL、AppArmor/SELinux 或容器挂载，并记录拒绝访问。MCP Roots 不能作为隔离边界。",
+      "audit_steps": [
+        "明确 MCP 服务账户、合法工作集和两个已存在的哨兵文件：一个位于工作集内，一个位于应禁止的范围外。",
+        "在受控环境使用实际服务账户确认工作集内哨兵可读、范围外哨兵被拒；不能以读取本来就被普通账户拒绝的 /etc/shadow 代替边界验证。",
+        "审阅选用的 ACL、强制访问控制配置或容器挂载，确认实际约束与预期目录一致，并核对拒绝访问日志。"
+      ],
+      "evidence": ["服务账户、合法工作集与哨兵文件设计", "以服务账户执行的范围内成功/范围外拒绝记录", "实际生效的 ACL、AppArmor/SELinux 或挂载配置", "拒绝访问审计记录"],
+      "applicability": "本条是独立 Recommendation，不是章节标题。适用于 MCP server 的 OS 文件访问边界；原文核查采用 Linux 服务账户与 sudo，ACL 修复示例另需 setfacl 和文件系统 ACL 支持。容器环境应核对实际容器上下文与挂载。",
+      "boundary": "只验证文件工作集隔离，不代表网络隔离、进程/系统调用隔离或沙箱全部安全。Description / Remediation 允许 ACL、MAC、挂载等机制；Audit 合规句还点名 MAC profile，应按实际选用机制审阅，不能把 setfacl 当作配置了 AppArmor/SELinux。",
+      "source_refs": [{"section": "9.2 / Description, Audit, Remediation", "pdf_pages": [277, 278, 279], "printed_pages": [276, 277, 278], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "Each MCP server process is confined to the directories it legitimately needs by OS-level enforcement that the kernel applies regardless of what the server code attempts. Suitable mechanisms include POSIX ACLs, a mandatory access control profile such as AppArmor or SELinux, and container bind mounts for containerized deployments. The deployment selects the mechanism, and whichever is used, the service account's effective filesystem access is confined to its working set. MCP Roots is a deprecated advisory feature that a server can ignore, so it is never the boundary and is not relied on for containment.",
+      "adaptation_note": "摘要保留两哨兵、真实服务账户和实际执行上下文的前提；没有执行 sudo、setfacl、文件读取或修改隔离配置。"
+    },
+    "10.2": {
+      "id": "10.2",
+      "kind": "recommendation",
+      "title_en": "Ensure request and response body size limits, token budgets, and per-principal quotas are enforced",
+      "title_zh": "分别限制报文大小、模型预算与主体配额",
+      "assessment_status": "Manual",
+      "profile": "Level 1",
+      "requirement": "在反向代理和应用中间件分别限制入站 JSON-RPC 请求大小；限制非流式结果总大小和流式响应中每条消息的大小。代理模型调用时配置每请求/工作负载 token 预算；主体和租户配额独立于全局限流，主体由授权上下文或工作负载定义，不能按连接充当会话。",
+      "audit_steps": [
+        "取得配置的请求大小阈值，在受控环境比较一个有效普通请求与超过阈值的请求：前者成功，后者应产生可归因的大小限制响应。",
+        "确认探测证明的是响应请求的那一层；继续审阅代理和应用各自独立的请求大小限制。",
+        "检查非流式输出和流式单条消息大小限制，以及适用的每请求/工作负载 token 预算。",
+        "审阅独立的主体/租户配额及耗尽行为，确保明确错误而非静默排队；普通请求失败或超大请求断连时需先确认归因。"
+      ],
+      "evidence": ["代理与应用中间件的独立报文限制配置", "普通和超阈值受控请求的对照记录", "非流式/流式消息及模型 token 预算配置", "主体/租户配额、耗尽策略与错误记录"],
+      "applicability": "MCP server、应用中间件和反向代理；token 预算要求适用于代理模型调用的服务器。原文线上示例是 2026-07-28 Streamable HTTP，请求大小和其他限制需按实际工作负载调优。",
+      "boundary": "不能给任意长流设置一个总量上限来替代单消息限制。单个 HTTP 413 对照仅证明回答请求层的大小检查，不证明全部预算、租户配额或应用内限制已生效；nginx 1m 是示例值。",
+      "source_refs": [{"section": "10.2 / Description, Audit, Remediation", "pdf_pages": [292, 293, 294, 295], "printed_pages": [291, 292, 293, 294], "local_path": "papers/CIS_MCP_Server_Benchmark_v1.0.0.pdf"}],
+      "source_excerpt": "MCP servers enforce maximum size limits on all inbound JSON-RPC request bodies. Servers bound the size of a non-streaming result payload, and bound the size of each individual message in a streamed or long-lived response, rather than applying a single total ceiling across an arbitrarily long stream. Servers that proxy model calls enforce token-budget limits per request and per workload. Per-principal and per-tenant rate quotas are enforced independently of global server rate limits. A principal is an authorization context or an application-defined workload scope, not an MCP transport connection, because the protocol is stateless and a connection is not a session.",
+      "adaptation_note": "依据原文摘要限制维度、对照测试与配置检查；未发送超大请求或制造配额耗尽，未复制 nginx 示例为项目默认值。"
+    }
+  }
+}

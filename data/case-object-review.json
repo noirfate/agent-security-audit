@@ -1,0 +1,862 @@
+{
+  "schema_version": "1.0",
+  "review_id": "v1-object-responsibility-review",
+  "statement": "每条案例对架构对象的定位结论。目的是让\"没有挂载\"这件事可读：是审过判定不落在任何架构对象上，还是与另一条记录重复，还是尚未审。结论只覆盖案例到架构对象的定位，不改动案例事实，也不替代risk_ids。",
+  "categories": {
+    "mapped": "已定位：对象挂载写在cases.json的object_mappings里，每条自带理由。",
+    "out-of-scope": "审过：该案例的机制不经过本框架的任何架构对象；reason写明为什么不经过。",
+    "duplicate-of": "与另一条记录是同一事件；of指向那一条，对象结论以它为准，本条不单独挂载。",
+    "pending_review": "尚未审。与atlas-selection-review中同名结论含义一致，是显式的待办而不是沉默。"
+  },
+  "counts": {
+    "duplicate-of": 7,
+    "mapped": 231,
+    "out-of-scope": 29
+  },
+  "entries": {
+    "INC-001": {
+      "status": "mapped"
+    },
+    "INC-002": {
+      "status": "mapped"
+    },
+    "INC-003": {
+      "status": "mapped"
+    },
+    "INC-004": {
+      "status": "mapped"
+    },
+    "INC-005": {
+      "status": "mapped"
+    },
+    "INC-006": {
+      "status": "mapped"
+    },
+    "INC-007": {
+      "status": "mapped"
+    },
+    "INC-008": {
+      "status": "mapped"
+    },
+    "INC-009": {
+      "status": "mapped"
+    },
+    "INC-010": {
+      "status": "mapped"
+    },
+    "INC-011": {
+      "status": "out-of-scope",
+      "reason": "攻击者侧的能力获取（售卖无审查模型），不落在被审计系统的任何对象上，命题层没有对应条目。"
+    },
+    "INC-012": {
+      "status": "mapped"
+    },
+    "INC-013": {
+      "status": "mapped"
+    },
+    "INC-014": {
+      "status": "out-of-scope",
+      "reason": "AI生成内容淹没投稿渠道，属内容生态；命题层没有描述这类失效的条目。"
+    },
+    "INC-015": {
+      "status": "mapped"
+    },
+    "INC-016": {
+      "status": "mapped"
+    },
+    "INC-017": {
+      "status": "mapped"
+    },
+    "INC-018": {
+      "status": "mapped"
+    },
+    "INC-019": {
+      "status": "mapped"
+    },
+    "INC-020": {
+      "status": "mapped"
+    },
+    "INC-021": {
+      "status": "mapped"
+    },
+    "INC-022": {
+      "status": "mapped"
+    },
+    "INC-023": {
+      "status": "duplicate-of",
+      "of": "AML.CS0024",
+      "reason": "同一份Nassi等人的Morris II工作；ATLAS侧记录含完整技术步骤，对象结论以其为准。"
+    },
+    "INC-024": {
+      "status": "duplicate-of",
+      "of": "AML.CS0035",
+      "reason": "同一份PromptArmor的Slack AI间接注入研究；ATLAS侧记录含完整技术步骤与载荷，对象结论以其为准。"
+    },
+    "INC-025": {
+      "status": "mapped"
+    },
+    "INC-026": {
+      "status": "out-of-scope",
+      "reason": "语音深伪实施的电汇诈骗，攻击对象是人与业务审批流程，命题层没有对应条目。"
+    },
+    "INC-027": {
+      "status": "mapped"
+    },
+    "INC-028": {
+      "status": "mapped"
+    },
+    "INC-029": {
+      "status": "mapped"
+    },
+    "INC-030": {
+      "status": "mapped"
+    },
+    "INC-031": {
+      "status": "mapped"
+    },
+    "INC-032": {
+      "status": "mapped"
+    },
+    "INC-033": {
+      "status": "mapped"
+    },
+    "INC-034": {
+      "status": "mapped"
+    },
+    "INC-035": {
+      "status": "out-of-scope",
+      "reason": "监管机构对数据处理与同意的执法裁决，属合规结论，不是技术对象的失效。"
+    },
+    "INC-036": {
+      "status": "out-of-scope",
+      "reason": "人脸识别偏见引发的集体诉讼和解，属算法公平与法律结论。"
+    },
+    "INC-037": {
+      "status": "mapped"
+    },
+    "INC-038": {
+      "status": "mapped"
+    },
+    "INC-039": {
+      "status": "out-of-scope",
+      "reason": "训练数据版权诉讼，属法律裁决。"
+    },
+    "INC-040": {
+      "status": "out-of-scope",
+      "reason": "合成数据再识别研究，属数据发布与匿名化方法，未定位到具体对象的失效。"
+    },
+    "INC-041": {
+      "status": "mapped"
+    },
+    "INC-042": {
+      "status": "out-of-scope",
+      "reason": "ML平台数据血缘审计，属治理成熟度评估，不是一次失效。"
+    },
+    "INC-043": {
+      "status": "out-of-scope",
+      "reason": "数据本地化监管执法，属合规结论。"
+    },
+    "INC-044": {
+      "status": "out-of-scope",
+      "reason": "第三方标注外包方的数据暴露，披露停在供应商管理层面，未给出可定位到对象的技术路径。"
+    },
+    "INC-045": {
+      "status": "mapped"
+    },
+    "INC-046": {
+      "status": "mapped"
+    },
+    "INC-047": {
+      "status": "mapped"
+    },
+    "INC-048": {
+      "status": "out-of-scope",
+      "reason": "AI陪伴应用对用户的操纵与剥削，属人机关系与内容治理，命题层没有对应条目。"
+    },
+    "INC-049": {
+      "status": "out-of-scope",
+      "reason": "生成式模型产出违法内容，属训练数据与输出治理，命题层没有对应条目。"
+    },
+    "INC-050": {
+      "status": "out-of-scope",
+      "reason": "数据留存与被遗忘权的监管挑战，属合规结论。"
+    },
+    "INC-051": {
+      "status": "out-of-scope",
+      "reason": "图像生成在人口统计上的过度校正争议，是安全策略自身的取舍而非被攻击改变，命题层没有对应条目。"
+    },
+    "INC-052": {
+      "status": "mapped"
+    },
+    "INC-053": {
+      "status": "mapped"
+    },
+    "INC-054": {
+      "status": "mapped"
+    },
+    "INC-055": {
+      "status": "mapped"
+    },
+    "INC-056": {
+      "status": "mapped"
+    },
+    "INC-057": {
+      "status": "out-of-scope",
+      "reason": "AI陪伴产品与青少年自伤事件，属内容安全与产品责任。"
+    },
+    "INC-058": {
+      "status": "out-of-scope",
+      "reason": "深伪语音自动外呼干扰选举，属内容滥用。"
+    },
+    "INC-059": {
+      "status": "out-of-scope",
+      "reason": "检索类产品逐字复现他人内容的抄袭争议，属版权与内容治理。"
+    },
+    "INC-060": {
+      "status": "mapped"
+    },
+    "INC-061": {
+      "status": "mapped"
+    },
+    "INC-062": {
+      "status": "mapped"
+    },
+    "INC-063": {
+      "status": "mapped"
+    },
+    "INC-064": {
+      "status": "mapped"
+    },
+    "INC-065": {
+      "status": "mapped"
+    },
+    "INC-066": {
+      "status": "out-of-scope",
+      "reason": "自动驾驶数据留存规模，属数据治理，未定位到具体对象的失效。"
+    },
+    "INC-067": {
+      "status": "mapped"
+    },
+    "INC-068": {
+      "status": "out-of-scope",
+      "reason": "无法更正错误个人信息的监管认定，属合规结论。"
+    },
+    "INC-069": {
+      "status": "mapped"
+    },
+    "INC-070": {
+      "status": "mapped"
+    },
+    "INC-071": {
+      "status": "out-of-scope",
+      "reason": "对被禁AI做法的首批执法，属合规结论。"
+    },
+    "INC-072": {
+      "status": "mapped"
+    },
+    "INC-073": {
+      "status": "mapped"
+    },
+    "INC-074": {
+      "status": "out-of-scope",
+      "reason": "招聘模型的性别偏见，属算法公平；命题层的对抗诱导条目要求可复现的针对性误判，本案是训练数据导致的系统性偏差。"
+    },
+    "INC-075": {
+      "status": "out-of-scope",
+      "reason": "用大模型辅助生成可规避终端检测的恶意软件，属攻击者侧能力。"
+    },
+    "INC-076": {
+      "status": "out-of-scope",
+      "reason": "自动驾驶感知失效属一般性错误输出，不是针对该模型构造的可复现对抗误判，命题层对应条目的成立条件不满足。"
+    },
+    "INC-077": {
+      "status": "out-of-scope",
+      "reason": "深伪图像传播，属内容滥用。"
+    },
+    "INC-078": {
+      "status": "mapped"
+    },
+    "INC-079": {
+      "status": "mapped"
+    },
+    "INC-080": {
+      "status": "mapped"
+    },
+    "INC-081": {
+      "status": "mapped"
+    },
+    "INC-082": {
+      "status": "mapped"
+    },
+    "INC-083": {
+      "status": "duplicate-of",
+      "of": "AML.CS0069",
+      "reason": "同一起GTG-1002行动（被越狱的Claude Code对约30家机构实施间谍活动）；对象结论以ATLAS侧记录为准。"
+    },
+    "INC-084": {
+      "status": "mapped"
+    },
+    "INC-085": {
+      "status": "mapped"
+    },
+    "INC-086": {
+      "status": "mapped"
+    },
+    "INC-087": {
+      "status": "mapped"
+    },
+    "INC-088": {
+      "status": "mapped"
+    },
+    "INC-089": {
+      "status": "mapped"
+    },
+    "INC-090": {
+      "status": "mapped"
+    },
+    "INC-091": {
+      "status": "mapped"
+    },
+    "INC-092": {
+      "status": "out-of-scope",
+      "reason": "攻击者越狱模型后实施的数据窃取行动，属攻击者侧用法。"
+    },
+    "INC-093": {
+      "status": "mapped"
+    },
+    "INC-094": {
+      "status": "mapped"
+    },
+    "INC-095": {
+      "status": "mapped"
+    },
+    "INC-096": {
+      "status": "out-of-scope",
+      "reason": "自主AI发现严重漏洞，属AI用于攻防的能力记录，不落在被审计系统上。"
+    },
+    "INC-097": {
+      "status": "mapped"
+    },
+    "INC-098": {
+      "status": "mapped"
+    },
+    "INC-099": {
+      "status": "mapped"
+    },
+    "INC-100": {
+      "status": "duplicate-of",
+      "of": "AML.CS0072",
+      "reason": "同一份微软的AI推荐投毒研究；对象结论以ATLAS侧记录为准。"
+    },
+    "INC-101": {
+      "status": "mapped"
+    },
+    "INC-102": {
+      "status": "mapped"
+    },
+    "INC-103": {
+      "status": "mapped"
+    },
+    "INC-104": {
+      "status": "mapped"
+    },
+    "INC-105": {
+      "status": "duplicate-of",
+      "of": "PUB-006",
+      "reason": "同一现象（Copilot Studio公开Agent默认无认证暴露）；PUB-006是Zenity的具名研究并给出规模数据，对象结论以其为准。"
+    },
+    "INC-106": {
+      "status": "mapped"
+    },
+    "INC-107": {
+      "status": "mapped"
+    },
+    "INC-108": {
+      "status": "mapped"
+    },
+    "INC-109": {
+      "status": "mapped"
+    },
+    "INC-110": {
+      "status": "out-of-scope",
+      "reason": "厂商滥用报告中的三起攻击者侧用法。"
+    },
+    "INC-111": {
+      "status": "mapped"
+    },
+    "INC-112": {
+      "status": "mapped"
+    },
+    "INC-113": {
+      "status": "mapped"
+    },
+    "INC-114": {
+      "status": "mapped"
+    },
+    "INC-115": {
+      "status": "mapped"
+    },
+    "INC-116": {
+      "status": "mapped"
+    },
+    "INC-117": {
+      "status": "mapped"
+    },
+    "INC-118": {
+      "status": "mapped"
+    },
+    "INC-119": {
+      "status": "mapped"
+    },
+    "INC-120": {
+      "status": "mapped"
+    },
+    "INC-121": {
+      "status": "mapped"
+    },
+    "INC-122": {
+      "status": "mapped"
+    },
+    "INC-123": {
+      "status": "mapped"
+    },
+    "INC-124": {
+      "status": "mapped"
+    },
+    "INC-125": {
+      "status": "mapped"
+    },
+    "INC-126": {
+      "status": "mapped"
+    },
+    "INC-127": {
+      "status": "mapped"
+    },
+    "INC-128": {
+      "status": "mapped"
+    },
+    "INC-129": {
+      "status": "mapped"
+    },
+    "INC-130": {
+      "status": "mapped"
+    },
+    "INC-131": {
+      "status": "mapped"
+    },
+    "INC-132": {
+      "status": "mapped"
+    },
+    "INC-133": {
+      "status": "mapped"
+    },
+    "INC-134": {
+      "status": "mapped"
+    },
+    "INC-135": {
+      "status": "mapped"
+    },
+    "INC-136": {
+      "status": "mapped"
+    },
+    "INC-137": {
+      "status": "mapped"
+    },
+    "INC-138": {
+      "status": "mapped"
+    },
+    "INC-139": {
+      "status": "mapped"
+    },
+    "INC-140": {
+      "status": "mapped"
+    },
+    "INC-141": {
+      "status": "mapped"
+    },
+    "INC-142": {
+      "status": "mapped"
+    },
+    "INC-143": {
+      "status": "mapped"
+    },
+    "INC-144": {
+      "status": "mapped"
+    },
+    "INC-145": {
+      "status": "mapped"
+    },
+    "INC-146": {
+      "status": "mapped"
+    },
+    "INC-147": {
+      "status": "mapped"
+    },
+    "AML.CS0000": {
+      "status": "mapped"
+    },
+    "AML.CS0001": {
+      "status": "mapped"
+    },
+    "AML.CS0002": {
+      "status": "mapped"
+    },
+    "AML.CS0003": {
+      "status": "mapped"
+    },
+    "AML.CS0004": {
+      "status": "mapped"
+    },
+    "AML.CS0005": {
+      "status": "mapped"
+    },
+    "AML.CS0006": {
+      "status": "mapped"
+    },
+    "AML.CS0007": {
+      "status": "out-of-scope",
+      "reason": "复制依据的是公开技术说明与开源制品：既未系统化查询目标推理接口，也未取得其模型制品，命题层相关条目的成立条件都不满足。"
+    },
+    "AML.CS0008": {
+      "status": "mapped"
+    },
+    "AML.CS0009": {
+      "status": "mapped"
+    },
+    "AML.CS0010": {
+      "status": "out-of-scope",
+      "reason": "对内部服务的红队演练，披露停在演练层面，未给出可定位到具体对象的失效细节。"
+    },
+    "AML.CS0011": {
+      "status": "mapped"
+    },
+    "AML.CS0012": {
+      "status": "mapped"
+    },
+    "AML.CS0013": {
+      "status": "mapped"
+    },
+    "AML.CS0014": {
+      "status": "mapped"
+    },
+    "AML.CS0015": {
+      "status": "mapped"
+    },
+    "AML.CS0016": {
+      "status": "mapped"
+    },
+    "AML.CS0017": {
+      "status": "mapped"
+    },
+    "AML.CS0018": {
+      "status": "mapped"
+    },
+    "AML.CS0019": {
+      "status": "mapped"
+    },
+    "AML.CS0020": {
+      "status": "mapped"
+    },
+    "AML.CS0021": {
+      "status": "mapped"
+    },
+    "AML.CS0022": {
+      "status": "mapped"
+    },
+    "AML.CS0023": {
+      "status": "mapped"
+    },
+    "AML.CS0024": {
+      "status": "mapped"
+    },
+    "AML.CS0025": {
+      "status": "mapped"
+    },
+    "AML.CS0026": {
+      "status": "mapped"
+    },
+    "AML.CS0027": {
+      "status": "mapped"
+    },
+    "AML.CS0028": {
+      "status": "mapped"
+    },
+    "AML.CS0029": {
+      "status": "mapped"
+    },
+    "AML.CS0030": {
+      "status": "mapped"
+    },
+    "AML.CS0031": {
+      "status": "mapped"
+    },
+    "AML.CS0032": {
+      "status": "mapped"
+    },
+    "AML.CS0033": {
+      "status": "mapped"
+    },
+    "AML.CS0034": {
+      "status": "mapped"
+    },
+    "AML.CS0035": {
+      "status": "mapped"
+    },
+    "AML.CS0036": {
+      "status": "mapped"
+    },
+    "AML.CS0037": {
+      "status": "mapped"
+    },
+    "AML.CS0038": {
+      "status": "mapped"
+    },
+    "AML.CS0039": {
+      "status": "mapped"
+    },
+    "AML.CS0040": {
+      "status": "mapped"
+    },
+    "AML.CS0041": {
+      "status": "mapped"
+    },
+    "AML.CS0042": {
+      "status": "mapped"
+    },
+    "AML.CS0043": {
+      "status": "mapped"
+    },
+    "AML.CS0044": {
+      "status": "mapped"
+    },
+    "AML.CS0045": {
+      "status": "mapped"
+    },
+    "AML.CS0046": {
+      "status": "mapped"
+    },
+    "AML.CS0047": {
+      "status": "mapped"
+    },
+    "AML.CS0048": {
+      "status": "mapped"
+    },
+    "AML.CS0049": {
+      "status": "mapped"
+    },
+    "AML.CS0050": {
+      "status": "mapped"
+    },
+    "AML.CS0051": {
+      "status": "mapped"
+    },
+    "AML.CS0052": {
+      "status": "mapped"
+    },
+    "AML.CS0053": {
+      "status": "mapped"
+    },
+    "AML.CS0054": {
+      "status": "mapped"
+    },
+    "AML.CS0055": {
+      "status": "mapped"
+    },
+    "AML.CS0056": {
+      "status": "mapped"
+    },
+    "AML.CS0057": {
+      "status": "mapped"
+    },
+    "AML.CS0058": {
+      "status": "mapped"
+    },
+    "AML.CS0059": {
+      "status": "duplicate-of",
+      "of": "INC-089",
+      "reason": "同一个漏洞（EchoLeak，CVE-2025-32711）；本条是ATLAS侧记录，对象结论以INC-089为准。"
+    },
+    "AML.CS0060": {
+      "status": "mapped"
+    },
+    "AML.CS0061": {
+      "status": "mapped"
+    },
+    "AML.CS0062": {
+      "status": "mapped"
+    },
+    "AML.CS0063": {
+      "status": "mapped"
+    },
+    "AML.CS0064": {
+      "status": "mapped"
+    },
+    "AML.CS0065": {
+      "status": "mapped"
+    },
+    "AML.CS0066": {
+      "status": "mapped"
+    },
+    "AML.CS0067": {
+      "status": "mapped"
+    },
+    "AML.CS0068": {
+      "status": "duplicate-of",
+      "of": "INC-137",
+      "reason": "同一起ExploitGym评测中Agent越界并攻陷Hugging Face生产系统的事件；INC-137对机制展开更完整，对象结论以其为准。"
+    },
+    "AML.CS0069": {
+      "status": "mapped"
+    },
+    "AML.CS0070": {
+      "status": "mapped"
+    },
+    "AML.CS0071": {
+      "status": "mapped"
+    },
+    "AML.CS0072": {
+      "status": "mapped"
+    },
+    "LAB-MEMORY-01": {
+      "status": "mapped"
+    },
+    "RENDER-MERMAID-01": {
+      "status": "mapped"
+    },
+    "PUB-001": {
+      "status": "mapped"
+    },
+    "PUB-002": {
+      "status": "mapped"
+    },
+    "PUB-003": {
+      "status": "mapped"
+    },
+    "PUB-004": {
+      "status": "mapped"
+    },
+    "PUB-005": {
+      "status": "mapped"
+    },
+    "PUB-006": {
+      "status": "mapped"
+    },
+    "PUB-007": {
+      "status": "mapped"
+    },
+    "PUB-008": {
+      "status": "mapped"
+    },
+    "PUB-009": {
+      "status": "mapped"
+    },
+    "PUB-010": {
+      "status": "mapped"
+    },
+    "PUB-011": {
+      "status": "mapped"
+    },
+    "PUB-012": {
+      "status": "mapped"
+    },
+    "PUB-013": {
+      "status": "mapped"
+    },
+    "PUB-014": {
+      "status": "mapped"
+    },
+    "PUB-015": {
+      "status": "mapped"
+    },
+    "PUB-016": {
+      "status": "mapped"
+    },
+    "PUB-017": {
+      "status": "mapped"
+    },
+    "PUB-018": {
+      "status": "mapped"
+    },
+    "PUB-019": {
+      "status": "mapped"
+    },
+    "PUB-020": {
+      "status": "mapped"
+    },
+    "PUB-021": {
+      "status": "mapped"
+    },
+    "PUB-022": {
+      "status": "mapped"
+    },
+    "PUB-023": {
+      "status": "mapped"
+    },
+    "PUB-024": {
+      "status": "mapped"
+    },
+    "PUB-025": {
+      "status": "mapped"
+    },
+    "PUB-026": {
+      "status": "mapped"
+    },
+    "PUB-027": {
+      "status": "mapped"
+    },
+    "PUB-028": {
+      "status": "mapped"
+    },
+    "PUB-029": {
+      "status": "mapped"
+    },
+    "PUB-030": {
+      "status": "mapped"
+    },
+    "PUB-031": {
+      "status": "mapped"
+    },
+    "PUB-032": {
+      "status": "mapped"
+    },
+    "PUB-033": {
+      "status": "mapped"
+    },
+    "PUB-034": {
+      "status": "mapped"
+    },
+    "PUB-035": {
+      "status": "mapped"
+    },
+    "PUB-036": {
+      "status": "mapped"
+    },
+    "PUB-037": {
+      "status": "mapped"
+    },
+    "PUB-038": {
+      "status": "mapped"
+    },
+    "PUB-039": {
+      "status": "mapped"
+    },
+    "PUB-040": {
+      "status": "mapped"
+    },
+    "PUB-041": {
+      "status": "mapped"
+    },
+    "PUB-042": {
+      "status": "mapped"
+    },
+    "PUB-043": {
+      "status": "mapped"
+    },
+    "PUB-044": {
+      "status": "mapped"
+    },
+    "PUB-045": {
+      "status": "mapped"
+    }
+  }
+}

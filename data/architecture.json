@@ -1,0 +1,2811 @@
+{
+  "layers": [
+    {
+      "id": "A1",
+      "name": "接口层",
+      "cis_original_name": "Interface Layer",
+      "definition": "接口层是承载用户及外部系统与Agent交互的接入和呈现层。包括API与消息接口、内容解析与渲染和会话管理组件。"
+    },
+    {
+      "id": "A2",
+      "name": "编排与规划层",
+      "cis_original_name": "Orchestration and Planning Layer",
+      "definition": "编排与规划层是组织Agent任务和执行决策的控制层。包括任务与计划、指令配置、编排引擎、Agent定义、Skill、动作审批及协作委派组件。"
+    },
+    {
+      "id": "A3",
+      "name": "模型层",
+      "cis_original_name": "Model Layer",
+      "definition": "模型层是提供和更新Agent模型能力的计算服务层。包括模型资产、推理服务、模型网关和训练微调管线。"
+    },
+    {
+      "id": "A4",
+      "name": "工具与动作层",
+      "cis_original_name": "Tool and Action Layer",
+      "definition": "工具与动作层是将Agent调用转换为外部操作的能力执行层。包括工具目录、调用器、MCP组件、API连接器、浏览器桌面工具和代码执行器。"
+    },
+    {
+      "id": "A5",
+      "name": "记忆与知识层",
+      "cis_original_name": "Memory and Knowledge Layer",
+      "definition": "记忆与知识层是保存、组织和获取Agent所用信息的数据层。包括工作记忆、长期记忆、知识语料、检索与索引、缓存与检查点、存储服务及数据摄取管线。"
+    },
+    {
+      "id": "A6",
+      "name": "评测与可观测层",
+      "cis_original_name": "Evaluation and Observability Layer",
+      "definition": "评测与可观测层是提供运行观测、安全检测和行为验证能力的支撑层。包括日志遥测、安全护栏和评测红队系统。"
+    },
+    {
+      "id": "A7",
+      "name": "基础设施层",
+      "cis_original_name": "Infrastructure Layer",
+      "definition": "基础设施层是承载Agent系统运行与管理的资源层。包括执行环境、文件资源、网络设施、身份凭据设施、构建部署系统和底层计算组件。"
+    }
+  ],
+  "objects": {
+    "A1.1": {
+      "id": "A1.1",
+      "name": "API与消息接口",
+      "object_kind": "component",
+      "previous_locations": [
+        "A1.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "未经授权请求、事件重放、任务伪造；ASI03、LLM01",
+      "control_point_guidance": "C01/C11：入口验证主体、来源与事件条件，限制流量并绑定任务；动作权限由执行端复核。",
+      "control_ids": [
+        "C01",
+        "C11"
+      ],
+      "verification_guidance": "M02/M03/M05/M07：枚举入口，以正常请求和无凭据、错误受众、重放事件作对照。",
+      "method_ids": [
+        "M02",
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A1",
+      "kind": "object",
+      "technical_audit_focus": [
+        "入口认证与主体绑定",
+        "事件来源、重放和重复触发处理"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "API与消息接口是接收外部请求、消息和事件并交付Agent处理的接入组件。包括业务与管理API、SDK接入点、Webhook、消息队列、事件总线和定时触发入口。",
+      "boundaries": [
+        {
+          "description": "外部请求接入与Agent向外调用服务是不同的通信方向；业务服务调用和模型推理分别由相应组件处理。",
+          "object_ids": [
+            "A4.4",
+            "A3.2"
+          ]
+        },
+        {
+          "description": "请求接入依赖底层网络设施，会话及其主体绑定由会话管理组件维护。",
+          "object_ids": [
+            "A7.3",
+            "A1.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "接收外部API调用、消息和事件，处理接入协议、请求封装及业务与管理入口的分流。",
+        "将业务载荷及其来源、身份、租户和会话标识交给后续处理组件，并向调用方返回接入结果或错误。"
+      ]
+    },
+    "A1.2": {
+      "id": "A1.2",
+      "name": "内容解析与渲染",
+      "object_kind": "component",
+      "previous_locations": [
+        "A1.1",
+        "A1.3"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "解析缺陷、隐藏指令、DOM/XSS/CSS注入、自动资源外发、服务端渲染SSRF及资源耗尽；LLM01、LLM10、LLM02、LLM06、DSGAI09、常规软件风险；动作预览或确认内容被伪装、替换或误导，展示超出必要范围的敏感数据；ASI09、DSGAI19",
+      "control_point_guidance": "C03/C04/C06/C07/C09/C11：实际解析/DOM/SVG/资源加载处验证与消毒，限制危险协议和外部资源，保护渲染配置、升级受影响依赖、隔离渲染环境及限制资源；服务端出口联动 A7.3。",
+      "control_ids": [
+        "C03",
+        "C04",
+        "C06",
+        "C07",
+        "C09",
+        "C11"
+      ],
+      "verification_guidance": "M02/M03/M04/M05/M06/M08：检查原始/转换内容、最终DOM/SVG、库/配置、执行位置及实际请求；核验编码、流式拼接、嵌入HTML、外部资源、重定向和DNS目标。普通浏览器外发不直接称SSRF。",
+      "method_ids": [
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A1",
+      "kind": "object",
+      "technical_audit_focus": [
+        "不安全内容解释",
+        "浏览器外发与服务端SSRF分别判断",
+        "安全相关呈现与实际主体、数据归属及最终动作一致"
+      ],
+      "review_origin": "项目v2对象调整：按用户要求删除独立用户界面对象，将内容呈现职责并入本对象；批准决策保留在A2.6",
+      "definition": "内容解析与渲染是转换输入内容并生成可阅读或可交互呈现结果的处理组件。包括文本、文档、OCR和多模态解析，以及HTML、Markdown、Mermaid、SVG、结果页面和动作预览的渲染功能。",
+      "boundaries": [
+        {
+          "description": "内容接入、会话归属、动作批准和最终执行分别由对应组件承担；本对象处理内容的解释与呈现。",
+          "object_ids": [
+            "A1.1",
+            "A1.3",
+            "A2.6",
+            "A4.2"
+          ]
+        },
+        {
+          "description": "解析器可以被数据摄取管线调用；解析模块与包含接入、转换和写入步骤的完整管线分别描述。",
+          "object_ids": [
+            "A5.7"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "把文本、文档、图像等输入转换为可供后续处理的内容结构，保留原始内容与解析结果的对应关系。",
+        "把结果、页面和动作预览转换为最终呈现内容，处理标记、资源引用和交互元素的解释。",
+        "维护安全相关字段在原始内容、传入上下文和最终呈现之间的一致性。"
+      ]
+    },
+    "A1.3": {
+      "id": "A1.3",
+      "name": "会话管理",
+      "object_kind": "component",
+      "previous_locations": [
+        "A1.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "会话劫持、串租户、上下文错绑、恢复流误归属；ASI03、DSGAI11",
+      "control_point_guidance": "C01/C07：会话解析与访问时复核主体/租户；核对客户自定userId/actorId和服务端授权的关系，缓存/恢复键保留主体归属。",
+      "control_ids": [
+        "C01",
+        "C07"
+      ],
+      "verification_guidance": "M02/M03/M05/M07：交换句柄/身份，在并发、重连和恢复后检查绑定；单独核对计算停止、会话有效性、记录与记忆保留。",
+      "method_ids": [
+        "M02",
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A1",
+      "kind": "object",
+      "technical_audit_focus": [
+        "会话归属与历史访问",
+        "恢复和重连后的授权"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "会话管理是维护用户、租户与任务之间交互关系和会话状态的管理组件。包括会话创建、标识与主体绑定、访问控制、并发控制、重连、恢复和终止功能。",
+      "boundaries": [
+        {
+          "description": "会话标识与生命周期管理区别于对话内容和工作状态的保存，也区别于恢复副本。",
+          "object_ids": [
+            "A5.1",
+            "A5.5"
+          ]
+        },
+        {
+          "description": "MCP连接和协议连续性由MCP组件实现，会话管理负责应用层的用户、租户与任务关系。",
+          "object_ids": [
+            "A4.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "建立并维护会话标识与用户、租户、任务的绑定关系，确定会话访问和操作所使用的上下文。",
+        "管理会话创建、并发、重连、恢复与终止，并向处理链提供当前有效的会话状态。"
+      ]
+    },
+    "A2.1": {
+      "id": "A2.1",
+      "name": "任务与计划",
+      "object_kind": "state",
+      "previous_locations": [
+        "A2.1"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "目标劫持、范围扩张、错误步骤；ASI01、LLM03、ASI10",
+      "control_point_guidance": "C02/C03：建立及更新任务时维护允许范围；新计划和重规划不得自行增加权限。",
+      "control_ids": [
+        "C02",
+        "C03"
+      ],
+      "verification_guidance": "M01/M02/M06：追踪目标到计划和最终动作，测试任务材料诱导的目标/范围变化。",
+      "method_ids": [
+        "M01",
+        "M02",
+        "M06"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "目标与任务范围完整性",
+        "计划变更和任务终止约束"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "任务与计划是描述Agent任务目标及执行安排的数据对象。包括目标、约束、执行步骤、任务状态、预算、完成条件、委派范围和计划更新记录。",
+      "boundaries": [
+        {
+          "description": "计划数据由编排引擎生成和执行；当前上下文及持久恢复副本分别由工作记忆和检查点承载。",
+          "object_ids": [
+            "A2.3",
+            "A5.1",
+            "A5.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "表达任务目标、约束、预算、完成条件和委派范围，作为执行过程的任务依据。",
+        "承载计划步骤、依赖关系、进度和更新记录，供编排引擎读取及更新。"
+      ]
+    },
+    "A2.2": {
+      "id": "A2.2",
+      "name": "提示词与上下文配置",
+      "object_kind": "artifact",
+      "previous_locations": [
+        "A2.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "指令覆盖、来源混淆、隐藏上下文暴露、过度共享；LLM01、LLM08、DSGAI15",
+      "control_point_guidance": "C03/C07/C09：模板变更受控，保留来源与最小上下文；提示词不承担最终授权。",
+      "control_ids": [
+        "C03",
+        "C07",
+        "C09"
+      ],
+      "verification_guidance": "M02/M04/M06/M08：核对模板版本、实际拼装路径与模型请求，检查权限是否依赖提示保密。",
+      "method_ids": [
+        "M02",
+        "M04",
+        "M06",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "来源与消息角色保持",
+        "隐藏上下文与敏感内容范围"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "提示词与上下文配置是规定模型指令及上下文构造方式的配置制品。包括系统与开发者指令、提示模板、消息角色、上下文选择与组装规则，以及压缩和摘要配置。",
+      "boundaries": [
+        {
+          "description": "配置由编排组件执行；被选择或组装的对话、记忆和知识内容是独立的数据对象。",
+          "object_ids": [
+            "A2.3",
+            "A5.1",
+            "A5.2",
+            "A5.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定系统与开发者指令、提示模板和消息角色，确定提供给模型的指令配置。",
+        "规定上下文选择、组装、压缩和摘要方式，为编排组件构造实际模型输入提供配置依据。"
+      ]
+    },
+    "A2.3": {
+      "id": "A2.3",
+      "name": "编排引擎",
+      "object_kind": "component",
+      "previous_locations": [
+        "A2.3"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "错误路由、无限循环、不安全回退、重复副作用；ASI01、ASI08、LLM06",
+      "control_point_guidance": "C02/C04/C11/C15：约束计划消费、全局预算、重试/恢复及取消传播；扩展加载校验当前版本和权限。",
+      "control_ids": [
+        "C02",
+        "C04",
+        "C11",
+        "C15"
+      ],
+      "verification_guidance": "M02/M06/M07/M08：测试异常输出、重规划、超时、重启和循环委派，核对外部效果。",
+      "method_ids": [
+        "M02",
+        "M06",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "循环预算与终止",
+        "重试/回退中的副作用一致性"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "编排引擎是驱动Agent任务执行过程的运行控制组件。包括规划、路由、调度、状态转换、循环、重试、错误回退、暂停、恢复和取消传播功能。",
+      "boundaries": [
+        {
+          "description": "任务目标与计划是引擎处理的数据；工具调用、动作批准和状态恢复副本由相应对象承担。",
+          "object_ids": [
+            "A2.1",
+            "A4.2",
+            "A2.6",
+            "A5.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "根据任务目标形成和更新执行路径，决定下一步规划、路由、调度及状态转换。",
+        "推进执行循环，处理重试、异常回退、暂停、恢复和取消，并把具体动作交给调用组件。"
+      ]
+    },
+    "A2.4": {
+      "id": "A2.4",
+      "name": "Agent定义与注册信息",
+      "object_kind": "artifact",
+      "previous_locations": [
+        "A2.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "能力虚报、角色冒充、定义/拓扑篡改、非法Agent接入；ASI03、ASI04、ASI07、ASI10",
+      "control_point_guidance": "C01/C02/C09/C10：注册与变更验证提供方和版本，声明不自动成为调用授权。",
+      "control_ids": [
+        "C01",
+        "C02",
+        "C09",
+        "C10"
+      ],
+      "verification_guidance": "M03/M04/M05/M07：比较发布与实际加载配置，检查发现、角色和委派目标变化。",
+      "method_ids": [
+        "M03",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X3"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "注册/发现真实性",
+        "能力声明与实际启用能力一致性"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "Agent定义与注册信息是描述Agent角色、能力和协作配置的定义制品与注册数据。包括Agent定义、角色与能力声明、Agent Card、注册条目、协作拓扑和定义版本。",
+      "boundaries": [
+        {
+          "description": "Agent能力声明区别于工具接口定义、模型指令配置和实际授权规则，定义的部署与激活由构建部署系统执行。",
+          "object_ids": [
+            "A4.1",
+            "A2.2",
+            "X1.3",
+            "A7.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "描述Agent的角色、能力、协作配置和定义版本，确定实例化与协作所使用的声明内容。",
+        "承载注册标识、发现条目与能力声明之间的对应关系，供注册、发现和加载流程使用。"
+      ]
+    },
+    "A2.5": {
+      "id": "A2.5",
+      "name": "Skill与规则文件",
+      "object_kind": "artifact",
+      "previous_locations": [
+        "A2.5"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "指令/规则投毒、动态替换、隐含越权要求；ASI04、ASI01、LLM01",
+      "control_point_guidance": "C03/C09：制品准入和版本核对；编排引擎加载时保留来源；包自述权限不代替宿主强制约束。",
+      "control_ids": [
+        "C03",
+        "C09"
+      ],
+      "verification_guidance": "M02/M04/M06/M07：检查正文、脚本和资源，比较安装、加载、批准与使用版本。",
+      "method_ids": [
+        "M02",
+        "M04",
+        "M06",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "加载/覆盖语义",
+        "动态引用与宿主执行能力"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "Skill与规则文件是向Agent提供可加载指令和任务规则的扩展制品。包括指令正文、包清单、加载配置、外部引用和规则优先级配置。",
+      "boundaries": [
+        {
+          "description": "包内脚本的运行由代码执行器承担；包的来源和依赖通过供应链对象描述。",
+          "object_ids": [
+            "A4.6",
+            "X3.1",
+            "X3.2"
+          ]
+        },
+        {
+          "description": "包内参考文档和数据按其内容用途参与知识或工作上下文，不因位于Skill包内而具有指令权限。",
+          "object_ids": [
+            "A5.1",
+            "A5.3",
+            "X2.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "提供可加载的任务指令和规则，规定指令正文、加载方式及规则优先级。",
+        "组织包清单、外部引用、脚本和参考内容入口，使加载与执行组件能够区分各类成员的用途。"
+      ]
+    },
+    "A2.6": {
+      "id": "A2.6",
+      "name": "动作策略与审批组件",
+      "object_kind": "component",
+      "previous_locations": [
+        "A2.6"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "误批、参数/版本错绑、策略自改、批准重放；ASI02、ASI03、ASI09",
+      "control_point_guidance": "C02/C10：独立策略决策；批准绑定主体、工具版本、规范化参数、资源与有效条件，管理权与任务权限分离。",
+      "control_ids": [
+        "C02",
+        "C10"
+      ],
+      "verification_guidance": "M02/M03/M05/M07：变更参数/版本、复用或重放批准，并检查旁路和执行端拒绝。",
+      "method_ids": [
+        "M02",
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "批准与最终动作绑定",
+        "策略旁路与故障默认行为"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "动作策略与审批组件是根据策略和批准条件决定动作能否执行的决策组件。包括动作允许与拒绝、批准请求、批准校验、撤销和例外处理功能。",
+      "boundaries": [
+        {
+          "description": "授权规则与已生效的授权或批准状态是该组件使用的数据，分别由策略和状态对象描述。",
+          "object_ids": [
+            "X1.3",
+            "X1.4"
+          ]
+        },
+        {
+          "description": "动作预览的内容呈现、最终调用关口和内容安全检测分别由对应组件承担。",
+          "object_ids": [
+            "A1.2",
+            "A4.2",
+            "A6.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "根据主体、任务、动作、资源和参数作出允许、拒绝或需要批准的决策。",
+        "获取和核验批准，处理批准与最终动作的绑定、有效条件、变更、撤销和例外。",
+        "将决策及其有效条件交付调用关口，由后者在实际执行时核验。"
+      ]
+    },
+    "A2.7": {
+      "id": "A2.7",
+      "name": "协作通信与委派",
+      "object_kind": "component",
+      "previous_locations": [
+        "A2.7"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "同伴消息投毒、冒充、委派扩权、跨Agent传播；ASI07、ASI03、ASI08",
+      "control_point_guidance": "C01/C02/C03/C11：验证每跳身份与范围，同伴内容不获更高指令权限；预算和停止条件沿委派传递。",
+      "control_ids": [
+        "C01",
+        "C02",
+        "C03",
+        "C11"
+      ],
+      "verification_guidance": "M05/M06/M07/M08：重建显式和共享状态路径，测试角色冒充、恶意结果、循环与取消。",
+      "method_ids": [
+        "M05",
+        "M06",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A2",
+      "kind": "object",
+      "technical_audit_focus": [
+        "代表关系与权限收敛",
+        "消息可信度及跨Agent传播"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "协作通信与委派是在多个Agent之间传递任务、消息和执行责任的协作组件。包括任务交接、委派、消息交换、协作拓扑处理和共享状态访问功能。",
+      "boundaries": [
+        {
+          "description": "共享记忆和文件是协作访问的资源，运行主体及委派权限由身份与授权对象描述。",
+          "object_ids": [
+            "A5.2",
+            "A7.2",
+            "X1.1",
+            "X1.2",
+            "X1.3",
+            "X1.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "组织Agent之间的任务交接、委派和消息交换，并传递发起主体、任务范围及执行上下文。",
+        "维护协作过程中的交接状态、共享状态访问和结果反馈，传播取消、失败及权限变化。"
+      ]
+    },
+    "A3.1": {
+      "id": "A3.1",
+      "name": "模型与权重",
+      "object_kind": "artifact",
+      "previous_locations": [
+        "A3.1"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "后门、恶意模型制品、越狱、失真输出、信息披露/IP复制；LLM04、LLM05、LLM01、LLM02、LLM07、DSGAI18、DSGAI20",
+      "control_point_guidance": "C09/C06/C07/C13/C14：制品访问/加载约束，行为评测与检测；高影响动作由模型外控制。",
+      "control_ids": [
+        "C09",
+        "C06",
+        "C07",
+        "C13",
+        "C14"
+      ],
+      "verification_guidance": "M04/M06/M09：核对来源、加载与版本；在指定条件下评测行为，抽测不等于排除后门。",
+      "method_ids": [
+        "M04",
+        "M06",
+        "M09"
+      ],
+      "cross_domain_ids": [
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A3",
+      "kind": "object",
+      "technical_audit_focus": [
+        "模型/制品来源与加载完整性",
+        "模型行为约束及数据泄露"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "模型与权重是为Agent提供推理、生成、表示或判定能力的模型资产。包括逻辑模型及版本、模型权重、分词器、适配器和量化制品。",
+      "boundaries": [
+        {
+          "description": "模型资产通过推理服务被调用，通过训练或微调管线被更新；逻辑模型与可获取的参数制品具有不同的证据范围。",
+          "object_ids": [
+            "A3.2",
+            "A3.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "确定所使用的逻辑模型、模型版本及其参数、分词器和适配器之间的对应关系。",
+        "承载可加载的模型参数制品或可调用的模型标识，为推理和模型更新流程提供模型资产。"
+      ]
+    },
+    "A3.2": {
+      "id": "A3.2",
+      "name": "推理服务",
+      "object_kind": "service",
+      "previous_locations": [
+        "A3.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "请求数据泄露、隐藏状态暴露、过量消费、未授权推理；LLM02、LLM08、LLM06、DSGAI15",
+      "control_point_guidance": "C01/C07/C11：服务端及调用前绑定身份、最小化数据和限制预算；核对缓存隔离、保留与供应责任。",
+      "control_ids": [
+        "C01",
+        "C07",
+        "C11"
+      ],
+      "verification_guidance": "M01/M03/M05/M08：核对实际请求、数据配置、凭据受众、资源消耗和可见范围。",
+      "method_ids": [
+        "M01",
+        "M03",
+        "M05",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A3",
+      "kind": "object",
+      "technical_audit_focus": [
+        "请求数据范围与服务授权",
+        "推理配置、缓存隔离和消费限制"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "推理服务是对输入执行模型推理并返回结果的服务组件。包括本地或托管推理端点、请求与响应处理、模型选择、推理参数、推理缓存和服务端数据处理设置。",
+      "boundaries": [
+        {
+          "description": "模型请求的跨服务转发与路由由网关承担，指令和上下文构造方式由提示配置规定。",
+          "object_ids": [
+            "A3.3",
+            "A2.2"
+          ]
+        },
+        {
+          "description": "服务调用依赖身份与网络设施，服务内部的推理处理与这些设施的控制职责分别描述。",
+          "object_ids": [
+            "A7.4",
+            "A7.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "接收推理输入，调用选定模型执行计算，并向调用方返回生成、表示或判定结果。",
+        "处理推理参数、请求响应、推理缓存及服务端数据处理设置，并提供实际模型调用的信息。"
+      ]
+    },
+    "A3.3": {
+      "id": "A3.3",
+      "name": "模型网关与代理",
+      "object_kind": "component",
+      "previous_locations": [
+        "A3.3"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "中间方读取/篡改、模型替换、路由漂移、密钥滥用；LLM02、LLM04、DSGAI03",
+      "control_point_guidance": "C01/C07/C09：提供方/端点准入，链路认证、凭据绑定、路由/版本追踪及备用路径限制。",
+      "control_ids": [
+        "C01",
+        "C07",
+        "C09"
+      ],
+      "verification_guidance": "M03/M04/M05/M08：核对DNS/TLS、路由、配置和流量；行为指纹不单独证明模型身份。",
+      "method_ids": [
+        "M03",
+        "M04",
+        "M05",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A3",
+      "kind": "object",
+      "technical_audit_focus": [
+        "模型/提供方路由完整性",
+        "凭据受众与回退路径"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "模型网关与代理是在Agent和推理服务之间转发与管理模型请求的中间组件。包括模型路由、协议转换、回退、代理鉴权和请求与响应处理功能。",
+      "boundaries": [
+        {
+          "description": "模型请求代理与网络出口约束具有不同职责；同一网关实际承担出站流量约束时，按出口与目标约束核查其放行范围。",
+          "object_ids": [
+            "A3.2",
+            "A7.3",
+            "X4.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "选择模型服务目标，完成模型请求的路由、协议转换、代理鉴权及回退处理。",
+        "维护转发前后请求与响应的对应关系，在路由或回退时传递相应的调用上下文。"
+      ]
+    },
+    "A3.4": {
+      "id": "A3.4",
+      "name": "训练与微调管线",
+      "object_kind": "component",
+      "previous_locations": [
+        "A3.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "训练/反馈投毒、隐私提取、合成数据缺陷；LLM05、DSGAI04、DSGAI10、DSGAI18",
+      "control_point_guidance": "C07/C09/C14：数据准入、来源与访问隔离，版本验证和回滚；隐私机制须核对假设。",
+      "control_ids": [
+        "C07",
+        "C09",
+        "C14"
+      ],
+      "verification_guidance": "M04/M09：核对数据与工序，对适用模型进行记忆、重构或后门检验；不可见项限制结论。",
+      "method_ids": [
+        "M04",
+        "M09"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A3",
+      "kind": "object",
+      "technical_audit_focus": [
+        "数据准入与训练任务权限",
+        "模型产物发布、版本和回滚"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "applicability": {
+        "mode": "scope_and_responsibility",
+        "note": "适用于目标包含的训练、微调、对齐或反馈驱动模型更新流程。自建与托管场景分别明确实现责任和证据范围，无法直接获取内部证据不等于相关风险不适用。",
+        "evidence_visibility_is_not_applicability": true
+      },
+      "definition": "训练与微调管线是利用数据或反馈生成和更新模型参数的处理流程。包括训练、微调、对齐、反馈处理和模型更新步骤。",
+      "boundaries": [
+        {
+          "description": "管线更新模型资产；不改变模型参数的对话保存和记忆更新由记忆对象承担。",
+          "object_ids": [
+            "A3.1",
+            "A5.1",
+            "A5.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "组织训练数据或反馈的处理，执行训练、微调、对齐和参数更新步骤。",
+        "输出更新后的模型制品及相应配置和结果记录，交由模型资产与发布流程使用。"
+      ]
+    },
+    "A4.1": {
+      "id": "A4.1",
+      "name": "工具定义与能力目录",
+      "object_kind": "artifact",
+      "previous_locations": [
+        "A4.1"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "描述投毒、同名工具、能力虚报、定义漂移；LLM01、ASI04、ASI02",
+      "control_point_guidance": "C03/C09：提供方和定义版本可追溯；描述是待处理资料，不自动取得指令或动作权限。",
+      "control_ids": [
+        "C03",
+        "C09"
+      ],
+      "verification_guidance": "M04/M06/M07：比较声明/实现与批准/加载版本，测试清单变更和描述对计划的影响。",
+      "method_ids": [
+        "M04",
+        "M06",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A4",
+      "kind": "object",
+      "technical_audit_focus": [
+        "定义完整性与来源",
+        "发现结果和实际调用绑定"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "工具定义与能力目录是描述可调用工具及其接口能力的元数据与目录。包括工具名称、描述、输入输出模式、能力声明、发现条目、版本和动态变更信息。",
+      "boundaries": [
+        {
+          "description": "工具的定义、调用和具体功能实现是不同对象；MCP协议接入与Agent级能力声明也分别描述。",
+          "object_ids": [
+            "A4.2",
+            "A4.3",
+            "A4.4",
+            "A4.5",
+            "A4.6",
+            "A2.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "描述工具名称、用途、输入输出模式和能力范围，作为工具选择与调用的接口依据。",
+        "提供可发现的工具条目及其定义版本和变更信息，使调用方能够确定实际使用的工具定义。"
+      ]
+    },
+    "A4.2": {
+      "id": "A4.2",
+      "name": "工具调用器",
+      "object_kind": "component",
+      "previous_locations": [
+        "A4.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "工具误用、参数越权、审批旁路、结果污染、重复副作用；ASI02、ASI03、LLM03、LLM01、ASI08",
+      "control_point_guidance": "C02/C04/C05/C10/C11：最终调用前检查主体/任务/参数/批准；调用与结果保留来源，失败与重试核对真实副作用。",
+      "control_ids": [
+        "C02",
+        "C04",
+        "C05",
+        "C10",
+        "C11"
+      ],
+      "verification_guidance": "M02/M05/M07/M08：测试直接/批量/异步/重试调用、参数变化和返回；关联实际业务结果。",
+      "method_ids": [
+        "M02",
+        "M05",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A4",
+      "kind": "object",
+      "technical_audit_focus": [
+        "最终主体/资源/参数核验",
+        "异步、批量、重试的副作用"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "工具调用器是将工具调用请求转换为实际工具执行的调用组件。包括调用分派、参数规范化、身份与授权校验、批准核验、请求发送和返回结果处理功能。",
+      "boundaries": [
+        {
+          "description": "任务规划与调度由编排引擎承担，动作授权决策由审批组件提供，工具实现和资源端执行实际业务操作。",
+          "object_ids": [
+            "A2.3",
+            "A2.6",
+            "A4.4",
+            "A4.5",
+            "A4.6"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "将确定的工具及参数转换为调用请求，完成参数规范化以及调用所需的身份、权限和批准核验。",
+        "把请求分派到实际工具，关联请求与返回结果，并将工具错误和执行结果反馈给编排流程。"
+      ]
+    },
+    "A4.3": {
+      "id": "A4.3",
+      "name": "MCP宿主、客户端与服务端",
+      "object_kind": "component",
+      "previous_locations": [
+        "A4.3"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "令牌透传、会话劫持、SSRF、发现/回调混淆、本地进程启动风险；ASI03、ASI04、DSGAI06",
+      "control_point_guidance": "C01/C04/C06/C07：按协议版本鉴权和校验受众/URL/会话，约束本地进程与回调；另查业务授权。",
+      "control_ids": [
+        "C01",
+        "C04",
+        "C06",
+        "C07"
+      ],
+      "verification_guidance": "M03/M04/M05/M07：检查发现、重定向、重连、令牌和进程权限；协议合规不代替动作授权。",
+      "method_ids": [
+        "M03",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A4",
+      "kind": "object",
+      "technical_audit_focus": [
+        "按角色与传输核查认证",
+        "tools/resources/prompts及交互能力分别审查"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "MCP宿主、客户端与服务端是通过Model Context Protocol连接Agent与工具、资源和提示能力的协议组件。包括应用内宿主、客户端、服务端，以及连接、传输、能力协商和协议状态处理实现。",
+      "boundaries": [
+        {
+          "description": "MCP宿主是应用中的协议宿主，其运行环境由基础设施承载；应用业务会话与协议连接状态分别管理。",
+          "object_ids": [
+            "A7.1",
+            "A1.3"
+          ]
+        },
+        {
+          "description": "MCP暴露的工具定义和具体功能实现分别由工具目录及相应工具对象描述，协议行为取决于实际角色与版本。",
+          "object_ids": [
+            "A4.1",
+            "A4.4",
+            "A4.5",
+            "A4.6"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "处理MCP宿主、客户端与服务端之间的连接、传输、能力协商、协议状态和消息交互。",
+        "按实际角色与协议版本传递工具、资源及提示请求，处理协议边界的参数、状态和错误。"
+      ]
+    },
+    "A4.4": {
+      "id": "A4.4",
+      "name": "API与数据连接器",
+      "object_kind": "service",
+      "previous_locations": [
+        "A4.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "合法工具被不安全使用、资源越权、SQL/命令/路径注入、数据外发；ASI02、ASI03、LLM10、ASI05、DSGAI12",
+      "control_point_guidance": "C02/C04/C05/C07/C11：业务端验证资源与参数，危险操作参数化，限制接收方/金额/字段并约束重复操作。",
+      "control_ids": [
+        "C02",
+        "C04",
+        "C05",
+        "C07",
+        "C11"
+      ],
+      "verification_guidance": "M02/M05/M07/M08：身份/资源/参数正反对照，追踪到危险操作与真实业务状态。",
+      "method_ids": [
+        "M02",
+        "M05",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A4",
+      "kind": "object",
+      "technical_audit_focus": [
+        "下游资源授权与输入约束",
+        "URL目标、重定向及数据发送范围"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "API与数据连接器是将外部业务系统、API和数据源接入为Agent操作能力的适配组件。包括业务API适配器、数据库连接器、邮件、日历、CRM集成，以及HTTP请求、URL抓取和文件获取工具。",
+      "boundaries": [
+        {
+          "description": "基于浏览器执行上下文的操作由浏览器工具承担，完整数据摄取链和后端存储平台分别描述。",
+          "object_ids": [
+            "A4.5",
+            "A5.7",
+            "A5.6"
+          ]
+        },
+        {
+          "description": "连接器使用底层网络连接，网络可达性与业务资源授权分别由网络和授权对象约束。",
+          "object_ids": [
+            "A7.3",
+            "X1.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "将Agent的业务操作转换为目标API、数据库或外部系统能够接受的请求。",
+        "按目标资源的操作语义发起调用，把外部数据、业务结果及错误转换为工具返回内容。"
+      ]
+    },
+    "A4.5": {
+      "id": "A4.5",
+      "name": "浏览器与桌面工具",
+      "object_kind": "component",
+      "previous_locations": [
+        "A4.5"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "网页/视觉诱导、导航越界、跨账号或本地资源访问；ASI02、DSGAI16",
+      "control_point_guidance": "C02/C04/C06/C07：约束站点、账号、文件和高影响动作，隔离浏览器身份及工作区。",
+      "control_ids": [
+        "C02",
+        "C04",
+        "C06",
+        "C07"
+      ],
+      "verification_guidance": "M05/M06/M08：检查弹窗、导航、下载和剪贴板路径，核对实际目的地/文件及账号。",
+      "method_ids": [
+        "M05",
+        "M06",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A4",
+      "kind": "object",
+      "technical_audit_focus": [
+        "账号/配置文件隔离",
+        "导航、文件与本地资源访问约束"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "浏览器与桌面工具是让Agent操控浏览器和桌面环境的执行组件。包括页面导航与感知、文件下载、剪贴板读写、鼠标键盘输入，以及浏览器和桌面账号环境管理功能。",
+      "boundaries": [
+        {
+          "description": "内容解析和面向用户的页面、结果及动作预览呈现由解析渲染组件承担；浏览器或桌面进程的运行与隔离由执行环境提供。",
+          "object_ids": [
+            "A1.2",
+            "A7.1"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "将Agent动作转换为页面导航、下载、剪贴板操作及鼠标键盘输入，驱动浏览器或桌面完成操作。",
+        "维护本次操作所使用的窗口、页面、桌面和账号上下文，确定动作实际作用的目标。",
+        "读取操作所需的页面或屏幕状态，采集实际执行结果并返回给调用与编排组件。"
+      ]
+    },
+    "A4.6": {
+      "id": "A4.6",
+      "name": "代码与脚本执行器",
+      "object_kind": "component",
+      "previous_locations": [
+        "A4.6"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "非预期/对抗性代码执行、任意安装和宿主访问；ASI05、ASI04、LLM10",
+      "control_point_guidance": "C02/C04/C06/C09：限制执行入口、代码/参数解释与继承能力；采用适用沙箱和有限文件/网络/凭据。",
+      "control_ids": [
+        "C02",
+        "C04",
+        "C06",
+        "C09"
+      ],
+      "verification_guidance": "M02/M04/M05：核对实际执行器、危险操作、子进程、依赖安装及跨工作区权限。",
+      "method_ids": [
+        "M02",
+        "M04",
+        "M05"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A4",
+      "kind": "object",
+      "technical_audit_focus": [
+        "命令/文件/网络有效权限",
+        "安装和子进程的限制继承"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "代码与脚本执行器是接收并运行程序代码或命令的执行组件。包括Shell、脚本解释器、Notebook、生成代码与Skill脚本运行、依赖安装和子进程启动功能。",
+      "boundaries": [
+        {
+          "description": "待执行代码及其来源依赖是制品；执行进程、挂载目录和网络连接分别由运行环境与资源设施承载。",
+          "object_ids": [
+            "X3.2",
+            "A7.1",
+            "A7.2",
+            "A7.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "接收代码或命令并在指定解释器、Shell或Notebook中执行，按调用需求安装依赖和启动子进程。",
+        "设置本次执行的工作目录、输入及环境，收集输出、异常、退出状态和生成产物。"
+      ]
+    },
+    "A5.1": {
+      "id": "A5.1",
+      "name": "对话历史与工作记忆",
+      "object_kind": "state",
+      "previous_locations": [
+        "A5.1"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "上下文污染、串用户/会话、过度共享；ASI06、DSGAI11、DSGAI15",
+      "control_point_guidance": "C03/C07/C08：读写绑定主体和用途，摘要保留来源/权限，限制复用范围。",
+      "control_ids": [
+        "C03",
+        "C07",
+        "C08"
+      ],
+      "verification_guidance": "M02/M06/M07：核对摘要前后来源和权限，测试切换用户/任务后的残留。",
+      "method_ids": [
+        "M02",
+        "M06",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A5",
+      "kind": "object",
+      "technical_audit_focus": [
+        "上下文归属与来源",
+        "内容选择和跨用户隔离"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "对话历史与工作记忆是为当前会话或任务提供即时上下文的运行数据。包括对话消息、摘要、工具返回结果和任务处理中使用的工作信息。",
+      "boundaries": [
+        {
+          "description": "会话身份与访问关系、任务专用计划、跨任务记忆和状态恢复副本分别由对应对象描述。",
+          "object_ids": [
+            "A1.3",
+            "A2.1",
+            "A5.2",
+            "A5.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载当前会话或任务中实际使用的消息、摘要、工具结果和工作信息。",
+        "保存这些信息的内容、顺序与来源关系，为上下文组装和任务继续执行提供运行数据。"
+      ]
+    },
+    "A5.2": {
+      "id": "A5.2",
+      "name": "长期记忆",
+      "object_kind": "state",
+      "previous_locations": [
+        "A5.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "记忆投毒、污染驻留、删除残留；ASI06、DSGAI04、DSGAI07",
+      "control_point_guidance": "C08/C15：写入和提交校验来源/主体/用途，版本化并支持可追溯清除和回滚。",
+      "control_ids": [
+        "C08",
+        "C15"
+      ],
+      "verification_guidance": "M02/M07/M08：关联写入、提交、读出和后续影响，检查失败请求、删除后索引/备份。",
+      "method_ids": [
+        "M02",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A5",
+      "kind": "object",
+      "technical_audit_focus": [
+        "记忆写入来源与完整性",
+        "读取范围、更新及删除残留"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "长期记忆是保存并在后续任务中复用信息的记忆数据与管理组件。包括记忆条目、命名空间、记忆提取与更新配置，以及记忆服务。",
+      "boundaries": [
+        {
+          "description": "记忆数据使用底层存储，外部知识摄取由摄取管线处理，记忆进入决策时的指令地位由信任边界约束。",
+          "object_ids": [
+            "A5.6",
+            "A5.7",
+            "X2.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "组织跨任务复用的记忆条目及命名空间，维护记忆与用户、任务或使用场景之间的关系。",
+        "提供记忆提取、读取、更新和删除能力，把可复用的信息交付后续任务。"
+      ]
+    },
+    "A5.3": {
+      "id": "A5.3",
+      "name": "知识库与语料",
+      "object_kind": "artifact",
+      "previous_locations": [
+        "A5.3"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "数据/知识投毒、完整性失败、虚假信息传播；LLM05、DSGAI04、DSGAI05、DSGAI21",
+      "control_point_guidance": "C08/C09：摄取时保留来源、审核及版本，约束更新权限；内容质量与访问控制分别检查。",
+      "control_ids": [
+        "C08",
+        "C09"
+      ],
+      "verification_guidance": "M04/M09：核对来源、变更和构建输出，抽样检查恶意/重复片段及标签。",
+      "method_ids": [
+        "M04",
+        "M09"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A5",
+      "kind": "object",
+      "technical_audit_focus": [
+        "内容来源、版本与完整性",
+        "知识数据访问和污染处理"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "知识库与语料是供Agent检索、参考或学习的信息内容资产。包括文档、数据集、内容分片和语义标签。",
+      "boundaries": [
+        {
+          "description": "内容的接入转换、查询检索和底层保存分别由摄取管线、检索组件和存储服务承担。",
+          "object_ids": [
+            "A5.7",
+            "A5.4",
+            "A5.6"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载供Agent参考、检索或学习的文档、数据集和内容分片。",
+        "组织内容及其语义标签，使摄取、检索和回答流程能够定位与引用相应资料。"
+      ]
+    },
+    "A5.4": {
+      "id": "A5.4",
+      "name": "检索器与索引",
+      "object_kind": "component",
+      "previous_locations": [
+        "A5.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "向量相关弱点、跨租户召回、检索内容污染；LLM09、ASI06、DSGAI13",
+      "control_point_guidance": "C07/C08：检索前后维护资源ACL/租户和来源；返回文本不自获指令权限。",
+      "control_ids": [
+        "C07",
+        "C08"
+      ],
+      "verification_guidance": "M05/M06/M09：可见/不可见文档对照，检查过滤/缓存/重排；LLM09须依赖嵌入机制。",
+      "method_ids": [
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A5",
+      "kind": "object",
+      "technical_audit_focus": [
+        "过滤与租户范围有效性",
+        "检索结果完整性和来源"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "检索器与索引是根据查询定位和返回相关内容的检索组件及索引资产。包括向量或混合检索、查询改写、过滤、索引访问、重排和召回结果处理功能。",
+      "boundaries": [
+        {
+          "description": "内容接入、转换及批量写入由摄取管线完成；嵌入与重排所使用的模型资产和推理服务分别描述。",
+          "object_ids": [
+            "A5.7",
+            "A3.1",
+            "A3.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "根据查询进行改写、过滤、向量或混合检索及重排，确定应返回的内容范围与顺序。",
+        "维护查询所用的索引结构和内容定位关系，返回召回内容及对应的引用信息。"
+      ]
+    },
+    "A5.5": {
+      "id": "A5.5",
+      "name": "缓存与检查点",
+      "object_kind": "state",
+      "previous_locations": [
+        "A5.5"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "旧状态重放、共享污染、主体/权限标签丢失；ASI06、ASI08、DSGAI11",
+      "control_point_guidance": "C07/C08/C11：键与内容绑定主体、版本和用途；共享范围明确，恢复重验完整性和当前授权。",
+      "control_ids": [
+        "C07",
+        "C08",
+        "C11"
+      ],
+      "verification_guidance": "M02/M07/M08：跨身份复用、并发写入、状态回滚和重启；追踪共享对象读写者。",
+      "method_ids": [
+        "M02",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A5",
+      "kind": "object",
+      "technical_audit_focus": [
+        "缓存键及命名空间隔离",
+        "旧状态重放与恢复后的授权"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "缓存与检查点是用于复用处理结果或恢复执行状态的状态副本。包括响应缓存、工具结果缓存、恢复检查点、状态快照及其缓存键、有效性和失效信息。",
+      "boundaries": [
+        {
+          "description": "当前上下文与跨任务记忆具有不同用途；暂停和恢复的控制逻辑由编排引擎执行，副本由文件或存储服务承载。",
+          "object_ids": [
+            "A5.1",
+            "A5.2",
+            "A2.3",
+            "A7.2",
+            "A5.6"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载可复用的处理结果和可恢复的执行状态，保留副本与原任务、主体或输入之间的对应关系。",
+        "提供缓存键、版本、有效性、失效及检查点内容，供使用方决定复用或恢复哪个状态副本。"
+      ]
+    },
+    "A5.6": {
+      "id": "A5.6",
+      "name": "数据存储服务",
+      "object_kind": "service",
+      "previous_locations": [
+        "A5.6"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "敏感数据泄露、平台越权、危险查询、数据不可用；DSGAI01、DSGAI12、DSGAI13、DSGAI17",
+      "control_point_guidance": "C01/C02/C07/C08/C15：后端自身执行数据ACL/租户/字段/行约束，限制导出，备份恢复可验证。",
+      "control_ids": [
+        "C01",
+        "C02",
+        "C07",
+        "C08",
+        "C15"
+      ],
+      "verification_guidance": "M02/M03/M05/M07：核对后端权限和导出路径，检查参数化与恢复；不以应用鉴权代替平台权限。",
+      "method_ids": [
+        "M02",
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A5",
+      "kind": "object",
+      "technical_audit_focus": [
+        "平台访问控制与租户隔离",
+        "加密、持久化及可用性"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "数据存储服务是为Agent数据提供持久读写与管理能力的存储平台及访问服务。包括数据库、向量存储、对象存储，以及相应的数据操作和管理接口。",
+      "boundaries": [
+        {
+          "description": "Agent发起的业务查询由连接器适配；记忆、知识内容和检索索引是存储服务承载的不同逻辑对象。",
+          "object_ids": [
+            "A4.4",
+            "A5.2",
+            "A5.3",
+            "A5.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "持久保存Agent数据，提供实际的数据读写、查询和管理接口。",
+        "在存储访问关口实施平台侧的认证、访问权限和数据隔离，并维护存储平台自身的数据保护配置。"
+      ]
+    },
+    "A5.7": {
+      "id": "A5.7",
+      "name": "数据摄取与处理管线",
+      "kind": "object",
+      "object_kind": "pipeline",
+      "layer_id": "A5",
+      "member_types": [
+        {
+          "name": "接入/同步任务",
+          "kind": "pipeline_member"
+        },
+        {
+          "name": "内容转换与切分配置",
+          "kind": "pipeline_member"
+        },
+        {
+          "name": "嵌入/索引写入处理",
+          "kind": "pipeline_member"
+        },
+        {
+          "name": "来源、标签和访问元数据传播",
+          "kind": "pipeline_member"
+        },
+        {
+          "name": "更新/删除同步处理",
+          "kind": "pipeline_member"
+        }
+      ],
+      "technical_audit_focus": [
+        "来源与写入权限",
+        "处理不可信文档时的执行能力",
+        "转换后的来源和访问属性保持",
+        "写入索引及更新删除的一致性"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "source_refs": [
+        "cis_surfaces:S058",
+        "cis_surfaces:S088",
+        "cis_agent_guide:Control16/Retrieval pipelines and RAG sources",
+        "azure_ingestion"
+      ],
+      "risk_examples": "数据/知识投毒、摄入校验失败、处理器中的间接注入、属性丢失与跨通道泄露；按管线实际能力判断。",
+      "review_origin": "CIS安全面与实际摄取处理职责的项目拆分；非官方对象映射",
+      "definition": "数据摄取与处理管线是将外部数据转换为Agent可使用内容和索引记录的处理链。包括数据接入、提取、转换、清洗、切分、摘要或嵌入、元数据与访问属性绑定，以及写入和更新步骤。",
+      "boundaries": [
+        {
+          "description": "知识内容、查询检索和基础存储分别是管线的输入输出资产、查询功能和存储依赖。",
+          "object_ids": [
+            "A5.3",
+            "A5.4",
+            "A5.6"
+          ]
+        },
+        {
+          "description": "管线可调用解析器、数据连接器和嵌入模型服务，这些组件保留各自的实现职责。",
+          "object_ids": [
+            "A1.2",
+            "A4.4",
+            "A3.1",
+            "A3.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "组织外部数据从获取、提取、转换到清洗、切分及摘要或嵌入的处理过程。",
+        "将内容与来源、元数据及访问属性绑定，完成知识或索引写入和更新。",
+        "维护源内容与派生记录的对应关系，处理管线中的同步、失败和恢复。"
+      ]
+    },
+    "A6.1": {
+      "id": "A6.1",
+      "name": "日志、追踪与遥测系统",
+      "object_kind": "component",
+      "previous_locations": [
+        "A6.1"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "证据缺失/篡改、过量遥测泄露、串租户访问；DSGAI14、DSGAI01、ASI08",
+      "control_point_guidance": "C07/C12：关键关口记录主体/版本/决定/结果；最小采集、脱敏、访问隔离和防篡改。",
+      "control_ids": [
+        "C07",
+        "C12"
+      ],
+      "verification_guidance": "M02/M03/M08：比对应用、网关、系统和外部状态，检查敏感字段到导出路径及盲区。",
+      "method_ids": [
+        "M02",
+        "M03",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A6",
+      "kind": "object",
+      "technical_audit_focus": [
+        "事件覆盖、关联与防篡改",
+        "敏感数据和租户访问隔离"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "日志、追踪与遥测系统是采集和保存Agent运行证据的观测组件。包括日志、调用追踪和指标的采集、关联、传输、保存、查询与导出功能。",
+      "boundaries": [
+        {
+          "description": "基于观测数据作出安全判定的机制由检测组件承担；任务运行数据、恢复副本和实时授权状态分别描述。",
+          "object_ids": [
+            "A6.2",
+            "A5.1",
+            "A5.5",
+            "X1.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "采集日志、调用追踪和指标，保留运行事件与主体、任务、工具和时间之间的关联。",
+        "传输、保存和提供观测数据的查询与导出，作为运行分析、告警和审计的证据来源。"
+      ]
+    },
+    "A6.2": {
+      "id": "A6.2",
+      "name": "安全检测与护栏组件",
+      "object_kind": "service",
+      "previous_locations": [
+        "A6.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "检测绕过、过载、失联放行、告警无阻断；LLM01、LLM06",
+      "control_point_guidance": "C13/C11/C15：说明可见路径、服务权限和失效策略；实际阻断/撤权连接到对应执行组件。",
+      "control_ids": [
+        "C13",
+        "C11",
+        "C15"
+      ],
+      "verification_guidance": "M06/M07/M08：良性/攻击对照、绕路与超时测试，关联检测、误报、正常任务和实际阻断结果。",
+      "method_ids": [
+        "M06",
+        "M07",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A6",
+      "kind": "object",
+      "technical_audit_focus": [
+        "覆盖路径与绕过",
+        "检测不可用时的处理及阻断联动"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "安全检测与护栏组件是识别并约束Agent不安全内容、数据流或行为的安全控制组件。包括注入检测、内容检测、数据外发检测、行为规则、告警和阻断机制，以及内嵌库、中间件、Sidecar和远程服务实现。",
+      "boundaries": [
+        {
+          "description": "动作授权与批准由审批组件决策，实际阻断依赖接入的执行关口；离线评测的判定器由评测系统管理。",
+          "object_ids": [
+            "A2.6",
+            "A4.2",
+            "A7.1",
+            "A7.3",
+            "A6.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "依据检测规则和观测输入识别不安全内容、数据流或行为，给出告警或处置结果。",
+        "在组件直接控制的关口执行阻断或转换；需要其他组件执行的处置交付相应调用或资源关口。"
+      ]
+    },
+    "A6.3": {
+      "id": "A6.3",
+      "name": "评测与红队系统",
+      "object_kind": "component",
+      "previous_locations": [
+        "A6.3",
+        "A6.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "模拟边界误用、漏测真实路径、样本/标签投毒、原始记录丢失、敏感样本或标注者过曝；DSGAI04、DSGAI05、DSGAI19及跨风险",
+      "control_point_guidance": "C03/C07/C09/C14：固定目标/配置/样本/版本和良性对照，隔离执行环境，保护样本访问及来源，保存运行证据和统计分母；样本不具执行/评测规则修改权。",
+      "control_ids": [
+        "C03",
+        "C07",
+        "C09",
+        "C14"
+      ],
+      "verification_guidance": "M01/M02/M04/M06/M08/M09：抽查样本→适配→执行→评分→报告，复核来源/标签、权限、真实/模拟边界和外部结果。",
+      "method_ids": [
+        "M01",
+        "M02",
+        "M04",
+        "M06",
+        "M08",
+        "M09"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A6",
+      "kind": "object",
+      "technical_audit_focus": [
+        "评测环境与真实副作用隔离",
+        "样本、判据及结果完整性"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "member_types": [
+        {
+          "id": "A6.3.harness",
+          "name": "评测执行与目标适配",
+          "kind": "component"
+        },
+        {
+          "id": "A6.3.test-data",
+          "name": "测试数据、标签与回放记录",
+          "kind": "data"
+        },
+        {
+          "id": "A6.3.evaluator",
+          "name": "评估器与判定规则",
+          "kind": "component_and_configuration",
+          "former_id": "A6.4",
+          "definition": "评估器与判定规则是将测试输入或运行结果转换为评测结论的评分组件与判定标准。包括裁判模型、规则判定器、评分脚本和成功或失败判据。",
+          "independent_instances_allowed": true,
+          "technical_focus": [
+            "裁判注入及敏感输入",
+            "评分代码、判据和原始结果完整性"
+          ]
+        }
+      ],
+      "search_aliases": [
+        "A6.4",
+        "评估器",
+        "裁判",
+        "评分规则"
+      ],
+      "definition": "评测与红队系统是在受控条件下验证Agent行为与安全性的测试系统。包括测试执行框架、目标适配器、执行环境、测试数据、样本标签、评估器、判定规则和原始结果记录。",
+      "boundaries": [
+        {
+          "description": "评测使用的裁判模型和执行环境是系统依赖；面向在线业务的检测与阻断由安全护栏承担。",
+          "object_ids": [
+            "A3.1",
+            "A3.2",
+            "A7.1",
+            "A6.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "组织测试目标、样本、标签、执行环境和适配器，驱动受控的评测与红队运行。",
+        "调用评估器形成判定，保存原始运行结果、判据及报告之间的对应关系。"
+      ]
+    },
+    "A7.1": {
+      "id": "A7.1",
+      "name": "主机、容器与沙箱",
+      "object_kind": "resource",
+      "previous_locations": [
+        "A7.1"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "逃逸、特权运行、租户隔离失败、资源耗尽；ASI05、LLM06、ASI08",
+      "control_point_guidance": "C06/C11/C15：有限系统/进程权限和适用隔离，受信控制组件与工作负载分离；配额、故障域和恢复明确。",
+      "control_ids": [
+        "C06",
+        "C11",
+        "C15"
+      ],
+      "verification_guidance": "M03/M05/M07：核对生效配置，受控隔离负例、子进程、资源限制与故障恢复测试。",
+      "method_ids": [
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A7",
+      "kind": "object",
+      "technical_audit_focus": [
+        "特权和边界配置",
+        "资源配额及子进程限制继承"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "主机、容器与沙箱是承载Agent及工具计算进程并提供资源隔离的执行环境。包括物理主机、虚拟机、容器、微虚机、沙箱和托管执行环境。",
+      "boundaries": [
+        {
+          "description": "代码运行能力由执行器提供；文件、网络和身份资源分别由相应基础设施提供。",
+          "object_ids": [
+            "A4.6",
+            "A7.2",
+            "A7.3",
+            "A7.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载Agent和工具进程，管理运行环境的创建、启动、停止和销毁。",
+        "在执行环境层提供进程或租户隔离以及计算资源限制，确定运行实体之间的资源边界。"
+      ]
+    },
+    "A7.2": {
+      "id": "A7.2",
+      "name": "文件系统与工作区",
+      "object_kind": "resource",
+      "previous_locations": [
+        "A7.2"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "越界读写、共享文件污染、凭据/策略篡改；ASI05、ASI06、DSGAI01",
+      "control_point_guidance": "C06/C07/C10：最小挂载、读写隔离，策略/批准记录置于任务不可写范围，工作区按主体隔离。",
+      "control_ids": [
+        "C06",
+        "C07",
+        "C10"
+      ],
+      "verification_guidance": "M03/M05/M07：检查实际路径、符号链接、共享卷及恢复后权限。",
+      "method_ids": [
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A7",
+      "kind": "object",
+      "technical_audit_focus": [
+        "路径越界与符号链接",
+        "共享、临时文件和生成产物的访问"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "文件系统与工作区是组织Agent可读写文件的文件资源及访问机制。包括目录、工作区、挂载、共享卷、临时文件、下载与生成文件的存放位置，以及路径解析功能。",
+      "boundaries": [
+        {
+          "description": "文件的内容按用途属于指令、工作信息、知识或软件制品；文件副本的保留与删除由相应配置约束。",
+          "object_ids": [
+            "A2.5",
+            "A5.1",
+            "A5.3",
+            "X3.2",
+            "X2.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "提供实际目录、工作区、挂载和文件落点，处理路径解析及文件读写访问。",
+        "落实文件系统层的访问权限、挂载范围和共享关系，向执行组件提供可访问的文件资源。"
+      ]
+    },
+    "A7.3": {
+      "id": "A7.3",
+      "name": "网络与出口代理",
+      "object_kind": "resource",
+      "previous_locations": [
+        "A7.3"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "SSRF、元数据可达、数据外发、出口/网关旁路；DSGAI03、DSGAI01、ASI03",
+      "control_point_guidance": "C06/C07：不可绕过的网络关口约束目的地/协议，限制内网和元数据，校验DNS/重定向实际目标。",
+      "control_ids": [
+        "C06",
+        "C07"
+      ],
+      "verification_guidance": "M03/M05/M08：核对工具/子进程/浏览器的真实网络路径；可达性与业务授权分别验证。",
+      "method_ids": [
+        "M03",
+        "M05",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A7",
+      "kind": "object",
+      "technical_audit_focus": [
+        "实际可达性与直连旁路",
+        "入口、东西向和出口控制"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "网络与出口代理是为Agent及工具运行环境提供网络连接和流量转发能力的基础设施组件。包括网络命名空间、DNS、路由、防火墙、服务端点和网络代理。",
+      "boundaries": [
+        {
+          "description": "网络可达规则与出口目标约束规定允许的通信关系和目的地，本设施在实际通信路径上执行；进程与文件隔离由运行环境及文件系统承担，业务资源授权由授权策略约束。",
+          "object_ids": [
+            "X4.1",
+            "X4.2",
+            "A7.1",
+            "A7.2",
+            "X1.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "提供实际DNS、路由、网络连接、流量转发和代理能力，形成运行环境到目标服务的通信路径。",
+        "将网络分区、访问规则和出口配置应用到实际网络设施，处理流量允许、转发或拒绝。"
+      ]
+    },
+    "A7.4": {
+      "id": "A7.4",
+      "name": "身份与凭据设施",
+      "object_kind": "service",
+      "previous_locations": [
+        "A7.4"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "凭据暴露、服务身份过权、令牌混用/残留；ASI03、DSGAI02",
+      "control_point_guidance": "C01/C02/C07/C15：短期且有受众/范围的凭据，按需代持/注入，限制任务读取，撤销传播可验证。",
+      "control_ids": [
+        "C01",
+        "C02",
+        "C07",
+        "C15"
+      ],
+      "verification_guidance": "M03/M05/M08：核对有效权限、暴露面、委派链和撤权；vault存在不等于使用安全。",
+      "method_ids": [
+        "M03",
+        "M05",
+        "M08"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "layer_id": "A7",
+      "kind": "object",
+      "technical_audit_focus": [
+        "身份签发/交换与受众",
+        "凭据投递、撤销和暴露"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "身份与凭据设施是提供身份认证、凭据签发和凭据交付能力的基础设施服务。包括IAM与身份提供者、工作负载身份服务、密钥库、令牌签发与代理服务、凭据注入和云凭据获取机制。",
+      "boundaries": [
+        {
+          "description": "身份主体、凭据材料、授权规则及生效状态是设施处理的不同安全对象；云元数据访问还依赖网络路径。",
+          "object_ids": [
+            "X1.1",
+            "X1.2",
+            "X1.3",
+            "X1.4",
+            "A7.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "提供身份认证、工作负载身份、凭据存储、签发、代理和交付服务。",
+        "执行凭据的注入、轮换及撤销等生命周期操作，为调用组件提供其所需的身份材料。"
+      ]
+    },
+    "A7.5": {
+      "id": "A7.5",
+      "name": "构建、部署与配置系统",
+      "object_kind": "component",
+      "previous_locations": [
+        "A7.5"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "供应链替换、管理面劫持、配置降级、发布凭据滥用；ASI04、ASI10",
+      "control_point_guidance": "C09/C10：管理权限隔离，制品准入和配置变更授权，发布到运行可追溯；任务不可自改强制边界。",
+      "control_ids": [
+        "C09",
+        "C10"
+      ],
+      "verification_guidance": "M03/M04/M05：核对发布/加载版本，检查管理面权限、策略修改和替代执行路径。",
+      "method_ids": [
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A7",
+      "kind": "object",
+      "technical_audit_focus": [
+        "构建和发布执行身份",
+        "配置变更、版本与回滚完整性"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "definition": "构建、部署与配置系统是管理Agent软件构建、版本部署和运行配置的技术控制系统。包括CI/CD、制品发布、部署控制台与API、配置存储、激活、更新和回滚功能。",
+      "boundaries": [
+        {
+          "description": "被发布的Agent定义、Skill和模型仍是独立制品；仓库、来源证明和更新规则由供应链对象描述。",
+          "object_ids": [
+            "A2.4",
+            "A2.5",
+            "A3.1",
+            "X3.3",
+            "X3.4",
+            "X3.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "组织软件构建、制品发布和部署，管理配置存储、激活和运行版本切换。",
+        "执行更新和回滚，维护构建输入、发布制品、部署版本与实际生效配置之间的对应关系。"
+      ]
+    },
+    "A7.6": {
+      "id": "A7.6",
+      "name": "硬件、驱动与计算组件",
+      "object_kind": "resource",
+      "previous_locations": [
+        "A7.6"
+      ],
+      "previous_architecture_edition": "3.0",
+      "risk_examples": "驱动/运行库漏洞、侧信道、设备隔离失败、算力耗尽；LLM04、LLM06、DSGAI17、常规系统风险",
+      "control_point_guidance": "C06/C09/C11：资产/漏洞治理，设备最小暴露和资源配额；隔离/可信执行依赖实际配置与假设。",
+      "control_ids": [
+        "C06",
+        "C09",
+        "C11"
+      ],
+      "verification_guidance": "M03/M04/M05/M07：核对版本、设备映射、补丁与配额；无访问权时限定供应方证据结论。",
+      "method_ids": [
+        "M03",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "cross_domain_ids": [
+        "X1",
+        "X2",
+        "X3"
+      ],
+      "layer_id": "A7",
+      "kind": "object",
+      "technical_audit_focus": [
+        "设备/租户隔离",
+        "驱动和计算依赖的完整性及资源限制"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "applicability": {
+        "mode": "scope_and_responsibility",
+        "note": "适用于承载目标计算的硬件及底层软件组件。自建或托管模式决定实施责任与可获得的证据，提供方管理的组件仍需结合相应责任和证据判断风险。",
+        "evidence_visibility_is_not_applicability": true
+      },
+      "definition": "硬件、驱动与计算组件是支撑Agent及模型运算的计算硬件和底层软件组件。包括GPU与其他加速器、设备驱动、设备插件和计算运行库。",
+      "boundaries": [
+        {
+          "description": "计算组件由主机或托管环境承载，模型通过推理服务使用其计算能力。",
+          "object_ids": [
+            "A7.1",
+            "A3.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "提供模型与Agent运算所需的设备计算、访存、驱动和底层运行库能力。",
+        "处理设备访问与计算任务执行，为上层运行环境和推理服务提供可使用的计算资源。"
+      ]
+    }
+  },
+  "domains": [
+    {
+      "id": "X1",
+      "name": "身份权限安全",
+      "subtitle": "谁能代表谁，执行什么动作",
+      "color": "violet",
+      "definition": "身份权限安全是贯穿用户、Agent、工具及资源访问的身份与授权约束。包括身份主体、凭据、授权策略和生效中的授权批准状态。",
+      "invariant": "每次执行都由正确主体在允许任务与资源范围内发起；撤权与批准约束沿真实调用链继续成立。"
+    },
+    {
+      "id": "X2",
+      "name": "数据安全",
+      "subtitle": "来源、指令权限与数据流",
+      "color": "teal",
+      "definition": "数据安全是贯穿内容输入、处理、使用、外发和保存的数据保护约束。包括数据属性、指令信任边界、使用外发策略及副本保留配置。",
+      "invariant": "数据在传递和解释时不自动获得更高指令权限，访问、外发、保留与清除继续遵守其来源和归属约束。"
+    },
+    {
+      "id": "X3",
+      "name": "供应链安全",
+      "subtitle": "从提供方到实际加载版本",
+      "color": "amber",
+      "definition": "供应链安全是贯穿制品获取、构建、分发、加载和更新的来源与完整性约束。包括可信来源、制品依赖、分发渠道、来源证明和版本更新配置。",
+      "invariant": "准入决定与实际加载的来源、内容、依赖和版本对应；动态变更与远程行为按其证据范围重新检查。"
+    },
+    {
+      "id": "X4",
+      "name": "网络隔离安全",
+      "subtitle": "允许到哪，必须经过哪",
+      "color": "blue",
+      "definition": "网络隔离安全是贯穿Agent、工具、子进程与管理面通信路径的可达范围与出口约束。包括分区归属、允许的通信关系、强制出口路径和实际目标限制。",
+      "invariant": "只有获准的通信关系实际可达；对外连接收敛到受约束的出口路径，解析、重定向与回退之后的真实目标仍在允许范围内。"
+    }
+  ],
+  "security_objects": {
+    "X1.1": {
+      "id": "X1.1",
+      "name": "身份主体与服务账户",
+      "kind": "security",
+      "domain_id": "X1",
+      "members": "用户主体、Agent身份、服务账户、工作负载身份及主体注册记录",
+      "definition": "身份主体与服务账户是在认证和授权过程中代表用户或执行单元的身份实体。包括用户主体、Agent身份、服务账户、工作负载身份，以及注册和租户归属信息。",
+      "architecture_objects": [
+        "A1.3",
+        "A2.4",
+        "A2.7",
+        "A4.3",
+        "A7.4"
+      ],
+      "control_ids": [
+        "C01",
+        "C02",
+        "C15"
+      ],
+      "method_ids": [
+        "M02",
+        "M03",
+        "M05"
+      ],
+      "checks": [
+        "比较认证入口、用户到会话绑定、委派后的主体和最终资源所见身份；核验错误用户、受众与租户对照及撤权后的访问。"
+      ],
+      "technical_audit_focus": [
+        "主体真实性与归属",
+        "主体在调用链中的一致性"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "主体通过凭据证明身份，其权限由授权规则和生效状态决定；身份设施负责认证与凭据服务。",
+          "object_ids": [
+            "X1.2",
+            "X1.3",
+            "X1.4",
+            "A7.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "标识参与调用的用户、Agent、服务账户和工作负载，表达主体属性及租户归属。",
+        "承载主体与任务、会话或委派上下文的关联，作为认证及授权判定的身份依据。"
+      ]
+    },
+    "X1.2": {
+      "id": "X1.2",
+      "name": "凭据与委派令牌",
+      "kind": "security",
+      "domain_id": "X1",
+      "members": "API密钥、OAuth访问令牌、STS凭据、委派声明和凭据代理配置",
+      "definition": "凭据与委派令牌是用于证明身份或传递受限权限的认证与授权材料。包括API密钥、OAuth访问令牌、STS凭据、委派声明，以及受众、权限范围、有效期和投递配置。",
+      "architecture_objects": [
+        "A2.7",
+        "A3.3",
+        "A4.3",
+        "A4.4",
+        "A6.1",
+        "A7.4"
+      ],
+      "control_ids": [
+        "C01",
+        "C02",
+        "C07",
+        "C15"
+      ],
+      "method_ids": [
+        "M03",
+        "M05",
+        "M08"
+      ],
+      "checks": [
+        "沿工具与资源请求核对令牌受众、有效权限、传递方和接收方；检查上下文、文件、日志暴露以及撤销与恢复后的残留。"
+      ],
+      "technical_audit_focus": [
+        "受众、scope和令牌混用",
+        "泄露、撤销和跨会话残留"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "凭据的存储、签发和交付由身份设施提供；制品验证所使用的签名信任根属于来源信任对象。",
+          "object_ids": [
+            "A7.4",
+            "X3.1"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载身份凭证或委派权限材料，表达或关联其受众、权限范围、有效期和委派条件。",
+        "为签发、投递、使用和撤销提供凭据标识及绑定信息，供身份设施和消费端核验。"
+      ]
+    },
+    "X1.3": {
+      "id": "X1.3",
+      "name": "授权策略",
+      "kind": "security",
+      "domain_id": "X1",
+      "members": "IAM/RBAC/ABAC策略、资源ACL、工具动作策略和任务能力配置",
+      "definition": "授权策略是规定主体在特定条件下可以对资源执行哪些操作的规则集合。包括IAM、RBAC和ABAC策略、资源访问控制列表、工具动作策略及任务能力配置。",
+      "architecture_objects": [
+        "A2.6",
+        "A4.2",
+        "A4.4",
+        "A5.4",
+        "A5.6",
+        "A7.4"
+      ],
+      "control_ids": [
+        "C01",
+        "C02",
+        "C05",
+        "C10"
+      ],
+      "method_ids": [
+        "M02",
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "checks": [
+        "从已授权任务推到规范化动作、参数与资源，比较入口、网关及最终资源拒绝结果；检查批量、异步、委派和直达路径。"
+      ],
+      "technical_audit_focus": [
+        "主体—动作—资源—条件一致性",
+        "各执行点有效权限"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "related_domain_ids": [
+        "X1",
+        "X2"
+      ],
+      "boundaries": [
+        {
+          "description": "授权规则区别于已授予或批准的运行状态，规则的决策与执行由审批及资源访问组件完成。",
+          "object_ids": [
+            "X1.4",
+            "A2.6",
+            "A4.2"
+          ]
+        },
+        {
+          "description": "数据访问是统一授权规则的一个场景视图，检索、存储和缓存组件在相应资源关口执行规则。",
+          "object_ids": [
+            "X2.3",
+            "A5.4",
+            "A5.6",
+            "A5.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定主体在何种任务和条件下，可以对哪些资源执行哪些动作。",
+        "统一表达工具、服务与数据访问权限，为决策组件和资源执行关口提供授权规则。"
+      ]
+    },
+    "X1.4": {
+      "id": "X1.4",
+      "name": "授权与批准状态",
+      "kind": "security",
+      "domain_id": "X1",
+      "members": "确认请求、批准票据、批准人身份、参数摘要、工具版本和有效条件",
+      "definition": "授权与批准状态是表示权限或人工批准在特定执行上下文中实际生效情况的运行状态。包括已授予权限、任务与会话授权上下文、批准票据、参数和工具版本绑定、有效期、撤销及消费状态。",
+      "architecture_objects": [
+        "A1.2",
+        "A2.6",
+        "A4.2",
+        "A4.4"
+      ],
+      "control_ids": [
+        "C04",
+        "C05",
+        "C10",
+        "C12"
+      ],
+      "method_ids": [
+        "M02",
+        "M05",
+        "M07",
+        "M08"
+      ],
+      "checks": [
+        "对照界面、批准记录和实际请求；在批准后改变参数、目标或工具版本，检查重放、过期、取消及后台绕过。"
+      ],
+      "technical_audit_focus": [
+        "授权与动作/任务绑定",
+        "过期、撤销、变参及重放"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "策略规定授权条件，令牌可承载授权材料，日志保存事后证据；三者与当前可执行的授权状态分别描述。",
+          "object_ids": [
+            "X1.3",
+            "X1.2",
+            "A6.1"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载已经授予或批准的权限，以及其主体、任务、最终动作、参数和有效条件之间的绑定。",
+        "表达授权或批准当前的有效、撤销及消费状态，为执行时判断批准能否使用提供依据。"
+      ]
+    },
+    "X2.1": {
+      "id": "X2.1",
+      "name": "数据属性与来源信息",
+      "kind": "security",
+      "domain_id": "X2",
+      "members": "数据清单、租户/用户归属、敏感性标签、来源记录和变更记录",
+      "definition": "数据属性与来源信息是描述数据归属、来源和安全属性的元数据及其内容绑定关系。包括用户与租户归属、敏感性、来源、完整性、版本和转换关联信息。",
+      "architecture_objects": [
+        "A1.2",
+        "A5.1",
+        "A5.2",
+        "A5.3",
+        "A5.4",
+        "A6.1",
+        "A5.7"
+      ],
+      "control_ids": [
+        "C03",
+        "C07",
+        "C08",
+        "C12"
+      ],
+      "method_ids": [
+        "M02",
+        "M04",
+        "M08",
+        "M09"
+      ],
+      "checks": [
+        "抽取原始与转换后的同一内容，检查来源和敏感性怎样进入上下文与动作；核对总结、嵌入、缓存和日志中的标签保留。"
+      ],
+      "technical_audit_focus": [
+        "属性绑定与转换保留",
+        "来源与完整性验证"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "属性所描述的内容资产由知识和记忆对象承载；软件与模型制品的生产分发来源由供应链对象描述。",
+          "object_ids": [
+            "A5.2",
+            "A5.3",
+            "X3.1",
+            "X3.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "描述数据的归属、来源、敏感性、完整性和版本，并将属性绑定到实际内容。",
+        "表达原始内容与转换、摘要、切分等派生内容之间的属性和来源关系。"
+      ]
+    },
+    "X2.2": {
+      "id": "X2.2",
+      "name": "指令通道与信任边界",
+      "kind": "security",
+      "domain_id": "X2",
+      "members": "消息角色、上下文组装规则、来源/污点标签及信任提升配置",
+      "definition": "指令通道与信任边界是规定不同来源内容以何种指令地位进入Agent决策的通道和解释边界。包括消息角色、上下文位置、指令来源、外部内容输入路径、来源标签和信任提升配置。",
+      "architecture_objects": [
+        "A2.2",
+        "A2.3",
+        "A2.5",
+        "A2.7",
+        "A4.1",
+        "A5.1",
+        "A5.2",
+        "A6.3",
+        "A5.7"
+      ],
+      "control_ids": [
+        "C03",
+        "C08",
+        "C13",
+        "C14"
+      ],
+      "method_ids": [
+        "M02",
+        "M06",
+        "M07"
+      ],
+      "checks": [
+        "沿外部内容→解析/总结→上下文→计划/动作重建解释链；采用标签机制时核对降密、去污或信任提升的主体、条件和批准绑定。"
+      ],
+      "technical_audit_focus": [
+        "不可信内容被提升为指令的路径",
+        "转换后信任语义及实际动作效果"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "来源属性描述内容出处，上下文配置规定组装方式，编排与调用组件执行实际处理逻辑。",
+          "object_ids": [
+            "X2.1",
+            "A2.2",
+            "A2.3",
+            "A4.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "界定不同来源、角色及上下文位置的内容具有何种指令地位。",
+        "规定外部内容与高权限指令之间的解释和信任提升条件，为上下文组装及决策组件提供边界依据。"
+      ]
+    },
+    "X2.4": {
+      "id": "X2.4",
+      "name": "数据使用与外发策略",
+      "kind": "security",
+      "domain_id": "X2",
+      "members": "DLP/数据流规则、接收方清单、渲染URL策略、日志脱敏与导出配置",
+      "definition": "数据使用与外发策略是限定数据如何被使用、呈现和发送的规则集合。包括数据使用范围、内容与输出限制、接收方条件、DLP、脱敏、导出和遥测发送规则。",
+      "architecture_objects": [
+        "A1.2",
+        "A3.2",
+        "A3.3",
+        "A4.2",
+        "A4.5",
+        "A6.1",
+        "A6.2",
+        "A7.3"
+      ],
+      "control_ids": [
+        "C04",
+        "C07",
+        "C12",
+        "C13"
+      ],
+      "method_ids": [
+        "M02",
+        "M05",
+        "M06",
+        "M08"
+      ],
+      "checks": [
+        "追踪测试标记到最终DOM、资源请求、工具目的地、模型请求和遥测导出；核对编码、重定向和未接入检测的路径。"
+      ],
+      "technical_audit_focus": [
+        "敏感内容与接收方匹配",
+        "实际输出、模型请求和遥测外发"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "数据内容与用途限制由本对象规定；可达范围与出口目标由网络约束规定，网络设施负责执行，业务资源访问由授权策略约束。",
+          "object_ids": [
+            "X4.1",
+            "X4.2",
+            "A7.3",
+            "X1.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定数据在任务中的使用范围、接收方、呈现及输出条件。",
+        "提供内容限制、脱敏、DLP、导出和遥测发送规则，供实际数据消费或外发关口执行。"
+      ]
+    },
+    "X2.5": {
+      "id": "X2.5",
+      "name": "副本与保留配置",
+      "kind": "security",
+      "domain_id": "X2",
+      "members": "会话历史、记忆、缓存、检查点、日志副本、备份与删除任务配置",
+      "definition": "副本与保留配置是管理数据副本关系及其保存、删除和恢复行为的技术配置。包括会话、记忆、缓存、检查点、日志、备份和生成产物的副本信息、保留期限、删除任务与恢复设置。",
+      "architecture_objects": [
+        "A1.3",
+        "A5.1",
+        "A5.2",
+        "A5.5",
+        "A5.6",
+        "A6.1",
+        "A7.2"
+      ],
+      "control_ids": [
+        "C07",
+        "C08",
+        "C12",
+        "C15"
+      ],
+      "method_ids": [
+        "M01",
+        "M03",
+        "M07",
+        "M08"
+      ],
+      "checks": [
+        "逐副本核对保留期限、清除状态与恢复后的权限；检查删除前缓存、日志和检查点是否仍能返回旧内容。"
+      ],
+      "technical_audit_focus": [
+        "逐副本保留与删除",
+        "恢复后权限和已删内容复活"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "配置作用于实际保存数据的记忆、缓存、日志、文件和存储组件，副本内容与配置分别描述。",
+          "object_ids": [
+            "A5.1",
+            "A5.2",
+            "A5.5",
+            "A6.1",
+            "A7.2",
+            "A5.6"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定各类数据副本的保留期限、删除条件和恢复条件。",
+        "描述副本关系及更新、删除需要作用的范围，为实际保存数据的组件提供执行配置。"
+      ]
+    },
+    "X3.1": {
+      "id": "X3.1",
+      "name": "可信来源与信任根",
+      "kind": "security",
+      "domain_id": "X3",
+      "members": "发布者身份、受信源清单、签名公钥、服务/模型提供方与委托关系",
+      "definition": "可信来源与信任根是确定制品或服务来源是否受信的身份、来源和验证基准。包括发布者身份、受信源清单、下载或服务来源、签名公钥和信任委托配置。",
+      "architecture_objects": [
+        "A2.5",
+        "A3.1",
+        "A3.3",
+        "A4.1",
+        "A4.3",
+        "A5.3",
+        "A7.5"
+      ],
+      "control_ids": [
+        "C01",
+        "C09",
+        "C10"
+      ],
+      "method_ids": [
+        "M03",
+        "M04",
+        "M07"
+      ],
+      "checks": [
+        "核对发布主体、账户/域名归属、受信源规则及实际下载/调用目标；检查同名条目、失效依赖与来源替换。"
+      ],
+      "technical_audit_focus": [
+        "来源身份与允许源",
+        "验证信任根及替代/回退来源"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "信任基准用于验证具体制品和来源证明，运行服务调用所使用的主体与凭据由身份对象描述。",
+          "object_ids": [
+            "X3.2",
+            "X3.4",
+            "X1.1",
+            "X1.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定受信的发布者、服务或下载来源，以及签名验证所使用的公钥和委托关系。",
+        "为获取及验证组件提供期望来源和验证基准，使其能够判断实际来源是否符合信任配置。"
+      ]
+    },
+    "X3.2": {
+      "id": "X3.2",
+      "name": "制品与依赖",
+      "kind": "security",
+      "domain_id": "X3",
+      "members": "Skill包与脚本、模型/adapter、镜像、SDK、工具定义、数据制品和SBOM",
+      "definition": "制品与依赖是Agent构建、加载或运行时使用的软件、模型和数据制品及其依赖关系。包括Skill包、脚本、模型与适配器、镜像、插件、SDK、工具定义、数据制品和依赖清单。",
+      "architecture_objects": [
+        "A2.5",
+        "A3.1",
+        "A3.4",
+        "A4.1",
+        "A4.3",
+        "A4.6",
+        "A5.3",
+        "A6.3",
+        "A7.1",
+        "A7.6",
+        "A5.7"
+      ],
+      "control_ids": [
+        "C06",
+        "C09",
+        "C14"
+      ],
+      "method_ids": [
+        "M02",
+        "M04",
+        "M06"
+      ],
+      "checks": [
+        "从清单核对真实包内容与运行依赖；检查脚本、资源、模型加载器、测试数据及外部引用，记录无法检查的远程行为。"
+      ],
+      "technical_audit_focus": [
+        "清单与实际内容一致性",
+        "依赖、动态下载及远程资源"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "同一制品可以在架构层和供应链视图中出现，其来源、分发渠道、证明和版本配置分别描述。",
+          "object_ids": [
+            "X3.1",
+            "X3.3",
+            "X3.4",
+            "X3.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载实际参与构建、加载和运行的软件、模型或数据内容及其依赖构成。",
+        "表达制品内容、版本、依赖清单和远程引用之间的对应关系，作为来源、完整性及变更分析的对象。"
+      ]
+    },
+    "X3.3": {
+      "id": "X3.3",
+      "name": "仓库与分发渠道",
+      "kind": "security",
+      "domain_id": "X3",
+      "members": "制品仓库、Skill市场、包注册表、工具目录、下载镜像及部署渠道",
+      "definition": "仓库与分发渠道是用于发布、保存和交付Agent所用制品的存储与交付设施。包括制品仓库、包注册表、Skill市场、工具目录、下载镜像、部署渠道和来源选择配置。",
+      "architecture_objects": [
+        "A2.4",
+        "A2.5",
+        "A4.1",
+        "A4.3",
+        "A7.5"
+      ],
+      "control_ids": [
+        "C09",
+        "C10",
+        "C12"
+      ],
+      "method_ids": [
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "checks": [
+        "核对发布者与仓库权限、来源优先级和下载回退路径；从消费者还原选中条目及拉取目标，追查被撤销条目是否仍被使用。"
+      ],
+      "technical_audit_focus": [
+        "发布/修改/下载权限",
+        "来源优先级、替换与撤销传播"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "目录的分发职责区别于运行时工具发现和Agent注册；同一服务可以同时提供这些功能。",
+          "object_ids": [
+            "A4.1",
+            "A2.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "保存、发布并交付可供消费者获取的制品条目和版本。",
+        "提供发布及拉取路径、镜像与来源选择配置，处理渠道中的条目更新和撤销。"
+      ]
+    },
+    "X3.4": {
+      "id": "X3.4",
+      "name": "签名与来源证明",
+      "kind": "security",
+      "domain_id": "X3",
+      "members": "数字签名、来源证明、构建证明、技术审核断言与制品摘要绑定",
+      "definition": "签名与来源证明是用于验证制品内容、签发者和生产来源的可校验声明与凭证。包括数字签名、来源证明、构建证明、技术审核断言和制品摘要绑定。",
+      "architecture_objects": [
+        "A2.5",
+        "A3.1",
+        "A4.1",
+        "A6.3",
+        "A7.5"
+      ],
+      "control_ids": [
+        "C09",
+        "C10",
+        "C14"
+      ],
+      "method_ids": [
+        "M03",
+        "M04",
+        "M08"
+      ],
+      "checks": [
+        "核对证明签发者、验证配置、审核范围和加载记录；分别检查未签名、错误主体、内容变化及证明缺失时的实际处理。"
+      ],
+      "technical_audit_focus": [
+        "证明到实际制品的绑定",
+        "验证配置及失败处理"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "证明针对具体制品并依据信任根验证，来源真实性与制品内容安全是不同的判断。",
+          "object_ids": [
+            "X3.2",
+            "X3.1"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "承载对制品摘要、签发者、构建过程和生产来源的声明及其签名绑定。",
+        "向验证组件提供可核验的声明和凭证，作为判断内容绑定与来源真实性的证据。"
+      ]
+    },
+    "X3.5": {
+      "id": "X3.5",
+      "name": "版本与更新配置",
+      "kind": "security",
+      "domain_id": "X3",
+      "members": "锁文件、固定版本、默认版本指针、工具定义版本和自动更新规则",
+      "definition": "版本与更新配置是规定制品版本选择、固定、核验和替换方式的配置。包括锁文件、固定版本、默认版本指针、加载时版本核验、自动更新和回滚规则。",
+      "architecture_objects": [
+        "A2.3",
+        "A2.4",
+        "A2.5",
+        "A3.3",
+        "A4.1",
+        "A4.3",
+        "A7.5"
+      ],
+      "control_ids": [
+        "C09",
+        "C10",
+        "C14"
+      ],
+      "method_ids": [
+        "M03",
+        "M04",
+        "M07",
+        "M08"
+      ],
+      "checks": [
+        "在安装、批准、加载和调用时分别核对版本；检查默认指针改变、工具rug pull、缓存与更新回退，确认变更会否触发重新审查。"
+      ],
+      "technical_audit_focus": [
+        "实际加载版本及漂移",
+        "动态定义、远程依赖和更新回退"
+      ],
+      "review_origin": "项目对象审视建议，已纳入v2；非官方逐对象分类",
+      "boundaries": [
+        {
+          "description": "规则指定要使用的制品版本，构建部署系统执行更新；工具定义或Skill内容的变化体现为相应制品变更。",
+          "object_ids": [
+            "X3.2",
+            "A7.5",
+            "A4.1",
+            "A2.5"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "指定允许选择或加载的制品版本，以及版本固定、默认指针、自动更新和回滚条件。",
+        "为加载与更新组件提供识别版本变化、核对预期版本和触发重新校验的配置依据。"
+      ]
+    },
+    "X4.1": {
+      "id": "X4.1",
+      "name": "网络可达策略",
+      "kind": "security",
+      "domain_id": "X4",
+      "members": "网络区域归属、安全组/NSG、防火墙、NetworkPolicy、入口与东西向允许规则及默认处理",
+      "definition": "网络可达策略是规定哪些通信关系被允许的区域归属与流量规则集合。包括工作负载所属网络区域、源与目的、端口、协议、入口与东西向规则，以及默认处理和规则附着配置。",
+      "architecture_objects": [
+        "A2.7",
+        "A4.3",
+        "A4.5",
+        "A4.6",
+        "A5.6",
+        "A7.1",
+        "A7.3",
+        "A7.5"
+      ],
+      "control_ids": [],
+      "method_ids": [],
+      "checks": [
+        "从真实工作负载、浏览器和子进程验证同区、跨区与管理面可达性；核对IPv4/IPv6、环回与默认处理，不从私网名称推断隔离。"
+      ],
+      "technical_audit_focus": [
+        "同区与跨区实际可达性",
+        "默认处理与规则实际附着"
+      ],
+      "review_origin": "项目对象审视；v3按出口收敛问题重建为约束对象，不含执行组件",
+      "boundaries": [
+        {
+          "description": "规则由网络设施与运行环境在实际通信路径上执行；进程与文件隔离、业务资源授权分别由执行环境和授权策略承担。",
+          "object_ids": [
+            "A7.3",
+            "A7.1",
+            "A7.2",
+            "X1.3"
+          ]
+        },
+        {
+          "description": "对外连接必须经由的路径与可达目标由出口约束规定，本对象规定允许存在哪些通信关系。",
+          "object_ids": [
+            "X4.2"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定工作负载、Agent、工具与管理面所属的网络区域，以及它们之间允许存在的通信关系。",
+        "表达源、目的、端口、协议、方向与默认处理，并说明规则实际附着的工作负载范围，供网络设施执行。"
+      ]
+    },
+    "X4.2": {
+      "id": "X4.2",
+      "name": "出口与目标约束",
+      "kind": "security",
+      "domain_id": "X4",
+      "members": "强制出口路径、允许目的地与协议、DNS与重定向后的实际目标、内网与云元数据端点限制、失败回退配置",
+      "definition": "出口与目标约束是限定对外连接必须经由哪条路径、可以到达哪些目标的规则集合。包括强制出口路径、允许目的地与协议、解析与重定向后的实际目标、内网与元数据端点限制及回退行为。",
+      "architecture_objects": [
+        "A1.2",
+        "A3.3",
+        "A4.4",
+        "A4.5",
+        "A4.6",
+        "A5.7",
+        "A6.1",
+        "A7.3"
+      ],
+      "control_ids": [],
+      "method_ids": [],
+      "checks": [
+        "比较网关路径与直连、替代代理、子进程及浏览器路径的实际目标；核对DNS、重定向与故障回退之后是否仍受同一约束。"
+      ],
+      "technical_audit_focus": [
+        "强制经由与旁路路径",
+        "解析、重定向与回退后的真实目标"
+      ],
+      "review_origin": "项目对象审视；v3新增，承载跨对象的出口收敛判断",
+      "boundaries": [
+        {
+          "description": "约束由网络设施与模型网关在实际流量路径上执行；区域归属与东西向允许关系由可达策略规定。",
+          "object_ids": [
+            "A7.3",
+            "A3.3",
+            "X4.1"
+          ]
+        },
+        {
+          "description": "数据内容与用途限制由数据使用外发策略规定，业务资源权限由授权策略约束；本对象只规定路径与目标。",
+          "object_ids": [
+            "X2.4",
+            "X1.3"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "规定对外连接必须经由的出口路径、允许的目的地与协议，以及内网和云元数据端点的限制。",
+        "规定解析、重定向与回退之后以实际目标为准的判定方式，为出口执行组件提供可核对的目标范围。"
+      ]
+    }
+  },
+  "security_views": {
+    "X2.3": {
+      "id": "X2.3",
+      "name": "授权策略（数据访问视图）",
+      "domain_id": "X2",
+      "canonical_id": "X1.3",
+      "members": "检索访问范围、行列权限、向量库ACL与缓存数据访问条件",
+      "architecture_objects": [
+        "A1.3",
+        "A4.4",
+        "A5.2",
+        "A5.4",
+        "A5.5",
+        "A5.6"
+      ],
+      "scope": "知识检索、数据平台及缓存中的数据资源访问条件。",
+      "checks": [
+        "比较可见与不可见数据在查询、检索、重排、缓存及恢复后的返回；核对伪造租户参数、跨用户句柄与范围扩大。"
+      ],
+      "role": "控制",
+      "view_context": "data_access",
+      "definition": "授权策略（数据访问视图）是统一授权策略在数据访问场景中的规则视图。包括检索范围、行列权限、向量库访问控制和缓存数据访问条件。",
+      "boundaries": [
+        {
+          "description": "检索、存储和缓存组件在具体访问关口执行这些规则；数据用途及外发条件由数据使用策略规定。",
+          "object_ids": [
+            "A5.4",
+            "A5.6",
+            "A5.5",
+            "X2.4"
+          ]
+        }
+      ],
+      "responsibilities": [
+        "将统一授权策略中的主体、动作和资源条件呈现为数据访问场景下的规则范围。",
+        "表达检索、行列、向量库和缓存访问条件，供相应数据访问关口使用同一授权规则。"
+      ],
+      "technical_audit_focus": [
+        "数据资源的可见与不可见范围",
+        "检索、缓存与恢复路径的一致判定"
+      ]
+    }
+  }
+}

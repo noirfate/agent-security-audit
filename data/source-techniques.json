@@ -1,0 +1,834 @@
+{
+  "AML.T0000": {
+    "name": "Search Open Technical Databases",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0000.000": {
+    "name": "Journals and Conference Proceedings",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0000.001": {
+    "name": "Pre-Print Repositories",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0000.002": {
+    "name": "Technical Blogs",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0000.003": {
+    "name": "Scan Databases",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0001": {
+    "name": "Search Open AI Vulnerability Analysis",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0002": {
+    "name": "Acquire Public AI Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0002.000": {
+    "name": "Datasets",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0002.001": {
+    "name": "Models",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0002.002": {
+    "name": "AI Agent Configuration",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0003": {
+    "name": "Search Victim-Owned Websites",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0004": {
+    "name": "Search Application Repositories",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0005": {
+    "name": "Create Proxy AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0005.000": {
+    "name": "Train Proxy via Gathered AI Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0005.001": {
+    "name": "Train Proxy via Replication",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0005.002": {
+    "name": "Use Pre-Trained Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0006": {
+    "name": "Active Scanning",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0006.000": {
+    "name": "Enumerate Hosted AI Resources",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0006.001": {
+    "name": "Query Platform Metadata APIs",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0006.002": {
+    "name": "Scan for Exposed AI Infrastructure",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0006.003": {
+    "name": "Probe AI Agent Trigger Channels",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0007": {
+    "name": "Discover AI Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008": {
+    "name": "Acquire Infrastructure",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008.000": {
+    "name": "AI Development Workspaces",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008.001": {
+    "name": "Consumer Hardware",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008.002": {
+    "name": "Domains",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008.003": {
+    "name": "Physical Countermeasures",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008.004": {
+    "name": "Serverless",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0008.005": {
+    "name": "AI Service Proxies",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010": {
+    "name": "AI Supply Chain Compromise",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010.000": {
+    "name": "Hardware",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010.001": {
+    "name": "AI Software",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010.002": {
+    "name": "Data",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010.003": {
+    "name": "Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010.004": {
+    "name": "Container Registry",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0010.005": {
+    "name": "AI Agent Tool",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0011": {
+    "name": "User Execution",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0011.000": {
+    "name": "Unsafe AI Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0011.001": {
+    "name": "Malicious Package",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0011.002": {
+    "name": "Poisoned AI Agent Tool",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0011.003": {
+    "name": "Malicious Link",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0012": {
+    "name": "Valid Accounts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0013": {
+    "name": "Discover AI Model Ontology",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0014": {
+    "name": "Discover AI Model Family",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0015": {
+    "name": "Evade AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0016": {
+    "name": "Obtain Capabilities",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0016.000": {
+    "name": "Adversarial AI Attack Implementations",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0016.001": {
+    "name": "Software Tools",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0016.002": {
+    "name": "Generative AI",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0016.003": {
+    "name": "Exploits",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0016.004": {
+    "name": "AI Agent Tools",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0017": {
+    "name": "Develop Capabilities",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0017.000": {
+    "name": "Adversarial AI Attacks",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0017.001": {
+    "name": "Autonomous Exploit Development",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0017.002": {
+    "name": "AI Agent Tools",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0018": {
+    "name": "Manipulate AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0018.000": {
+    "name": "Poison AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0018.001": {
+    "name": "Modify AI Model Architecture",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0018.002": {
+    "name": "Embed Malware",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0018.003": {
+    "name": "Modify Prompt Construction Logic",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0020": {
+    "name": "Training Data Poisoning",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0021": {
+    "name": "Establish Accounts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0024": {
+    "name": "Exfiltration via AI Inference API",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0024.000": {
+    "name": "Infer Training Data Membership",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0024.001": {
+    "name": "Invert AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0024.002": {
+    "name": "Extract AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0025": {
+    "name": "Exfiltration via Cyber Means",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0029": {
+    "name": "Denial of AI Service",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0031": {
+    "name": "Erode AI Model Integrity",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0034": {
+    "name": "Cost Harvesting",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0034.000": {
+    "name": "Excessive Queries",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0034.001": {
+    "name": "Resource-Intensive Queries",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0034.002": {
+    "name": "Agentic Resource Consumption",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0035": {
+    "name": "AI Artifact Collection",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0036": {
+    "name": "Data from Information Repositories",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0037": {
+    "name": "Data from Local System",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0040": {
+    "name": "AI Model Inference API Access",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0041": {
+    "name": "Physical Environment Access",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0042": {
+    "name": "Verify Attack",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0043": {
+    "name": "Craft Adversarial Data",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0043.000": {
+    "name": "White-Box Optimization",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0043.001": {
+    "name": "Black-Box Optimization",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0043.002": {
+    "name": "Black-Box Transfer",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0043.003": {
+    "name": "Manual Modification",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0043.004": {
+    "name": "Insert Backdoor Trigger",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0044": {
+    "name": "Full AI Model Access",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0046": {
+    "name": "Spamming AI System with Chaff Data",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0047": {
+    "name": "AI-Enabled Product or Service",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0048": {
+    "name": "External Harms",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0048.000": {
+    "name": "Financial Harm",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0048.001": {
+    "name": "Reputational Harm",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0048.002": {
+    "name": "Societal Harm",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0048.003": {
+    "name": "User Harm",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0048.004": {
+    "name": "AI Intellectual Property Theft",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0049": {
+    "name": "Exploit Public-Facing Application",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0050": {
+    "name": "Command and Scripting Interpreter",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0051": {
+    "name": "LLM Prompt Injection",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0051.000": {
+    "name": "Direct",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0051.001": {
+    "name": "Indirect",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0051.002": {
+    "name": "Triggered",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0052": {
+    "name": "Phishing",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0052.000": {
+    "name": "Spearphishing via Social Engineering LLM",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0052.001": {
+    "name": "Deepfake-Assisted Phishing",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0053": {
+    "name": "AI Agent Tool Invocation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0054": {
+    "name": "LLM Jailbreak",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0055": {
+    "name": "Unsecured Credentials",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0056": {
+    "name": "Extract LLM System Prompt",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0057": {
+    "name": "LLM Data Leakage",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0059": {
+    "name": "Erode Dataset Integrity",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0060": {
+    "name": "Publish Hallucinated Entities",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0061": {
+    "name": "LLM Prompt Self-Replication",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0062": {
+    "name": "Discover LLM Hallucinations",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0063": {
+    "name": "Discover AI Model Outputs",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0064": {
+    "name": "Gather RAG-Indexed Targets",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0065": {
+    "name": "LLM Prompt Crafting",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0066": {
+    "name": "Retrieval Content Crafting",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0067": {
+    "name": "LLM Trusted Output Components Manipulation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0067.000": {
+    "name": "Citations",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0068": {
+    "name": "LLM Prompt Obfuscation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0069": {
+    "name": "Discover LLM System Information",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0069.000": {
+    "name": "Special Character Sets",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0069.001": {
+    "name": "System Instruction Keywords",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0069.002": {
+    "name": "System Prompt",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0070": {
+    "name": "RAG Poisoning",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0071": {
+    "name": "False RAG Entry Injection",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0072": {
+    "name": "Cyber Communication Channel",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0073": {
+    "name": "Impersonation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0074": {
+    "name": "Masquerading",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0075": {
+    "name": "Enterprise Resource Discovery",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0076": {
+    "name": "Corrupt AI Model",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0077": {
+    "name": "LLM Response Rendering",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0078": {
+    "name": "Drive-by Compromise",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0079": {
+    "name": "Stage Capabilities",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0080": {
+    "name": "AI Agent Context Poisoning",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0080.000": {
+    "name": "Memory",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0080.001": {
+    "name": "Thread",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0081": {
+    "name": "Modify AI Agent Configuration",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0082": {
+    "name": "RAG Credential Harvesting",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0083": {
+    "name": "Credentials from AI Agent Configuration",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0084": {
+    "name": "Discover AI Agent Configuration",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0084.000": {
+    "name": "Embedded Knowledge",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0084.001": {
+    "name": "Tool Definitions",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0084.002": {
+    "name": "Activation Triggers",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0084.003": {
+    "name": "Call Chains",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0085": {
+    "name": "Data from AI Services",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0085.000": {
+    "name": "RAG Databases",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0085.001": {
+    "name": "AI Agent Tools",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0086": {
+    "name": "Exfiltration via AI Agent Tool Invocation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0087": {
+    "name": "Gather Victim Identity Information",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0088": {
+    "name": "Generate Deepfakes",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0089": {
+    "name": "Enterprise Environment Discovery",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0090": {
+    "name": "OS Credential Dumping",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0091": {
+    "name": "Use Alternate Authentication Material",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0091.000": {
+    "name": "Application Access Token",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0091.001": {
+    "name": "Web Session Cookie",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0092": {
+    "name": "Manipulate User LLM Chat History",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0093": {
+    "name": "Prompt Infiltration via Public-Facing Application",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0094": {
+    "name": "Delay Execution of LLM Instructions",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0095": {
+    "name": "Search Open Websites/Domains",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0095.000": {
+    "name": "Code Repositories",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0096": {
+    "name": "AI Service API",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0097": {
+    "name": "Virtualization/Sandbox Evasion",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0098": {
+    "name": "AI Agent Tool Credential Harvesting",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0099": {
+    "name": "AI Agent Tool Data Poisoning",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0100": {
+    "name": "AI Agent Clickbait",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0101": {
+    "name": "Data Destruction via AI Agent Tool Invocation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0102": {
+    "name": "Generate Malicious Commands",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0103": {
+    "name": "Deploy AI Agent",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0105": {
+    "name": "Escape to Host",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0106": {
+    "name": "Exploitation for Credential Access",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0107": {
+    "name": "Exploitation for Defense Evasion",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0108": {
+    "name": "AI Agent",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0109": {
+    "name": "AI Supply Chain Rug Pull",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0110": {
+    "name": "AI Agent Tool Poisoning",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0110.000": {
+    "name": "Definition and Instructions",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0110.001": {
+    "name": "Implementation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0110.002": {
+    "name": "Runtime Response",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0111": {
+    "name": "AI Supply Chain Reputation Inflation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0112": {
+    "name": "Machine Compromise",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0112.000": {
+    "name": "Local AI Agent",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0112.001": {
+    "name": "AI Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0113": {
+    "name": "Steal Web Session Cookie",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0114": {
+    "name": "AI Service Web Interface",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0115": {
+    "name": "Publish Poisoned AI Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0115.000": {
+    "name": "Datasets",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0115.001": {
+    "name": "Models",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0115.002": {
+    "name": "AI Agent Tools",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0116": {
+    "name": "Autonomous Reconnaissance",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0117": {
+    "name": "Autonomous Attack-Path Adaptation",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0118": {
+    "name": "Autonomous AI Agent Communication",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0118.000": {
+    "name": "Communication via Shared Artifacts",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0118.001": {
+    "name": "Direct Agent Communication",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0119": {
+    "name": "Exploit Automated Artifact Processing Pipeline",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0120": {
+    "name": "AI Artifact Repository",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0121": {
+    "name": "AI Agent Environment Reconstruction",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0122": {
+    "name": "Exploitation of Remote Services",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0123": {
+    "name": "Obfuscated Files or Information",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0124": {
+    "name": "Autonomous Attack Orchestration",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0125": {
+    "name": "Create Account",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0126": {
+    "name": "Automated Collection",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0127": {
+    "name": "Data Staged",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0128": {
+    "name": "Compromise Infrastructure",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0129": {
+    "name": "Triggers in Multimodal Inputs",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0130": {
+    "name": "AI Agent Response Biasing",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0131": {
+    "name": "Crafted AI Assistant Links",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0132": {
+    "name": "Misconfigured or Publicly Exposed AI Services",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0133": {
+    "name": "Discover AI Agent Runtime Capabilities",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  },
+  "AML.T0134": {
+    "name": "AI Targeted Cloaking",
+    "source_url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  }
+}

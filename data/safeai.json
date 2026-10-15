@@ -1,0 +1,1486 @@
+{
+  "report": {
+    "schema_version": "1.0",
+    "source_id": "mitre-safe-ai-2025-04",
+    "retrieved_at": "2026-10-14",
+    "status": "source_notes_and_project_mapping_candidates",
+    "source": {
+      "title": "SAFE-AI: A Framework for Securing AI-Enabled Systems",
+      "cover_title": "SAFE-AI — A Framework for Securing AI-Enabled Systems",
+      "publisher": "The MITRE Corporation",
+      "date": "April 2025",
+      "document_number": "MP250397",
+      "public_release_case_number": "25-1028",
+      "authors": [
+        "J. Kressel",
+        "R. Perrella",
+        "E. Reed",
+        "N. Naik",
+        "J. Sidhu",
+        "Q. Hu",
+        "L. Booker",
+        "J. Cintron",
+        "L. Huffner"
+      ],
+      "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+      "sha256": "85bc757eb5d4d3a3efd22f0a71ac3b617b365a9e38d3a3f830d67ca4a058a160",
+      "pdf_pages": 78,
+      "official_url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf",
+      "date_note": "出版月份取封面 April 2025；PDF 文件元数据创建日期 2025-05-31 不充当出版日期。",
+      "page_numbering": "pdf_page 为 PDF 物理页，1 起算；正文 printed_page N 对应 pdf_page N+4。"
+    },
+    "read_scope": "读取全篇布局文本；重点核对 §§1–2 与附录 C、D、E。所有引用按本地固定哈希 PDF，不将附录 A 的 2025 ATLAS 快照当作当前 ATLAS 全量目录。",
+    "what_it_is": {
+      "summary": "面向防御方的威胁知情安全控制选择、分配和访谈评估指导；以威胁/AI 关注点 × 系统元素组织 NIST SP 800-53 Rev 5 控制，并讨论缓解后剩余风险。",
+      "role_in_explorer": "用于对象详情的防御、控制及审计问题来源；左侧攻击技术继续来自独立 ATLAS 目录。",
+      "relationship_to_atlas": "ATLAS 提供对手战术/技术与案例知识；SAFE-AI 利用其威胁分类，识别 AI 关注点、分配防御控制。二者互补，不是同一个目录。",
+      "workflow": [
+        "AI threat/concern",
+        "four system elements",
+        "applicable NIST controls",
+        "assessment Q&A plus expected evidence",
+        "residual risk"
+      ],
+      "citations": [
+        {
+          "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+          "pdf_page": 8,
+          "printed_page": "4",
+          "section": "§2.1, §2.1.1",
+          "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=8"
+        },
+        {
+          "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+          "pdf_page": 12,
+          "printed_page": "8",
+          "section": "§2.2.1",
+          "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=12"
+        },
+        {
+          "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+          "pdf_page": 14,
+          "printed_page": "10",
+          "section": "§2.4",
+          "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=14"
+        },
+        {
+          "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+          "pdf_page": 17,
+          "printed_page": "13",
+          "section": "Appendix C introduction",
+          "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=17"
+        },
+        {
+          "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+          "pdf_page": 38,
+          "printed_page": "34",
+          "section": "Appendix E introduction",
+          "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=38"
+        }
+      ]
+    },
+    "counts": {
+      "system_elements": {
+        "count": 4,
+        "names": [
+          "Environment",
+          "AI Platform",
+          "AI Model",
+          "AI Data"
+        ],
+        "definition": "报告分析系统风险的四种系统元素，不是本项目七层。",
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 7,
+            "printed_page": "3",
+            "section": "§1.4.2",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=7"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 35,
+            "printed_page": "31",
+            "section": "Appendix D",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=35"
+          }
+        ]
+      },
+      "nist_control_rows": {
+        "count": 100,
+        "base_control_rows": 89,
+        "enhancement_rows": 11,
+        "definition": "附录 D 100 个唯一的规范化控制标识，包含 89 个尾号 -00 的基础控制和 11 个增强项；不能说成 100 个控制族、100 个风险或 100 个自动检测方法。",
+        "source_statement_page": {
+          "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+          "pdf_page": 13,
+          "printed_page": "9",
+          "section": "§2.3.1",
+          "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=13"
+        },
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 35,
+            "printed_page": "31",
+            "section": "Appendix D",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=35"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 36,
+            "printed_page": "32",
+            "section": "Appendix D",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=36"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 37,
+            "printed_page": "33",
+            "section": "Appendix D",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=37"
+          }
+        ],
+        "control_ids": [
+          "AC-01-00",
+          "AC-02-12",
+          "AC-03-00",
+          "AC-04-00",
+          "AC-04-09",
+          "AC-04-15",
+          "AC-04-25",
+          "AC-05-00",
+          "AC-06-00",
+          "AC-07-00",
+          "AC-12-00",
+          "AC-14-00",
+          "AC-17-00",
+          "AC-20-00",
+          "AC-21-00",
+          "AC-23-00",
+          "AC-24-00",
+          "AT-03-00",
+          "AU-02-00",
+          "AU-03-00",
+          "AU-06-00",
+          "AU-06-05",
+          "AU-09-00",
+          "CA-02-00",
+          "CA-08-00",
+          "CA-09-00",
+          "CM-02-00",
+          "CM-03-00",
+          "CM-05-00",
+          "CM-07-00",
+          "CM-11-00",
+          "CM-13-00",
+          "CM-14-00",
+          "CP-01-00",
+          "CP-09-00",
+          "IA-02-00",
+          "IA-02-01",
+          "IA-02-02",
+          "IA-03-00",
+          "IA-06-00",
+          "IA-08-00",
+          "IA-12-00",
+          "MA-03-00",
+          "MA-05-00",
+          "MA-06-00",
+          "PE-11-00",
+          "PL-02-00",
+          "PL-04-00",
+          "PL-08-00",
+          "PM-07-00",
+          "PM-12-00",
+          "PM-18-00",
+          "PM-30-00",
+          "RA-03-00",
+          "RA-05-00",
+          "SA-03-02",
+          "SA-08-00",
+          "SA-09-00",
+          "SA-09-05",
+          "SA-09-06",
+          "SA-09-08",
+          "SA-10-00",
+          "SA-17-00",
+          "SA-22-00",
+          "SC-02-00",
+          "SC-03-00",
+          "SC-04-00",
+          "SC-05-00",
+          "SC-06-00",
+          "SC-07-00",
+          "SC-08-00",
+          "SC-10-00",
+          "SC-12-00",
+          "SC-13-00",
+          "SC-15-00",
+          "SC-17-00",
+          "SC-18-00",
+          "SC-23-00",
+          "SC-24-00",
+          "SC-28-00",
+          "SC-37-00",
+          "SC-39-00",
+          "SI-02-00",
+          "SI-03-00",
+          "SI-04-00",
+          "SI-05-00",
+          "SI-07-00",
+          "SI-10-00",
+          "SI-11-00",
+          "SI-16-00",
+          "SI-20-00",
+          "SR-01-00",
+          "SR-02-00",
+          "SR-03-00",
+          "SR-04-00",
+          "SR-05-00",
+          "SR-06-00",
+          "SR-08-00",
+          "SR-09-00",
+          "SR-11-00"
+        ]
+      },
+      "interview_control_rows": {
+        "count": 100,
+        "definition": "附录 E 按同一组 100 个控制标识组织访谈 Q&A；一行可含多个系统元素和多组问题，因此不是恰好 100 道问题。",
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 38,
+            "printed_page": "34",
+            "section": "Appendix E introduction",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=38"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 70,
+            "printed_page": "66",
+            "section": "Appendix E final page",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=70"
+          }
+        ]
+      },
+      "threat_concern_rows": {
+        "count": 40,
+        "definition": "项目逐行重建附录 C 的 AI Threats 行，共 40 个威胁/关注点行；合并跨页续行，和当前 ATLAS 技术数、OWASP 风险数均不同。此计数为本地提取核对，不冒称报告正文自报总数。",
+        "rows": [
+          {
+            "name": "Loss of models",
+            "pdf_pages": [
+              17
+            ]
+          },
+          {
+            "name": "Model poisoning",
+            "pdf_pages": [
+              17
+            ]
+          },
+          {
+            "name": "Insecure APIs",
+            "pdf_pages": [
+              18
+            ]
+          },
+          {
+            "name": "Configuration errors",
+            "pdf_pages": [
+              18,
+              19
+            ]
+          },
+          {
+            "name": "Data poisoning",
+            "pdf_pages": [
+              19
+            ]
+          },
+          {
+            "name": "Model exposure",
+            "pdf_pages": [
+              19
+            ]
+          },
+          {
+            "name": "Sensitive data exposure",
+            "pdf_pages": [
+              20
+            ]
+          },
+          {
+            "name": "Sensitive information disclosure",
+            "pdf_pages": [
+              20
+            ]
+          },
+          {
+            "name": "Supply chain and life cycle infiltrations and unvetted changes to the model (especially open source)",
+            "pdf_pages": [
+              21
+            ]
+          },
+          {
+            "name": "Supply chain and life cycle infiltrations and unvetted changes of training and operational data",
+            "pdf_pages": [
+              22
+            ]
+          },
+          {
+            "name": "Supply chain infiltrations/unvetted changes of AI tools/platforms (especially open source)",
+            "pdf_pages": [
+              22
+            ]
+          },
+          {
+            "name": "Supply Chain infiltration/unvetted changes of Environment components (especially open source)",
+            "pdf_pages": [
+              23
+            ]
+          },
+          {
+            "name": "Loss of data",
+            "pdf_pages": [
+              23
+            ]
+          },
+          {
+            "name": "Unauthorized access to data",
+            "pdf_pages": [
+              24
+            ]
+          },
+          {
+            "name": "Unauthorized access to environment, platform/tool",
+            "pdf_pages": [
+              24
+            ]
+          },
+          {
+            "name": "Insecure deserialization – embedding and executing remote unapproved code or other malicious activities",
+            "pdf_pages": [
+              24,
+              25
+            ]
+          },
+          {
+            "name": "Backdoor and malware insertion",
+            "pdf_pages": [
+              25
+            ]
+          },
+          {
+            "name": "Vulnerability exploit",
+            "pdf_pages": [
+              25,
+              26
+            ]
+          },
+          {
+            "name": "Lack of system, firmware, or tool updates and patches",
+            "pdf_pages": [
+              26
+            ]
+          },
+          {
+            "name": "Faulty authentication and authorization settings",
+            "pdf_pages": [
+              26
+            ]
+          },
+          {
+            "name": "Zero-day exploits",
+            "pdf_pages": [
+              26,
+              27
+            ]
+          },
+          {
+            "name": "Insider threats",
+            "pdf_pages": [
+              27
+            ]
+          },
+          {
+            "name": "Backup capability limitations",
+            "pdf_pages": [
+              27
+            ]
+          },
+          {
+            "name": "Denial of Service attack",
+            "pdf_pages": [
+              28
+            ]
+          },
+          {
+            "name": "Network components attacks",
+            "pdf_pages": [
+              28
+            ]
+          },
+          {
+            "name": "Power supply attacks",
+            "pdf_pages": [
+              28
+            ]
+          },
+          {
+            "name": "Physical breaches",
+            "pdf_pages": [
+              29
+            ]
+          },
+          {
+            "name": "AI bias",
+            "pdf_pages": [
+              29
+            ]
+          },
+          {
+            "name": "Identity Spoofing (e.g. deep fakes, synthetic identities, CAPTCHA threat)",
+            "pdf_pages": [
+              30
+            ]
+          },
+          {
+            "name": "Indirect Prompt Injection",
+            "pdf_pages": [
+              30
+            ]
+          },
+          {
+            "name": "Direct Prompt Injection",
+            "pdf_pages": [
+              30
+            ]
+          },
+          {
+            "name": "Cost Harvesting",
+            "pdf_pages": [
+              31
+            ]
+          },
+          {
+            "name": "Excessive Agency",
+            "pdf_pages": [
+              31
+            ]
+          },
+          {
+            "name": "Insecure Plugin Design",
+            "pdf_pages": [
+              31,
+              32
+            ]
+          },
+          {
+            "name": "Content Manipulation",
+            "pdf_pages": [
+              32
+            ]
+          },
+          {
+            "name": "Evade AI model",
+            "pdf_pages": [
+              32
+            ]
+          },
+          {
+            "name": "Publicly-available product or service",
+            "pdf_pages": [
+              32,
+              33
+            ]
+          },
+          {
+            "name": "Metadata exposure",
+            "pdf_pages": [
+              33
+            ]
+          },
+          {
+            "name": "Robotic Process Automation Permissions",
+            "pdf_pages": [
+              33
+            ]
+          },
+          {
+            "name": "Spamming the System with Chaff Data",
+            "pdf_pages": [
+              34
+            ]
+          }
+        ]
+      },
+      "rmf_steps_augmented": {
+        "count": 3,
+        "out_of": 7,
+        "names": [
+          "Prepare",
+          "Select",
+          "Assess"
+        ],
+        "definition": "SAFE-AI 明确增强的 NIST RMF 步骤，非 Agent 运行时生命周期。",
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 11,
+            "printed_page": "7",
+            "section": "§2.1.4, §2.2",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=11"
+          }
+        ]
+      },
+      "prepare_tasks_augmented": {
+        "count": 4,
+        "out_of": 18,
+        "names": [
+          "Risk Management Roles",
+          "Risk Management Strategy",
+          "Organization-Wide Risk Assessment",
+          "Common Control Identification"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 11,
+            "printed_page": "7",
+            "section": "§2.2",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=11"
+          }
+        ]
+      }
+    },
+    "system_element_mapping_candidates": [
+      {
+        "source_element": "Environment",
+        "source_scope": "基础设施、网络、计算与存储",
+        "suggested_layers": [
+          "A7"
+        ],
+        "mapping_status": "project_interpretation"
+      },
+      {
+        "source_element": "AI Platform",
+        "source_scope": "应用软件、AI 软件与操作系统",
+        "suggested_layers": [
+          "A1",
+          "A2",
+          "A4",
+          "A6"
+        ],
+        "additional_objects": [
+          "A3.2",
+          "A3.3",
+          "A5.4",
+          "A5.6",
+          "A7.5"
+        ],
+        "mapping_status": "project_interpretation_many_to_many"
+      },
+      {
+        "source_element": "AI Model",
+        "source_scope": "模型程序与算法；附录覆盖 ML models/LLMs",
+        "suggested_objects": [
+          "A3.1",
+          "A3.2",
+          "A3.4"
+        ],
+        "mapping_status": "project_interpretation"
+      },
+      {
+        "source_element": "AI Data",
+        "source_scope": "定义为训练和调优数据，附录 D/E 多处指训练与验证数据；不是完整个人 Agent 运行时状态本体",
+        "suggested_objects": [
+          "A3.4",
+          "A5.3"
+        ],
+        "extension_candidates": [
+          "A5.1",
+          "A5.2",
+          "A5.4",
+          "A5.5"
+        ],
+        "mapping_status": "project_interpretation_extensions_require_explicit_label"
+      }
+    ],
+    "checks": [
+      {
+        "id": "SAFEAI-01",
+        "title": "共享责任与系统连接清单",
+        "summary": "报告将云 AI 服务控制视为通常需要消费者与提供者共同实施的混合控制，要求确定可继承部分及消费者自己负责的部分；内部接口需记录端口、协议、安全要求及传输信息。",
+        "source_control_ids": [
+          "CA-09-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 13,
+            "printed_page": "9",
+            "section": "§2.4.1 Hybrid Controls",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=13"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 45,
+            "printed_page": "41",
+            "section": "Appendix E CA-09-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=45"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.1",
+          "A2.3",
+          "A3.2",
+          "A4.3",
+          "A4.4",
+          "A5.6",
+          "A7.5"
+        ],
+        "suggested_control_ids": [
+          "C01",
+          "C02",
+          "C06",
+          "C07",
+          "C12",
+          "C14"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M03",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [
+          "X1",
+          "X2"
+        ],
+        "assessment_prompt": "每条跨服务连接由谁实现认证、授权、隔离、日志及数据控制？提供者证据覆盖到哪里，消费者还需配置和验证什么？",
+        "evidence_expected": [
+          "消费者/提供者责任表",
+          "实际接口、端口与协议清单",
+          "继承控制的服务范围与配置证据"
+        ],
+        "boundary": "云服务声明不能替代消费方配置与端到端验证；本项目七层映射为解释性映射。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-02",
+        "title": "逐次授权与最小权限",
+        "summary": "访问控制需在访问请求前执行；模型、平台、训练数据和插件应有明确权限，并约束不必要自主性及插件权限。",
+        "source_control_ids": [
+          "AC-03-00",
+          "AC-06-00",
+          "AC-24-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 38,
+            "printed_page": "34",
+            "section": "Appendix E AC-03-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=38"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 40,
+            "printed_page": "36",
+            "section": "Appendix E AC-06-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=40"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 43,
+            "printed_page": "39",
+            "section": "Appendix E AC-24-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=43"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.1",
+          "A2.6",
+          "A3.2",
+          "A4.2",
+          "A4.3",
+          "A4.4",
+          "A5.4",
+          "A7.4"
+        ],
+        "suggested_control_ids": [
+          "C01",
+          "C02",
+          "C05"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M02",
+          "M03",
+          "M05"
+        ],
+        "suggested_cross_domain_ids": [
+          "X1"
+        ],
+        "assessment_prompt": "最终资源请求前是否对当前主体和动作授权？插件权限是否超出完成任务所需？新增插件如何赋权？",
+        "evidence_expected": [
+          "主体/角色/动作/资源权限矩阵",
+          "插件实际凭据和作用域",
+          "允许/拒绝对照及下游副作用"
+        ],
+        "boundary": "身份认证和权限有效不能证明输入没有提示注入，也不自动证明动作符合用户本次意图。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-03",
+        "title": "信息流与人工复核",
+        "summary": "报告分别提出信息流约束、跨安全域未批准信息的检测与阻止、选定流程下的人工复核以及敏感数据清理或销毁。",
+        "source_control_ids": [
+          "AC-04-00",
+          "AC-04-09",
+          "AC-04-15",
+          "AC-04-25"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 39,
+            "printed_page": "35",
+            "section": "Appendix E AC-04-*",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=39"
+          }
+        ],
+        "suggested_object_ids": [
+          "A2.2",
+          "A2.6",
+          "A3.3",
+          "A4.2",
+          "A4.4",
+          "A5.1",
+          "A5.2",
+          "A5.4",
+          "A6.1",
+          "A7.3"
+        ],
+        "suggested_control_ids": [
+          "C03",
+          "C07",
+          "C10",
+          "C12"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M02",
+          "M05",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [
+          "X1",
+          "X2"
+        ],
+        "assessment_prompt": "哪些来源/类别的信息可流向哪些主体和目的地？哪些动作要人工复核？清理后的数据是否仍含敏感内容？",
+        "evidence_expected": [
+          "数据流与安全域清单",
+          "允许流/禁止流政策",
+          "人工复核条件与记录",
+          "敏感数据清理及外发核对证据"
+        ],
+        "boundary": "原文没有保证标签或过滤器可以完全阻止注入；把批准绑定到最终具体动作属于本项目的进一步要求。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-04",
+        "title": "网络分区与受管边界",
+        "summary": "报告明确要求公开可访问子网与内部组织网络物理或逻辑分离，在关键内部及外部受管接口监控并控制通信；外连经有边界保护的受管接口。",
+        "source_control_ids": [
+          "SC-07-00",
+          "AC-17-00",
+          "AC-20-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 42,
+            "printed_page": "38",
+            "section": "Appendix E AC-17-00, AC-20-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=42"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 57,
+            "printed_page": "53",
+            "section": "Appendix E SC-07-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=57"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.1",
+          "A3.2",
+          "A3.3",
+          "A4.3",
+          "A4.4",
+          "A4.5",
+          "A4.6",
+          "A5.6",
+          "A7.1",
+          "A7.3"
+        ],
+        "suggested_control_ids": [
+          "C06",
+          "C07",
+          "C12"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M03",
+          "M05",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [],
+        "assessment_prompt": "公开入口、内部服务、执行工作负载与管理网络如何分区？任一工具、浏览器或子进程外连能否绕开受管边界？",
+        "evidence_expected": [
+          "网络区/子网/路由/受管接口清单",
+          "安全组或网络策略与出口配置",
+          "允许连通/禁止连通对照",
+          "出口代理和目标服务侧证据"
+        ],
+        "boundary": "原文提出分区和受管连接点；DNS/重定向及不同执行器的旁路验证是本项目落实网络隔离的检查，不是原文已实现功能。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-05",
+        "title": "管理面和安全功能隔离",
+        "summary": "系统管理与用户功能应物理或逻辑分离；安全功能应与常规用户及其他非安全功能隔离。",
+        "source_control_ids": [
+          "SC-02-00",
+          "SC-03-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 55,
+            "printed_page": "51",
+            "section": "Appendix E SC-02-00, SC-03-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=55"
+          }
+        ],
+        "suggested_object_ids": [
+          "A2.6",
+          "A4.6",
+          "A6.2",
+          "A7.1",
+          "A7.4",
+          "A7.5"
+        ],
+        "suggested_control_ids": [
+          "C06",
+          "C10"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M02",
+          "M03",
+          "M05"
+        ],
+        "suggested_cross_domain_ids": [
+          "X1"
+        ],
+        "assessment_prompt": "用户或受控 Agent 执行路径能否修改策略、审批、安全护栏、部署配置或管理凭据？隔离由何种机制强制？",
+        "evidence_expected": [
+          "管理/用户/安全功能边界图",
+          "管理权限和配置写入路径",
+          "从低权限执行环境访问管理面的拒绝证据"
+        ],
+        "boundary": "这是控制面、权限与执行域隔离；依赖网络分区的路径由A7.3网络与出口代理承接，不能据此推断进程或业务授权隔离。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-06",
+        "title": "进程和插件执行隔离",
+        "summary": "报告询问执行进程是否有独立地址空间，以及 AI 平台如何对 LLM 插件强制进程隔离。",
+        "source_control_ids": [
+          "SC-39-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 61,
+            "printed_page": "57",
+            "section": "Appendix E SC-39-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=61"
+          }
+        ],
+        "suggested_object_ids": [
+          "A4.2",
+          "A4.3",
+          "A4.5",
+          "A4.6",
+          "A7.1",
+          "A7.2",
+          "A7.6"
+        ],
+        "suggested_control_ids": [
+          "C06"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M02",
+          "M03",
+          "M05"
+        ],
+        "suggested_cross_domain_ids": [],
+        "assessment_prompt": "插件/代码执行是否处于独立执行域？共享文件、进程、内存与设备是否令边界失效？",
+        "evidence_expected": [
+          "进程/容器/沙箱边界配置",
+          "执行时实际权限",
+          "越权文件/进程/设备访问对照"
+        ],
+        "boundary": "进程隔离由主机、容器与沙箱承接，网络可达性由网络与出口代理承接；进程隔离不限制沙箱内已授权的有害业务动作。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-07",
+        "title": "输入验证与注入检测的具体执行点",
+        "summary": "原文要求执行查询/动作前验证输入、使用库验证插件输入、更新复核提示过滤器，并询问直接和间接提示注入的检测方式。",
+        "source_control_ids": [
+          "SI-10-00",
+          "SI-03-00",
+          "SI-04-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 62,
+            "printed_page": "58",
+            "section": "Appendix E SI-03-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=62"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 63,
+            "printed_page": "59",
+            "section": "Appendix E SI-03-00 continuation",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=63"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 64,
+            "printed_page": "60",
+            "section": "Appendix E SI-04-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=64"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 66,
+            "printed_page": "62",
+            "section": "Appendix E SI-10-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=66"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.1",
+          "A1.2",
+          "A2.2",
+          "A2.5",
+          "A3.2",
+          "A4.2",
+          "A4.3",
+          "A4.4",
+          "A5.3",
+          "A5.4",
+          "A6.2",
+          "A6.3"
+        ],
+        "suggested_control_ids": [
+          "C03",
+          "C04",
+          "C05",
+          "C13",
+          "C14"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M02",
+          "M06",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [
+          "X2"
+        ],
+        "assessment_prompt": "验证发生在什么输入和最终消费点？结构、参数、内容检测分别做什么？检测到注入后由谁阻止动作？",
+        "evidence_expected": [
+          "输入/插件参数校验路径",
+          "过滤器版本与更新记录",
+          "攻击/正常任务对照",
+          "实际阻断或继续执行的证据"
+        ],
+        "boundary": "原文是访谈指导而非验证过的自动检测算法；A1.2 渲染漏洞细节仍需其他专门资料；扫描、过滤与报警不等于已阻断。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-08",
+        "title": "供应来源、保管链与更新准入",
+        "summary": "模型、数据、软件及工具要防止未经审核的引入，维护模型/数据保管链，核验来源，并在进入生产前审核外部模型和数据变更。",
+        "source_control_ids": [
+          "CM-11-00",
+          "SR-02-00",
+          "SR-03-00",
+          "SR-04-00",
+          "SR-06-00",
+          "SR-09-00",
+          "SR-11-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 47,
+            "printed_page": "43",
+            "section": "Appendix E CM-11-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=47"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 67,
+            "printed_page": "63",
+            "section": "Appendix E SR-01-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=67"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 68,
+            "printed_page": "64",
+            "section": "Appendix E SR-02-00, SR-03-00, SR-04-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=68"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 69,
+            "printed_page": "65",
+            "section": "Appendix E SR-06-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=69"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 70,
+            "printed_page": "66",
+            "section": "Appendix E SR-09-00, SR-11-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=70"
+          }
+        ],
+        "suggested_object_ids": [
+          "A2.4",
+          "A2.5",
+          "A3.1",
+          "A3.4",
+          "A4.1",
+          "A4.3",
+          "A4.6",
+          "A5.3",
+          "A6.3",
+          "A7.5"
+        ],
+        "suggested_control_ids": [
+          "C08",
+          "C09",
+          "C14"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M03",
+          "M04",
+          "M06"
+        ],
+        "suggested_cross_domain_ids": [
+          "X3"
+        ],
+        "assessment_prompt": "提供方、制品、依赖、分发渠道、版本和实际加载对象能否对应？外部更新经何种审核后进入使用？",
+        "evidence_expected": [
+          "来源与供应商记录",
+          "模型/数据保管链",
+          "清单、摘要、版本与实际加载证据",
+          "变更评审和回归记录"
+        ],
+        "boundary": "Skill、MCP 等对象是本项目对软件/工具供应链原则的应用；签名和来源证明不保证制品无恶意或远端行为不变。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-09",
+        "title": "模型与数据完整性及异常响应",
+        "summary": "报告要求用工具验证模型、数据及软件完整性，识别未授权更改，并明确发现完整性违规后的响应动作；同时给出基于参照数据发现投毒异常的评估思路。",
+        "source_control_ids": [
+          "SI-07-00",
+          "SI-10-00",
+          "SI-04-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 64,
+            "printed_page": "60",
+            "section": "Appendix E SI-04-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=64"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 65,
+            "printed_page": "61",
+            "section": "Appendix E SI-07-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=65"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 66,
+            "printed_page": "62",
+            "section": "Appendix E SI-10-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=66"
+          }
+        ],
+        "suggested_object_ids": [
+          "A3.1",
+          "A3.4",
+          "A5.2",
+          "A5.3",
+          "A5.4",
+          "A5.5",
+          "A5.6",
+          "A6.2",
+          "A6.3"
+        ],
+        "suggested_control_ids": [
+          "C08",
+          "C09",
+          "C13",
+          "C14",
+          "C15"
+        ],
+        "suggested_method_ids": [
+          "M04",
+          "M06",
+          "M08",
+          "M09"
+        ],
+        "suggested_cross_domain_ids": [
+          "X2",
+          "X3"
+        ],
+        "assessment_prompt": "已部署权重、语料和索引如何与可信基线比较？发现变化或行为偏离后如何定位、隔离和回滚？",
+        "evidence_expected": [
+          "可信基线和摘要",
+          "数据/模型变更记录",
+          "独立参照集和异常判据",
+          "告警到响应/恢复记录"
+        ],
+        "boundary": "字节完整性不证明训练数据事实正确或没有投毒；参照集可信度和检测漏报需单独验证。长期记忆/索引的扩展是项目解释。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-10",
+        "title": "可重建事件的日志与证据保护",
+        "summary": "应选择足以支持事后调查的事件，并能形成关联审计链；模型/数据访问记录至少包含时间、访问主体和动作；保护日志及工具免于未授权访问、修改、删除。",
+        "source_control_ids": [
+          "AU-02-00",
+          "AU-03-00",
+          "AU-06-00",
+          "AU-06-05",
+          "AU-09-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 43,
+            "printed_page": "39",
+            "section": "Appendix E AU-02-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=43"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 44,
+            "printed_page": "40",
+            "section": "Appendix E AU-03-00, AU-06-*, AU-09-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=44"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.3",
+          "A2.3",
+          "A2.6",
+          "A3.2",
+          "A4.2",
+          "A4.3",
+          "A5.6",
+          "A6.1",
+          "A6.2"
+        ],
+        "suggested_control_ids": [
+          "C07",
+          "C12",
+          "C15"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M03",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [
+          "X2"
+        ],
+        "assessment_prompt": "能否从一次用户任务追踪到模型、工具、数据访问和最终结果？谁能读取/删改日志？日志是否带入不应保留的敏感数据？",
+        "evidence_expected": [
+          "事件选择与字段规范",
+          "时间/主体/动作记录",
+          "跨组件关联链",
+          "日志访问控制和防篡改配置",
+          "日志中敏感数据核查"
+        ],
+        "boundary": "有日志不等于记录完整；本项目的任务ID、版本与最终副作用关联为实施细化，不能把 trace ID 视作授权凭据。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-11",
+        "title": "资源预算与成本滥用保护",
+        "summary": "报告将成本收割纳入拒绝服务防护，并要求按优先级、配额和控制保护资源可用性。",
+        "source_control_ids": [
+          "SC-05-00",
+          "SC-06-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 56,
+            "printed_page": "52",
+            "section": "Appendix E SC-05-00, SC-06-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=56"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.1",
+          "A2.1",
+          "A2.3",
+          "A3.2",
+          "A4.2",
+          "A4.6",
+          "A6.2",
+          "A7.1",
+          "A7.6"
+        ],
+        "suggested_control_ids": [
+          "C11",
+          "C12",
+          "C15"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M03",
+          "M07",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [],
+        "assessment_prompt": "令牌、推理、工具、并发和费用限额在哪执行？重试或委派能否绕过单组件限制？",
+        "evidence_expected": [
+          "配额/优先级/费用控制规则",
+          "限额触发记录",
+          "重试、委派与停止行为证据"
+        ],
+        "boundary": "原文没有给出跨会话/委派预算算法；累计预算验证是项目 C11 的联合检查，不能因为无 X 标签而删除。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      },
+      {
+        "id": "SAFEAI-12",
+        "title": "结束会话、已知安全状态与恢复",
+        "summary": "用户会话结束后 AI 组件处理不应无限延续；通信连接按策略终止；模型/数据/平台备份，失败状态和恢复措施需明确。",
+        "source_control_ids": [
+          "AC-12-00",
+          "SC-10-00",
+          "CP-09-00",
+          "SC-24-00",
+          "SA-08-00"
+        ],
+        "citations": [
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 41,
+            "printed_page": "37",
+            "section": "Appendix E AC-12-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=41"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 47,
+            "printed_page": "43",
+            "section": "Appendix E CP-09-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=47"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 53,
+            "printed_page": "49",
+            "section": "Appendix E SA-08-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=53"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 58,
+            "printed_page": "54",
+            "section": "Appendix E SC-10-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=58"
+          },
+          {
+            "local_path": "sources/safeai/SAFEAI_Full_Report.pdf",
+            "pdf_page": 60,
+            "printed_page": "56",
+            "section": "Appendix E SC-24-00",
+            "url": "https://atlas.mitre.org/pdf-files/SAFEAI_Full_Report.pdf#page=60"
+          }
+        ],
+        "suggested_object_ids": [
+          "A1.3",
+          "A2.3",
+          "A4.2",
+          "A4.6",
+          "A5.2",
+          "A5.5",
+          "A5.6",
+          "A7.1",
+          "A7.3",
+          "A7.4"
+        ],
+        "suggested_control_ids": [
+          "C11",
+          "C12",
+          "C15"
+        ],
+        "suggested_method_ids": [
+          "M01",
+          "M03",
+          "M07",
+          "M08"
+        ],
+        "suggested_cross_domain_ids": [],
+        "assessment_prompt": "会话结束、异常和撤销是否停止后台动作与连接？能否从可信备份恢复且避免污染再次进入？",
+        "evidence_expected": [
+          "终止触发条件和传播记录",
+          "后台任务/令牌/连接状态",
+          "备份及恢复演练记录",
+          "已知失败状态定义"
+        ],
+        "boundary": "原文不定义统一 Agent lifetime；会话结束与任务生命周期各异，须按目标原生语义解释。进程退出不等于令牌、污染状态或远端任务已清除。",
+        "mapping_status": "project_interpretation_unvalidated",
+        "source_role": "defender_control_and_assessment_guidance"
+      }
+    ],
+    "boundaries": [
+      "不将 SAFE-AI 重复放到左侧作为一套攻击技术；它提供防御控制及评估问题。",
+      "没有独立的成熟度/分数模型，没有可直接运行的统一 Agent benchmark；附录 E 的期望回答包含组织自定义参数，实际评估需查证。",
+      "没有 criteria/subcriteria 的独立层级；主要结构是 Threat/Concern → System Element → NIST control/enhancement → question/answer。",
+      "报告涉及传统 ML 和 GenAI，非专为 MCP、Skill 或当前个人代理编写；这些对象的对应由本项目解释。",
+      "附录 A 是 2025 年报告的 ATLAS 静态映射，PDF 以蓝色标注部分映射，纯文本提取不保留蓝色；不得据全部出现的技术 ID 声称 SAFE-AI 覆盖它们。",
+      "SI-20-00 在本报告的问题针对给模型加标记以发现外泄；不能直接等同于运行时信息流追踪/动态污点隔离。",
+      "过滤器、输入验证、恶意代码检测或访问控制均不能从访谈有回答推断已阻止提示注入；应连接到原始评测及执行证据。",
+      "不继承报告中 2025 年时点关于其他机构尚未发布指导的论断，也不继承与本任务无关的地缘政治表述。",
+      "未修改 prior Markdown/HTML、技能或参考示例；未执行任何安全测试。"
+    ],
+    "mapping_basis": {
+      "framework_path": "sources/framework/framework.json",
+      "framework_sha256": "4167505a2ca894a22b3b23b6e896cd038118f269f0dc4dafed234bb303d8a3bb",
+      "all_object_ids_validated": true,
+      "check_count": 12,
+      "scope": "所有七层对象关联与 C/M/X 引用均为项目候选分析，不是 MITRE 对该框架的认可或标准官方映射。"
+    }
+  },
+  "joint_controls": [
+    {
+      "key_control_id": "C06",
+      "name": "执行隔离与控制不可自改",
+      "objects": [
+        "A2.3",
+        "A2.6",
+        "A4.5",
+        "A4.6",
+        "A7.1",
+        "A7.2",
+        "A7.3",
+        "A7.4",
+        "A7.5"
+      ],
+      "controls": [
+        "C06",
+        "C10"
+      ],
+      "methods": [
+        "M02",
+        "M03",
+        "M05",
+        "M07"
+      ],
+      "checks": "规划、工具和子进程实际在哪执行；文件/进程/设备/凭据权限如何继承；控制组件是否位于任务不可修改的边界；分别检查客户执行器和托管沙箱。"
+    },
+    {
+      "key_control_id": "C11",
+      "name": "累计预算、事务与故障隔离",
+      "objects": [
+        "A1.3",
+        "A2.3",
+        "A2.7",
+        "A3.2",
+        "A4.2",
+        "A4.4",
+        "A4.6",
+        "A5.5",
+        "A7.1",
+        "A7.6"
+      ],
+      "controls": [
+        "C11"
+      ],
+      "methods": [
+        "M03",
+        "M07",
+        "M08"
+      ],
+      "checks": "用户/租户/任务级总预算覆盖会话、子Agent、工具、重试、并发和旁路；核对幂等/事务、真实副作用、故障域与级联。单会话限额不代表全任务限额。"
+    },
+    {
+      "key_control_id": "C15",
+      "name": "停止、撤销与状态恢复",
+      "objects": [
+        "A1.3",
+        "A2.3",
+        "A2.6",
+        "A2.7",
+        "A4.2",
+        "A4.4",
+        "A5.1",
+        "A5.2",
+        "A5.4",
+        "A5.5",
+        "A6.1",
+        "A7.1",
+        "A7.2",
+        "A7.4",
+        "A7.5"
+      ],
+      "controls": [
+        "C08",
+        "C12",
+        "C15"
+      ],
+      "methods": [
+        "M07",
+        "M08"
+      ],
+      "checks": "停止是否到达子Agent/工具/后台写入；撤权是否到达凭据及资源；污染记忆、缓存、索引、日志和备份如何清理或恢复；记录残留与未覆盖副本。"
+    }
+  ]
+}

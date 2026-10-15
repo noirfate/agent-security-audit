@@ -1,0 +1,18 @@
+{
+ "statement": "本发布包（v1）的各项计数，由 scripts/verify.py 核对。",
+ "expectations": {
+  "domains": 4,
+  "objects": 36,
+  "cross_domain_objects": 15,
+  "shared_views": 1,
+  "risks": 146,
+  "failure_modes": 208,
+  "links": 499,
+  "technical_requirements": 51,
+  "joint_checks": 9,
+  "safeguards": 53,
+  "cases": 267,
+  "case_object_mappings": 406,
+  "case_references": 599
+ }
+}

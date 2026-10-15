@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "purpose": "约束审计产出的记录形态，使结论可回溯到具体命题与证据。",
+  "record": {
+    "finding_id": "本次审计内唯一标识",
+    "failure_mode_id": "对应的命题编号，必填；无对应命题的发现需先补命题再记录",
+    "object_id": "命题所属对象",
+    "risk_ids": "该命题覆盖的目录条目，用于对外说明，不作为判定依据",
+    "verdict": {
+      "成立": "已取得证据表明该命题在目标上成立",
+      "不成立": "已取得证据表明要求得到满足",
+      "证据不足": "核查已执行但证据不足以判定，须写明缺什么",
+      "不适用": "画像或命题conditions不成立，须写明依据"
+    },
+    "conditions_met": "命题conditions逐条的实际情况",
+    "evidence": "对应evidence_requirements逐项的实际材料与获取方式",
+    "reproduction": "可复现步骤；无法复现时说明原因",
+    "detectability_observed": "实际观察到的可检测程度，与命题的detectability对照",
+    "responsibility": "自建侧 / 提供商侧 / 共担，与technical_requirements的visibility_boundary对应",
+    "residual_risk": "已有缓解后仍然成立的部分",
+    "severity_assessed": "按目标的自治度、工具权限、数据范围与人工闸门评定，不取目录的project_severity"
+  },
+  "rules": [
+    "\"证据不足\"与\"不适用\"是一等结论，不得记为\"不成立\"。",
+    "每条发现必须指向一条命题；命题不存在时先在failure-modes中补充并记录来源。",
+    "严重度按目标重新评定，目录中的project_severity只作参考。",
+    "提供商侧无法直接验证的项记录为缺口，不得据其文档直接判定\"不成立\"。"
+  ]
+}

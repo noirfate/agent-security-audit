@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "statement": "本项目自己的数据与参考源原件不一致之处，逐条登记。参考源在 sources/ 下按 sha256 冻结、永不改写；更正只写在 data/。构建时逐条核对：scope=value 的字段在参考源里仍是 from、在本项目数据里是 to；scope=substring 的字段在本项目数据里不含 from、含 to。本项目没有对应字段的参考源（如 _zh 译文）只核对本项目一侧。",
+  "corrections": [
+    {
+      "id": "INC-126-disclosure-date",
+      "case_id": "INC-126",
+      "source": "sources/crosswalk/incidents.json",
+      "reason": "参考源记为 2026 年 2 月。BlueRock 的 MCP fURI 原文页面日期为 2026-01-20，Petri 的报道为 2026-01-21；36.7%、7,000+ 服务端、MarkItDown 与 EC2 元数据取回 IAM 密钥等事实与原文一致，只有时间需要更正。",
+      "evidence": [
+        "https://www.bluerock.io/post/mcp-furi-microsoft-markitdown-vulnerabilities",
+        "https://petri.com/critical-mcp-server-flaws-ai-cloud-rce-attacks/"
+      ],
+      "edits": [
+        {
+          "field": "date",
+          "scope": "value",
+          "from": "2026-02",
+          "to": "2026-01"
+        },
+        {
+          "field": "description",
+          "scope": "substring",
+          "from": "in February 2026",
+          "to": "in January 2026"
+        },
+        {
+          "field": "description_zh",
+          "scope": "substring",
+          "from": "在2026年2月分析了",
+          "to": "在2026年1月分析了"
+        }
+      ]
+    },
+    {
+      "id": "INC-127-disclosure-date",
+      "case_id": "INC-127",
+      "source": "sources/crosswalk/incidents.json",
+      "reason": "参考源记为 2026 年 3 月。135,000 这个数字出自 SecurityScorecard STRIKE 2026-02-09 的报告，The Register 同日报道。53,000 余与此前泄露关联、Bitdefender 遥测两项本轮未能核到出处，按原样保留，只更正时间。",
+      "evidence": [
+        "https://www.theregister.com/2026/02/09/openclaw_instances_exposed_vibe_code/"
+      ],
+      "edits": [
+        {
+          "field": "date",
+          "scope": "value",
+          "from": "2026-03",
+          "to": "2026-02"
+        },
+        {
+          "field": "description",
+          "scope": "substring",
+          "from": "confirmed in March 2026 that",
+          "to": "reported on 9 February 2026 that"
+        },
+        {
+          "field": "description_zh",
+          "scope": "substring",
+          "from": "于2026年3月确认，",
+          "to": "于2026年2月9日报告，"
+        }
+      ]
+    }
+  ]
+}

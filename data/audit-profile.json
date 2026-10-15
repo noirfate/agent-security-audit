@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "purpose": "在开始审计前确定目标的形态，用于裁剪适用命题并确定取证责任；本文件是输入模板，不含任何目标信息。",
+  "usage": "逐项填写后，按failure-modes的conditions筛选适用命题，按technical_requirements的visibility_boundary确定取证方式。",
+  "dimensions": [
+    {
+      "id": "deployment",
+      "name": "部署与托管形态",
+      "why": "决定每条要求由谁实施、证据从哪来",
+      "options": [
+        "提供商托管",
+        "企业自托管",
+        "本地嵌入",
+        "混合"
+      ],
+      "affects": "全部technical_requirements的visibility_boundary"
+    },
+    {
+      "id": "autonomy",
+      "name": "自治程度",
+      "why": "决定目标改写与计划偏离类命题是否成立",
+      "options": [
+        "每步人工确认",
+        "高影响动作需批准",
+        "全自动执行"
+      ],
+      "affects": "A2.1 A2.3 A2.6 X1.4 相关命题"
+    },
+    {
+      "id": "tool_power",
+      "name": "工具能力",
+      "why": "决定执行、写入与外发类命题的适用面",
+      "options": [
+        "只读检索",
+        "可调用业务API",
+        "可写外部系统",
+        "可执行代码",
+        "可操作浏览器或桌面"
+      ],
+      "affects": "A4.x A7.1 A7.2 X4.2 相关命题"
+    },
+    {
+      "id": "data_scope",
+      "name": "数据范围",
+      "why": "决定数据隔离与外发类命题的强度",
+      "options": [
+        "单用户",
+        "多用户同租户",
+        "多租户",
+        "含受监管数据"
+      ],
+      "affects": "A1.3 A5.x X2.x 相关命题"
+    },
+    {
+      "id": "identity_model",
+      "name": "身份模型",
+      "why": "决定代表关系与权限收敛类命题",
+      "options": [
+        "代表最终用户",
+        "使用服务账户",
+        "混合并带委派"
+      ],
+      "affects": "X1.x A2.7 A4.2 相关命题"
+    },
+    {
+      "id": "external_input",
+      "name": "外部内容来源",
+      "why": "决定注入与信任边界类命题的入口集合",
+      "options": [
+        "仅用户直接输入",
+        "检索与知识库",
+        "工具与API返回",
+        "网页与邮件等外部通道",
+        "多模态输入"
+      ],
+      "affects": "A1.1 A1.2 A5.x X2.2 相关命题"
+    },
+    {
+      "id": "multi_agent",
+      "name": "协作形态",
+      "why": "决定传播类命题是否成立",
+      "options": [
+        "单Agent",
+        "固定多Agent",
+        "可动态生成子Agent"
+      ],
+      "affects": "A2.7 A2.4 X2.2 相关命题"
+    },
+    {
+      "id": "supply_chain",
+      "name": "扩展来源",
+      "why": "决定供应链类命题的适用面",
+      "options": [
+        "无外部扩展",
+        "内部发布的Skill与工具",
+        "第三方市场或注册表",
+        "远程MCP服务"
+      ],
+      "affects": "A2.5 A4.1 A4.3 X3.x 相关命题"
+    }
+  ],
+  "output": "一份已填写的画像，连同据此筛出的适用命题清单，作为审计范围的书面依据。"
+}

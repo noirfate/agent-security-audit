@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="探索AI Agent系统架构、对象、OWASP风险、MITRE ATLAS攻击技术、案例与跨域安全控制。">
+  <title>AI Agent 安全审计图谱</title>
+  <style>/*__APP_CSS__*/</style>
+</head>
+<body>
+  <a class="skip-link" href="#architecture">跳到架构对象</a>
+  <header class="masthead">
+    <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2 28 9v14L16 30 4 23V9Z" stroke="currentColor" stroke-width="1.6"/><path d="m4 9 12 7 12-7M16 16v14M10 12l6-3 6 3v7l-6 4-6-4Z" stroke="currentColor" stroke-width="1.3"/></svg></div>
+    <div class="brand-copy"><div class="eyebrow">AGENT SECURITY EXPLORER <span class="edition">INTERACTIVE / 01</span></div><h1>AI Agent 安全审计图谱</h1></div>
+    <div class="header-actions"><button class="quiet-button" data-open="library:cases"><span aria-hidden="true">▤</span> 案例库 <span id="case-count" class="count-chip"></span></button></div>
+  </header>
+  <section class="introbar" aria-label="图谱概要"><p>从风险定位对象，从对象检查控制。</p><div id="statistics" class="statistics"></div></section>
+  <div id="selection-strip" class="selection-strip" hidden></div>
+  <nav class="mobile-tabs" aria-label="图谱区域"><button data-panel="risks">风险与技术</button><button data-panel="architecture" class="active" aria-current="page">Agent系统架构</button><button data-panel="cross-domain">跨域对象</button></nav>
+  <main class="workspace" data-active-panel="architecture">
+    <aside class="column risk-column" id="risks" aria-labelledby="risk-heading"><div class="column-heading"><div><span class="section-index">01</span><h2 id="risk-heading">攻击技术与风险</h2></div><span id="risk-total" class="subtle-number"></span></div><div class="column-scroll"><div id="risk-groups"></div><div id="case-search-results" hidden></div></div></aside>
+    <section class="column architecture-column" id="architecture" aria-labelledby="architecture-heading"><div class="column-heading"><div><span class="section-index">02</span><h2 id="architecture-heading">Agent系统架构</h2></div><span id="architecture-total" class="subtle-number">架构对象</span></div><div id="layers"></div></section>
+    <aside class="column cross-column" id="cross-domain" aria-labelledby="cross-heading"><div class="column-heading"><div><span class="section-index">03</span><h2 id="cross-heading">跨域安全对象</h2></div><span id="security-total" class="subtle-number"></span></div><div id="domains" class="column-scroll"></div></aside>
+  </main>
+  <footer class="page-footer"><span>七层基于 CIS · 风险与案例保留来源 · 跨域对象为项目细化</span><button data-open="sources:overview">查看版本、映射条件与来源</button></footer>
+  <div id="live-status" class="sr-only" role="status" aria-live="polite"></div>
+  <dialog id="detail-dialog" aria-labelledby="detail-title"><div class="dialog-header"><button class="icon-button" id="detail-back" aria-label="返回上一项详情" title="返回上一项">←</button><div class="dialog-title-group"><div id="detail-kicker" class="detail-kicker"></div><h2 id="detail-title"></h2><p id="detail-subtitle"></p></div><button class="icon-button close-dialog" id="detail-close" aria-label="关闭详情">×</button></div><div id="detail-tabs" class="detail-tabs" role="tablist" aria-label="详情栏目"></div><div id="detail-content" class="detail-content" tabindex="0" role="tabpanel"></div></dialog>
+  <script id="explorer-data" type="application/json">__EXPLORER_DATA__</script>
+  <script>/*__APP_JS__*/</script>
+</body>
+</html>

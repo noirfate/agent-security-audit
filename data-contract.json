@@ -1,0 +1,183 @@
+{
+ "schema_version": "2.0",
+ "purpose": "HTML与未来Agent安全分析skill共享同一版本的JSON源数据。本发布包是定版快照，不含历史版本内容与过程记录。",
+ "active_version_source": "本目录即数据本体：data为规范数据，sources为参考源原件，页面由两者之外的构建流程生成。",
+ "canonical_parts": {
+  "data/metadata.json": "版本、来源指纹及范围；source_hashes描述导入来源，不是当前对象定义的加载入口。case_count由编译器按cases.json派生，不手工维护。",
+  "data/architecture.json": "七层、架构对象、跨域主题、规范安全对象、共享场景视图与历史编号别名。",
+  "data/risks.json": "活动风险/技术的定义、成立前提、机制和场景防御；v2当前为51项OWASP与64项ATLAS。对象角色及反向索引由活动关联生成，不维护第二份映射。",
+  "data/failure-modes.json": "对象侧失效模式（检查命题）的唯一定义入口。每条命题说明该对象自身会怎样失效、成立条件、取证要求、角色，以及技术要求、核查与检测信号。关联表只引用命题编号，不再各存一份文字；编译时回填到关联上。",
+  "data/risk-object-links.json": "风险到对象的唯一关联源；每行只有risk_id、object_id、fm_id以及随风险变化的source_refs与basis_refs.risk，其余内容在failure-modes.json。contexts保留原对象、数据视图、评估器成员和原关联说明。",
+  "data/cases.json": "222条来源案例。risk_ids只索引活动目录；source_technique_ids与attack_steps保留完整官方关系与步骤，允许引用选集外技术。object_mappings逐条写明该案例的哪个环节落到哪个架构对象，含reason、basis与fm_id；object_mapping_exclusions记录经核对排除的对象及理由；object_ids由编译器按object_mappings派生，源数据不单独维护。description/attack_vector/impact/mitigations与attack_steps[].description的中文译文写在同名的_zh字段，原文保持不动。这是案例库的唯一维护入口；记录数不等于独立事件数。",
+  "data/defense.json": "来源条款、对象技术要求集合、对象/风险关联和验证/取证说明。technical_requirements为项目细化，未执行。",
+  "data/reference-catalogs.json": "防御控制目录C01–C15与核查方法目录M01–M09，供architecture、risks与safeai以control_ids/method_ids引用；页面另用它把正文里的C##/M##换成名称。",
+  "data/safeai.json": "SAFE-AI原文问题整理及系统级联合检查，保留来源与范围。",
+  "data/source-techniques.json": "208项ATLAS原始目录名称及入口，用于完整呈现案例中的选集外步骤。",
+  "data/presentation.json": "展示排序偏好；不能用于新增风险关联。",
+  "data/atlas-selection-review.json": "对来源目录全部208项技术的显式结论：active／archived／attacker_side／pending_review，使族内不一致成为可检查的缺口。",
+  "data/audit-profile.json": "审计开始前要确定的目标形态（部署、自治度、工具能力、数据范围、身份模型、外部来源、协作形态、扩展来源），用于裁剪适用命题。模板不含目标信息。",
+  "data/finding-schema.json": "审计发现的记录形态：每条发现指向一条命题，\"证据不足\"与\"不适用\"是一等结论。",
+  "data-contract.json": "本版本的数据契约，随版本包一起存放；描述该包内各文件职责与规则。",
+  "expectations.json": "本版本声明的计数，检查器据此核对；index.json只登记版本路径与该文件名。",
+  "sources/": "本版本全部导入来源的原件副本（OWASP Crosswalk案例、MITRE ATLAS原始YAML、CIS与OWASP条款PDF、SAFE-AI报告、原始框架JSON与本地实验材料）。data里的local_path与引用一律指向这里，metadata.source_hashes逐文件锁定其sha256，版本包不依赖包外任何文件。",
+  "data/source-corrections.json": "本项目数据与参考源原件不一致之处的登记表：字段、scope、from/to、理由与证据。构建逐条核对，未登记的分歧不允许。",
+  "data/case-object-review.json": "每条案例对架构对象的定位结论：mapped／out-of-scope／duplicate-of／pending_review，各带理由。使\"没有挂载\"可读——是判定不落在架构对象上、与别条重复，还是尚未审。"
+ },
+ "generated_outputs": [
+  "explorer-data.json",
+  "AI-Agent安全审计图谱.html"
+ ],
+ "build_rules": [
+  "修改活动版本data或ui源文件，然后重建；不手改HTML或生成索引。",
+  "构建仅读取所选版本JSON，无需重新读取更新后的Crosswalk仓库。",
+  "v1为冻结基线；构建器检测到源文件或输出漂移时拒绝覆写。"
+ ],
+ "identity_rules": [
+  "对象分类标识与实际部署实例标识是不同概念；同一实例可在多个视图出现。",
+  "v2接口层连续编号：A1.1 API与消息接口、A1.2 内容解析与渲染、A1.3 会话管理；用户界面不单列。",
+  "A6.4是历史别名，指向A6.3.evaluator成员；不再是同级架构对象。",
+  "X2.3是X1.3授权策略的数据访问视图；不维护第二份授权规则。",
+  "视图仅投影规范关联中明确列出的view_reviews，并使用该视图单独复核的条件；历史contexts只作来源语境，不再决定活动关系。",
+  "映射仅是项目候选；读取contexts、applicability和责任边界后再分析具体目标。",
+  "历史contexts和previous_locations使用来源版本编号；当前object_id使用活动版本编号。存在编号复用时不设置会遮蔽当前对象的旧编号别名。",
+  "v2跨域主题仅保留X1身份权限安全、X2数据安全、X3供应链安全；X4网络隔离及其对象已删除，网络设施职责由Agent系统架构A7.3承接。"
+ ],
+ "audit_reader_sequence": [
+  "按audit-profile.json确定目标形态，据此裁剪适用命题",
+  "读取index.json选择版本",
+  "读取architecture.json识别对象、别名、成员与视图",
+  "读取failure-modes.json取得该对象要查的命题、条件、核查与检测信号",
+  "按risk-object-links.json筛选对象及适用语境",
+  "从risks.json提取风险定义与条件",
+  "从defense.json取得对应技术要求、核查和证据",
+  "按需要读取cases.json和SAFE-AI来源",
+  "按technical_requirements的visibility_boundary确定取证方式，按finding-schema.json记录结论"
+ ],
+ "limitations": [
+  "这是资料与候选映射的数据模型，不是已经执行的目标安全审计结果。",
+  "本轮未创建或修改审计skill；技术核查仍需结合目标与证据细化。",
+  "命题的requirement、checks与detection_signals为项目细化，未在任何目标系统执行；detectability是判断，需按目标实际遥测核对。"
+ ],
+ "definition_rules": {
+  "applies_to": "v2及后续活动数据；v1冻结字段与内容不变",
+  "canonical_field": "architecture.json中每个架构对象、跨域对象和共享视图均以definition保存唯一对象定义。",
+  "writing_pattern": "对象名称＋上位类型与核心用途；第二句列出组成或功能范围。",
+  "exclusions": "定义不包含保留/新增/合并等修订说明、审计操作建议或带对象编号的职责划分。",
+  "responsibility_boundaries": "responsibilities说明本对象自身承担的职责；boundaries说明协作与交接关系，object_ids指向相关对象。组件描述其执行职责，数据、规则、状态及视图描述其承载或规定的内容。",
+  "applicability": "适用条件与证据责任保存在applicability中，不代替对象定义。",
+  "derived_compatibility_fields": "编译后的member_and_boundary和防御object_scope由definition派生，不能作为独立维护入口。",
+  "shared_views": "视图的definition描述场景范围；canonical_id指向统一规则对象，风险关系仍仅投影相应语境。",
+  "object_level_role": "对象不再保留role字段；位置语义由每条关联的role承担，词表见role_vocabulary。"
+ },
+ "risk_mapping_rules": [
+  "risk-object-links是活动映射唯一来源；保留项须同时具有reason、conditions、evidence_requirements及对象/风险定义引用。",
+  "对象侧的失效模式写在failure-modes.json；同一命题被多个目录条目引用时只写一次，不得为某个条目另抄一份措辞。",
+  "原始控制覆盖不等于对象自身风险；活动标签只使用逐项复核保留或新增的关系。",
+  "历史baseline_links及contexts不可用于直接加载活动标签；风险目录object_roles为编译派生。",
+  "X2.3只加载规范X1.3关系内明确列出的view_reviews，不靠旧语境自动继承。",
+  "修改活动关联时一并记录review决定；构建检查关联内容与复核记录保持一致。",
+  "当前v2的AML活动目录仅保留至少一个活动对象关系的技术；退出条目按risk-catalog-exclusions归档，案例source_technique_ids和attack_steps不随活动目录裁剪。",
+  "risk-mapping-review的retired_object_ids标记退出活动架构的对象；其历史decisions和object_reviews仅供追溯，构建时不再加载这些对象的关联。",
+  "对v2复核结论的任何改动都要在review-revisions.json登记from/to与理由；未登记的差异构建即失败。",
+  "一个对象对同一目录条目只建立一条关联。若两条命题都指向同一条目，说明其中一条不是独立命题，应并入另一条的核查。",
+  "补齐来源目录时，被收入条目的父项与同族子项必须在atlas-selection-review中各有显式结论。"
+ ],
+ "role_vocabulary": {
+  "_applies_to": "v3及以后；v2只有入口、传播、风险定位、影响四类，其中入口兼表执行与外发。",
+  "_meaning": "角色说明该对象在这条风险里处于什么位置，决定审计时问什么。",
+  "入口": "不可信内容或访问由此进入系统。核查来源鉴别、身份绑定、消息角色与信任标记。",
+  "风险定位": "机制在此成立，或缺陷规则、配置本身位于此对象。核查该对象自身的实现、规则与默认行为。",
+  "传播": "污染或影响经此跨对象、跨会话或跨Agent扩散。核查过滤、范围保持与来源标记是否沿途保留。",
+  "执行外发": "动作在此实际生效，或数据与请求由此离开边界，是链路的最后一跳。核查最终有效主体、资源、参数、目的地与数据范围。",
+  "影响": "后果落在此对象承载的内容、状态或资产上。核查受影响范围、可恢复性与残留。"
+ },
+ "case_object_mapping_rules": [
+  "案例通过object_mappings到达对象，不使用裸id列表；每条挂载必须写出该案例的哪个环节落到该对象。",
+  "basis只取两值：案例正文表示理由取自本地案例记录原文；项目推断表示该对象是机制必经而记录未点名，理由须说明推断了什么。",
+  "挂载尽量指向该对象上的一条检查命题（fm_id）；现有命题覆盖不到时fm_id置空并在fm_gap写明缺哪条命题，不得硬塞一条意思不符的命题。",
+  "一个案例对同一对象只建一条挂载；写不出理由的挂载应当移除，而不是留着占位。",
+  "案例的事实、挂载与排除都在cases.json；挂载不与任何基线版本比对，增删由每条自带的理由负责，总数在index.json的expectations中声明。",
+  "看似落点、经核对不成立的对象写入object_mapping_exclusions，含object_id与理由；同一对象不得同时出现在object_mappings与排除列表。"
+ ],
+ "case_mapping_basis": {
+  "案例正文": "理由取自本地案例记录的原文陈述，可在记录内逐句核对。",
+  "项目推断": "该对象是所述机制的必经组件，但记录未点名；理由须说明推断了什么、还需核对什么。"
+ },
+ "defense_layering": {
+  "statement": "防御栏目分两层，不混用：CIS Safeguards 是合规溯源与条款索引，technical_requirements 与命题层的要求、核查、检测信号是审计指令。",
+  "rules": [
+   "CIS条款回答“这条属于哪项既有合规要求”，一条通用条款覆盖很多对象是索引的正常形态，不按覆盖比例裁剪。",
+   "审计时实际执行的指令来自对象的technical_requirements与该对象每条命题的requirement/checks/detection_signals，不从CIS条款正文推导。",
+   "每个对象都必须同时具备至少一条项目技术要求和至少一条检查命题，使审计指令不会退化成只剩CIS通用条款；构建检查核对这一条。",
+   "治理流程类条款不作为对象的技术防御展示；其中可落到跨对象动作的，挂在joint_checks而不是摊到各对象。"
+  ],
+  "rejected_check": "复核意见曾建议“对象CIS映射中通用条款占比不得>50%”。未采纳：按上面的两层定位，占比高只说明索引粗，删掉真实适用的条款是迁就指标；真正要保的是审计指令不来自CIS，已由上一条检查覆盖。"
+ },
+ "record_language": {
+  "statement": "案例记录以中文呈现。页面只显示中文，不再提供\"记录原文\"折叠块；英文字段保留在数据里，供回查与跨源比对。",
+  "rules": [
+   "每条记录保留 <字段> 与 <字段>_zh 两份措辞，同属本项目数据；更正事实时两者同改、保持一致。",
+   "产品名、组织名、CVE与公告编号、文件路径、命令、配置键与攻击载荷按原样保留；攻击载荷属于证据，一律不翻译。",
+   "展示字段不配 _zh 时，只能是产品或目标名这类短名称（不超过48字符、不成句）；成句的叙述必须有中文。",
+   "构建检查核对：有_zh的字段译文含中文且不等于原文，mitigations_zh与原列表等长；没有_zh的展示字段必须满足上一条。"
+  ]
+ },
+ "case_library_maintenance": {
+  "statement": "案例的唯一维护入口是活动版本的data/cases.json。新增、修改或移除案例只改这一个文件，再把计数声明改掉并重建。",
+  "add_or_update": [
+   "1. 在cases.json按id写入或修改记录：上游原样字段（title/date/category/description/attack_vector/impact/mitigations/references，ATLAS侧另有actor/attack_steps/source_technique_ids）、项目字段（name_zh/source/source_name/risk_ids/mapping_status）。",
+   "2. 展示字段的中文译文写进同名_zh字段，原文不动；没有_zh的字段不得是英文正文，构建会拒。",
+   "3. risk_ids只能用活动目录内的编号；需要引用选集外技术时放source_technique_ids。",
+   "4. 要挂架构对象就写object_mappings（reason/basis/fm_id），排除的对象写object_mapping_exclusions；不需要在review-revisions.json登记。",
+   "5. 在index.json该版本的expectations里更新cases、case_object_mappings、case_object_exclusions、mitre_case_steps，这一步就是对本次增量的显式声明。",
+   "6. 依次执行build_agent_audit_explorer.py、check_agent_audit_explorer.py --browser、--final。"
+  ],
+  "not_maintained_by_hand": [
+   "cases[].object_ids、risks[].case_ids、metadata.case_count由编译器派生。",
+   "legacy-case-annotations.json、atlas-case-index-additions.json与risk-catalog-exclusions.json的case_risk_index_removals是历史归档，新增案例不涉及。",
+   "presentation.json的risk_cases只影响展示顺序，未列出的案例追加在末尾。"
+  ],
+  "upstream_refresh": "拉取新版crosswalk或ATLAS后，先diff出新增与修改的id，逐条补齐项目字段，再更新metadata.source_hashes的指纹——该指纹是硬断言，更新它等于确认本次换版。"
+ },
+ "reference_rules": {
+  "statement": "案例的来源引用规则。目的是让每条案例都能独立追到它自己的披露，而不是只指向一个收录它的目录页。",
+  "reference_types": [
+   "news",
+   "research",
+   "advisory",
+   "disclosure",
+   "legal",
+   "vendor",
+   "regulatory"
+  ],
+  "shared_catalog_urls": [
+   "https://owasp.org/www-project-agentic-skills-top-10/",
+   "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/dist/v6/ATLAS-2026.09.yaml"
+  ],
+  "rules": [
+   "一条reference必须有title与url；键只取id、title、url、type。",
+   "type沿用上游Crosswalk schema的七值枚举，可缺省；缺省表示未分类，不得自造取值。",
+   "每条案例至少有一条本案专属来源：shared_catalog_urls里的目录页只说明该案例被谁收录，不作为本案的披露来源。",
+   "MITRE ATLAS案例同时给出逐案页面 https://atlas.mitre.org/studies/<id> 与版本锁原始YAML：前者可读，后者可复现。",
+   "本地实验材料用包内sources/路径作为专属来源，不要求外部URL。"
+  ],
+  "link_check_note": "atlas.mitre.org是客户端渲染的单页应用，深链对自动化客户端返回404、在浏览器中正常；外链体检须排除该域。上游crosswalk的lychee.toml已记录同一经验，可直接复用其排除表。"
+ },
+ "data_ownership": {
+  "statement": "这是一个独立项目。sources/ 是它参考过的数据源原件，只读、按 sha256 冻结；data/ 是项目自己的数据，审计与页面一律以 data/ 为准。",
+  "rules": [
+   "构建与检查只读 data/；sources/ 只用于证明导入内容未被篡改，以及在需要时回查原始措辞。",
+   "发现参考源不准确时，改 data/ 里本项目的记录，不动 sources/。",
+   "每一处与参考源的分歧登记在 data/source-corrections.json：字段、scope、from/to、理由与证据链接，构建逐条核对。",
+   "本项目记录的中英双语字段同属项目数据，更正时两者同改，不存在\"原文不可改\"的字段。"
+  ]
+ },
+ "case_object_coverage_rules": [
+  "每条案例在case-object-review.json里有且只有一条结论，取值只能是mapped、out-of-scope、duplicate-of、pending_review。",
+  "mapped与cases.json的object_mappings互为充要：有挂载必为mapped，无挂载不得标为mapped。",
+  "out-of-scope必须写reason，说明该案例的机制为什么不经过任何架构对象；pending_review是显式待办，不写理由但也不许沉默。",
+  "duplicate-of必须给出of，指向同一事件的另一条案例；该条自身不挂载，对象结论以of所指为准，且of不得再是duplicate-of。",
+  "对象侧出现\"零直接案例\"时，要能从本表的结论集合解释原因，而不是由沉默解释。",
+  "判定out-of-scope的依据是\"命题层里没有一条描述这次失效\"，不是\"目标产品不叫Agent\"。对象的定义是组件类别：承担检测或识别判定的模型就是A3.1，施加模型安全策略的服务就是A3.2，无论它外面是否包着一个Agent。写理由时要指出是哪条命题的成立条件不满足。"
+ ]
+}

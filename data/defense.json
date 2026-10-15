@@ -1,0 +1,7392 @@
+{
+ "source": {
+  "name": "CIS Controls v8.1 Artificial Intelligence (AI) Agents Companion Guide",
+  "version": "Companion Guide v1.0, April 2026; CIS Controls v8.1",
+  "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf",
+  "sha256": "824ab8a2e829a11a66318339180366339088813be8b6ee0dc2a64391bb476c3b",
+  "official_url": "https://www.cisecurity.org/insights/white-papers/controls-v8-1-ai-agents-companion-guide",
+  "selection_note": "本文件为本项目对象审计选择的53项Safeguard，非CIS全部Controls、Safeguards目录，亦非CIS官方映射、认证或可直接运行的Benchmark。",
+  "content_note": "title_en及编号据本地官方文档逐行核对；title_zh和agent_requirements为本项目中文转述。checks、evidence、locations为项目细化的检查与取证建议；source_excerpt仅供内部来源对照，不在页面展示。",
+  "scope_note": "本指南重点为Agent规划、工具、记忆、委派及运行行为；假定模型层采用AI LLM Companion Guide，不覆盖训练、微调、数据集策展及超出其它CIS材料范围的模型制品供应链验证。RAG关注其对Agent行为的影响；存储基础设施仍需平台基线。非文本输入的指令风险在范围内，文件解析机制漏洞和生成媒体真实性不属于其专门范围。",
+  "responsibility_note": "根据云、本地、终端部署及提供商托管、企业托管、本地嵌入式运行模式确定实施与取证责任；无法直接检查的提供商能力需以适当证据核实并记录缺口。",
+  "license": "CC BY-NC-ND 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode",
+  "controls_url": "https://www.cisecurity.org/controls/",
+  "scope_refs": [
+   {
+    "pdf_page": 7,
+    "printed_page": 2,
+    "section": "Scope",
+    "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+   },
+   {
+    "pdf_page": 8,
+    "printed_page": 3,
+    "section": "Topics Not Covered",
+    "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+   },
+   {
+    "pdf_page": 9,
+    "printed_page": 4,
+    "section": "Methodology",
+    "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+   },
+   {
+    "pdf_page": 10,
+    "printed_page": 5,
+    "section": "How to Use This Guide",
+    "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+   }
+  ]
+ },
+ "safeguards": {
+  "3.1": {
+   "id": "3.1",
+   "title_en": "Establish and Maintain a Data Management Process",
+   "title_zh": "建立并维护数据管理流程",
+   "agent_requirements": [
+    "将工具输出、浏览器快照、执行日志和中间状态纳入数据管理，规定敏感度、所有者、访问权限和保留要求。",
+    "对外部API和检索内容的接入进行验证，保护可能含凭据或敏感上下文的工具执行产物。"
+   ],
+   "checks": [
+    "抽取一次完整任务的数据流，核对每个输入、工具输出、中间产物和日志是否有责任人及处理规则。",
+    "用含测试秘密的工具返回值检查保存、展示和外发环节是否遵守既定处理规则。"
+   ],
+   "evidence": [
+    "数据管理制度",
+    "任务数据流与产物样本",
+    "输入验证和输出处理配置"
+   ],
+   "locations": [
+    "工具接入点",
+    "运行状态存储",
+    "日志与输出管道"
+   ],
+   "boundary": "本条同时覆盖输入处理和执行产物管理；接入验证不能单独证明消除了提示注入或知识投毒。",
+   "source_refs": [
+    {
+     "pdf_page": 21,
+     "printed_page": 16,
+     "section": "Safeguard 3.1: Establish and Maintain a Data Management Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "3.3": {
+   "id": "3.3",
+   "title_en": "Configure Data Access Control Lists",
+   "title_zh": "配置数据访问控制列表",
+   "agent_requirements": [
+    "按最小权限约束Agent对工具、API和数据源的访问。",
+    "为工作记忆、向量索引和交互历史设置细粒度ACL，阻止其它Agent或低权限用户读取不属于其范围的上下文。"
+   ],
+   "checks": [
+    "使用两个权限不同的测试身份访问同一工具、记忆条目和检索索引，核对拒绝行为是否由服务端强制执行。",
+    "检查新增Agent和共享记忆的默认ACL，核对通配权限和跨租户授权是否存在依据。"
+   ],
+   "evidence": [
+    "数据与记忆ACL",
+    "工具和API权限策略",
+    "授权与拒绝访问日志"
+   ],
+   "locations": [
+    "数据服务",
+    "记忆与检索存储",
+    "工具后端"
+   ],
+   "boundary": "数据ACL与Agent动作授权需要同时落实；仅在提示词中声明权限不构成访问控制。",
+   "source_refs": [
+    {
+     "pdf_page": 22,
+     "printed_page": 17,
+     "section": "Safeguard 3.3: Configure Data Access Control Lists — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "3.4": {
+   "id": "3.4",
+   "title_en": "Enforce Data Retention",
+   "title_zh": "执行数据保留要求",
+   "agent_requirements": [
+    "为Agent记忆、日志和向量存储执行保留与清除规则。",
+    "最小化发送给工具的数据，并对Agent输出中的敏感内容进行脱敏，减少上下文长期残留和对外暴露。"
+   ],
+   "checks": [
+    "创建带测试标识的记忆和向量条目，验证到期后源记录、索引、缓存等相关副本按策略清除。",
+    "检查工具输入和用户输出样本，确认仅包含完成任务所需的数据且脱敏规则实际生效。"
+   ],
+   "evidence": [
+    "保留期限与删除策略",
+    "清除作业及结果",
+    "工具输入与输出脱敏样本"
+   ],
+   "locations": [
+    "记忆与向量存储",
+    "日志系统",
+    "工具请求与输出处理器"
+   ],
+   "boundary": "保留策略需兼顾最低与最高期限及法定留存；删除主记录不等于所有缓存、备份和检索索引已同步清除。",
+   "source_refs": [
+    {
+     "pdf_page": 22,
+     "printed_page": 17,
+     "section": "Safeguard 3.4: Enforce Data Retention — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "3.7": {
+   "id": "3.7",
+   "title_en": "Establish and Maintain a Data Classification Scheme",
+   "title_zh": "建立并维护数据分类方案",
+   "agent_requirements": [
+    "分类Agent能够接收、存储、检索和生成的数据类型。",
+    "将工具响应、记忆条目、会话产物和中间推理相关数据纳入同一分类方案，使保护要求贯穿组件。"
+   ],
+   "checks": [
+    "抽查每类工具返回值、记忆条目和输出，核对是否有敏感度分类及对应处理规则。",
+    "将已分类测试数据沿检索、工具调用和输出路径传递，检查下游是否按其敏感度处理。"
+   ],
+   "evidence": [
+    "数据分类方案",
+    "数据类型与标签清单",
+    "各组件处理策略"
+   ],
+   "locations": [
+    "数据接入与检索层",
+    "记忆系统",
+    "工具与输出管道"
+   ],
+   "boundary": "分类为保护策略提供依据；标签本身不实施授权、隔离或防泄漏。",
+   "source_refs": [
+    {
+     "pdf_page": 22,
+     "printed_page": 17,
+     "section": "Safeguard 3.7: Establish and Maintain a Data Classification Scheme — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "3.8": {
+   "id": "3.8",
+   "title_en": "Document Data Flows",
+   "title_zh": "记录数据流",
+   "agent_requirements": [
+    "记录Agent使用的检索来源、向量存储、索引管道、文档加载器和嵌入服务。",
+    "记录检索内容的来源及允许访问它的Agent，并将服务提供商参与的数据流纳入文档。"
+   ],
+   "checks": [
+    "沿一次实际检索任务核对数据流图，查找未记录的转发、缓存、嵌入服务和第三方接口。",
+    "对照运行配置和访问日志，确认文档所列来源及允许访问的Agent与实际一致。"
+   ],
+   "evidence": [
+    "数据流图",
+    "检索与嵌入配置",
+    "来源和访问主体清单"
+   ],
+   "locations": [
+    "检索管道",
+    "文档加载器",
+    "嵌入与向量服务"
+   ],
+   "boundary": "该条要求建立和更新可追踪的数据流记录，不等同于验证来源可信或证明内容没有恶意指令。",
+   "source_refs": [
+    {
+     "pdf_page": 22,
+     "printed_page": 17,
+     "section": "Safeguard 3.8: Document Data Flows — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "3.12": {
+   "id": "3.12",
+   "title_en": "Segment Data Processing and Storage Based on Sensitivity",
+   "title_zh": "按敏感度隔离数据处理与存储",
+   "agent_requirements": [
+    "按敏感度分隔不同Agent工作空间与上下文。",
+    "在部门、工作流和信任区之间隔离记忆存储、检索范围、工具权限及执行环境。"
+   ],
+   "checks": [
+    "用不同部门或租户的测试任务交叉检索、读取记忆和调用工具，验证数据边界。",
+    "检查共享缓存、向量过滤条件及工作空间恢复路径，确认不会绕过敏感度隔离。"
+   ],
+   "evidence": [
+    "敏感度分区设计",
+    "工作空间和检索范围配置",
+    "跨边界拒绝测试结果"
+   ],
+   "locations": [
+    "工作空间管理器",
+    "记忆与检索服务",
+    "执行环境"
+   ],
+   "boundary": "按敏感度隔离既包含数据与授权边界，也可能包含执行边界；不应全部等同于网络分区。",
+   "source_refs": [
+    {
+     "pdf_page": 23,
+     "printed_page": 18,
+     "section": "Safeguard 3.12: Segment Data Processing and Storage Based on Sensitivity — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "3.14": {
+   "id": "3.14",
+   "title_en": "Log Sensitive Data Access",
+   "title_zh": "记录敏感数据访问",
+   "agent_requirements": [
+    "记录Agent访问向量数据库、内部API和受监管文件系统等敏感数据源的行为。",
+    "保留足以追溯敏感数据访问、修改和处置的审计记录，支持识别未授权的数据收集。"
+   ],
+   "checks": [
+    "分别触发敏感数据读取、修改和删除，核对各类事件均能关联到Agent身份及请求。",
+    "模拟被拒绝的敏感访问并核对日志，检查Agent能否修改或删除自己的记录。"
+   ],
+   "evidence": [
+    "敏感数据访问日志",
+    "身份与请求关联字段",
+    "日志权限配置"
+   ],
+   "locations": [
+    "数据服务",
+    "工具后端",
+    "审计日志系统"
+   ],
+   "boundary": "访问日志是取证依据；是否能够及时发现滥用还取决于检测规则、覆盖范围和响应流程。",
+   "source_refs": [
+    {
+     "pdf_page": 23,
+     "printed_page": 18,
+     "section": "Safeguard 3.14: Log Sensitive Data Access — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "4.1": {
+   "id": "4.1",
+   "title_en": "Establish and Maintain a Secure Configuration Process",
+   "title_zh": "建立并维护安全配置流程",
+   "agent_requirements": [
+    "维护Agent提示词、工具清单、运行参数和策略设置等配置清单。",
+    "对配置进行版本管理，并能够追溯到具体Agent和部署。"
+   ],
+   "checks": [
+    "从运行实例反查生效的提示词、工具列表与策略版本，核对是否对应已批准发布。",
+    "更改一项关键配置，确认变更、部署和回滚记录能够关联到责任人。"
+   ],
+   "evidence": [
+    "配置清单",
+    "版本库与发布记录",
+    "运行实例配置快照"
+   ],
+   "locations": [
+    "配置管理系统",
+    "部署管道",
+    "Agent运行时"
+   ],
+   "boundary": "配置有版本并不代表内容已安全审核；托管平台无法导出配置时需明确可见性与责任边界。",
+   "source_refs": [
+    {
+     "pdf_page": 26,
+     "printed_page": 21,
+     "section": "Safeguard 4.1: Establish and Maintain a Secure Configuration Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "4.2": {
+   "id": "4.2",
+   "title_en": "Establish and Maintain a Secure Configuration Process for Network Infrastructure",
+   "title_zh": "建立并维护网络基础设施安全配置流程",
+   "agent_requirements": [
+    "为Agent运行时采用加固、最小权限的网络配置及微分段。",
+    "通过私有子网和安全组约束直接互联网暴露及跨网段访问，降低Agent成为网络跳板的风险。"
+   ],
+   "checks": [
+    "核对运行时、工具执行器和记忆服务实际所在子网及安全组，检查默认入站和出站规则。",
+    "从Agent所在网络尝试连接未授权内网和互联网测试端点，验证配置确实阻断。"
+   ],
+   "evidence": [
+    "网络配置基线",
+    "子网和安全组规则",
+    "可达性测试结果"
+   ],
+   "locations": [
+    "VPC与子网",
+    "安全组和防火墙",
+    "Agent运行网络"
+   ],
+   "boundary": "网络配置与授权、进程沙箱共同构成边界；私有子网本身不阻止经代理或允许路径的数据外发。",
+   "source_refs": [
+    {
+     "pdf_page": 26,
+     "printed_page": 21,
+     "section": "Safeguard 4.2: Establish and Maintain a Secure Configuration Process for Network Infrastructure — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "4.7": {
+   "id": "4.7",
+   "title_en": "Manage Default Accounts on Enterprise Assets and Software",
+   "title_zh": "管理资产与软件的默认账户",
+   "agent_requirements": [
+    "禁用或安全配置Agent平台、向量数据库和编排工具自带的默认账户。",
+    "防止默认凭据被用于接管Agent管理面、记忆或逻辑配置。"
+   ],
+   "checks": [
+    "枚举部署中的默认管理账户，核对是否禁用、改为受管认证或受到明确限制。",
+    "在授权测试环境检查默认凭据和匿名管理接口是否仍能访问。"
+   ],
+   "evidence": [
+    "默认账户清单",
+    "认证配置",
+    "初始化与加固记录"
+   ],
+   "locations": [
+    "Agent管理面",
+    "向量数据库管理端",
+    "编排平台"
+   ],
+   "boundary": "本条针对默认账户；其它服务身份、密钥和授权范围仍需独立管理。",
+   "source_refs": [
+    {
+     "pdf_page": 26,
+     "printed_page": 21,
+     "section": "Safeguard 4.7: Manage Default Accounts on Enterprise Assets and Software — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "5.1": {
+   "id": "5.1",
+   "title_en": "Establish and Maintain an Inventory of Accounts",
+   "title_zh": "建立并维护账户清单",
+   "agent_requirements": [
+    "清点Agent使用的用户账户、服务账户、API密钥和委派凭据。",
+    "将工具与检索系统附带的身份和访问凭据一并纳入账户管理。"
+   ],
+   "checks": [
+    "从运行配置和密钥引用反查账户清单，核对每个身份均有用途、所有者和有效状态。",
+    "抽查工具和检索连接器，发现清单外凭据或多个Agent共用且无法归因的账户。"
+   ],
+   "evidence": [
+    "账户清单",
+    "密钥引用清单",
+    "账户定期复核记录"
+   ],
+   "locations": [
+    "身份目录",
+    "凭据管理系统",
+    "工具与检索连接器"
+   ],
+   "boundary": "账户清单需要覆盖非人身份，但不应把原始秘密值写入清单或审计材料。",
+   "source_refs": [
+    {
+     "pdf_page": 30,
+     "printed_page": 25,
+     "section": "Safeguard 5.1: Establish and Maintain an Inventory of Accounts — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "5.4": {
+   "id": "5.4",
+   "title_en": "Restrict Administrator Privileges to Dedicated Administrator Accounts",
+   "title_zh": "将管理权限限制在专用管理账户",
+   "agent_requirements": [
+    "使用独立的管理账户访问Agent编排平台和记忆存储的管理面。",
+    "将管理员权限与一般用户、Agent工作负载身份分离，降低普通身份失陷后接管整个环境的风险。"
+   ],
+   "checks": [
+    "核对Agent运行身份是否拥有管理配置、账户、记忆服务和日志系统的管理员权限。",
+    "用标准用户与Agent身份访问管理接口，确认只能由专用管理身份执行管理动作。"
+   ],
+   "evidence": [
+    "管理与运行账户分工",
+    "管理面授权策略",
+    "权限拒绝记录"
+   ],
+   "locations": [
+    "编排管理面",
+    "记忆服务管理面",
+    "IAM系统"
+   ],
+   "boundary": "管理身份分离不代替每次业务操作的细粒度授权与高影响操作审批。",
+   "source_refs": [
+    {
+     "pdf_page": 30,
+     "printed_page": 25,
+     "section": "Safeguard 5.4: Restrict Administrator Privileges to Dedicated Administrator Accounts — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "5.5": {
+   "id": "5.5",
+   "title_en": "Establish and Maintain an Inventory of Service Accounts",
+   "title_zh": "建立并维护服务账户清单",
+   "agent_requirements": [
+    "安全管理Agent调用工具、API和MCP能力时使用的服务凭据。",
+    "使凭据绑定具体能力，定期轮换并采用安全机制存储，同时维护服务账户的用途与责任人。"
+   ],
+   "checks": [
+    "检查每个连接器的凭据引用、能力范围和责任人，识别跨工具共享的高权限密钥。",
+    "执行一次测试凭据轮换，确认旧凭据失效且新值未进入提示、日志或代码仓库。"
+   ],
+   "evidence": [
+    "服务账户清单",
+    "密钥存储与轮换策略",
+    "连接器权限与轮换记录"
+   ],
+   "locations": [
+    "秘密管理系统",
+    "工具和MCP连接器",
+    "服务账户目录"
+   ],
+   "boundary": "凭据安全存储不能替代下游授权；短期令牌和静态密钥的治理方式应按实际接口能力区分。",
+   "source_refs": [
+    {
+     "pdf_page": 30,
+     "printed_page": 25,
+     "section": "Safeguard 5.5: Establish and Maintain an Inventory of Service Accounts — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "5.6": {
+   "id": "5.6",
+   "title_en": "Centralize Account Management",
+   "title_zh": "集中管理账户",
+   "agent_requirements": [
+    "通过集中身份服务管理Agent与工具身份，优先使用联合身份与无密码认证；无法采用时按计划轮换凭据。",
+    "在多Agent调用链传递发起用户的身份与权限上下文，防止服务账户使权限被无意放大。",
+    "区分人类直接操作与Agent代表用户执行的动作，使每次交互可归因。"
+   ],
+   "checks": [
+    "追踪一次跨Agent任务，核对每一跳均保留用户、Agent和委派关系，且不会切换为更宽权限的共享身份。",
+    "撤销集中身份或改变用户权限后，检查所有Agent与工具路径是否同步受限。",
+    "核对集中日志是否区分人类行为和代理执行，而不是只留下单一服务账户。"
+   ],
+   "evidence": [
+    "身份联邦与生命周期配置",
+    "委派上下文和令牌声明",
+    "跨Agent身份链日志"
+   ],
+   "locations": [
+    "集中IdP",
+    "Agent间调用通道",
+    "工具认证与集中审计"
+   ],
+   "boundary": "身份上下文需要由可验证机制传递；仅在消息文本中附用户名不能构成可信委派。",
+   "source_refs": [
+    {
+     "pdf_page": 30,
+     "printed_page": 25,
+     "section": "Safeguard 5.6: Centralize Account Management — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "6.1": {
+   "id": "6.1",
+   "title_en": "Establish an Access Granting Process",
+   "title_zh": "建立访问授予流程",
+   "agent_requirements": [
+    "为Agent配置持续可识别且唯一的身份，以支持责任归属和追踪。",
+    "访问凭据优先使用短期令牌；必须使用静态密钥时，通过秘密管理和自动轮换约束其生命周期。"
+   ],
+   "checks": [
+    "检查新建Agent的身份签发流程，核对唯一身份与实际部署、责任人之间的关联。",
+    "检查访问令牌有效期及静态密钥例外，验证轮换、过期和不泄漏要求。"
+   ],
+   "evidence": [
+    "Agent身份登记",
+    "令牌签发与有效期配置",
+    "密钥管理和轮换记录"
+   ],
+   "locations": [
+    "身份签发服务",
+    "部署流程",
+    "秘密管理系统"
+   ],
+   "boundary": "持续身份与短期凭据是不同对象；短期凭据降低暴露窗口，不能保证消除凭据盗用风险。",
+   "source_refs": [
+    {
+     "pdf_page": 33,
+     "printed_page": 28,
+     "section": "Safeguard 6.1: Establish an Access Granting Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "6.2": {
+   "id": "6.2",
+   "title_en": "Establish an Access Revoking Process",
+   "title_zh": "建立访问撤销流程",
+   "agent_requirements": [
+    "Agent退役、重新配置或范围变化时，及时撤销身份及关联权限。",
+    "使相关令牌失效或轮换凭据，防止遗留服务账户和API密钥形成长期可用的访问通路。"
+   ],
+   "checks": [
+    "对测试Agent执行退役或缩权，验证令牌、工具密钥、服务账户及委派权限均已失效。",
+    "核对身份注销清单与实际活跃凭据，查找停止运行后仍持有权限的Agent。"
+   ],
+   "evidence": [
+    "退役与变更流程",
+    "权限撤销和令牌失效记录",
+    "遗留账户复核结果"
+   ],
+   "locations": [
+    "身份生命周期服务",
+    "凭据与授权服务",
+    "Agent部署管理"
+   ],
+   "boundary": "停掉Agent进程不等于撤销权限；备份、缓存及独立工具密钥可能需要分别处理。",
+   "source_refs": [
+    {
+     "pdf_page": 33,
+     "printed_page": 28,
+     "section": "Safeguard 6.2: Establish an Access Revoking Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "6.6": {
+   "id": "6.6",
+   "title_en": "Establish and Maintain an Inventory of Authentication and Authorization Systems",
+   "title_zh": "建立并维护认证与授权系统清单",
+   "agent_requirements": [
+    "清点Agent使用的所有认证与授权系统。",
+    "覆盖API网关、服务网格及工具自带的认证机制，识别未纳管或可绕过的访问控制路径。"
+   ],
+   "checks": [
+    "从外部入口到最终工具列出全部认证和授权点，核对是否存在只认证不授权的跳转。",
+    "对照实际路由与接口清单，检查直连后端或备用端点是否绕过网关策略。"
+   ],
+   "evidence": [
+    "认证授权系统清单",
+    "调用和路由拓扑",
+    "接口认证配置"
+   ],
+   "locations": [
+    "API网关",
+    "服务网格",
+    "工具后端与身份服务"
+   ],
+   "boundary": "建立清单用于发现控制盲区；每个机制是否正确执行仍需具体权限和绕过检查。",
+   "source_refs": [
+    {
+     "pdf_page": 33,
+     "printed_page": 28,
+     "section": "Safeguard 6.6: Establish and Maintain an Inventory of Authentication and Authorization Systems — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "6.8": {
+   "id": "6.8",
+   "title_en": "Define and Maintain Role-Based Access Control",
+   "title_zh": "定义并维护基于角色的访问控制",
+   "agent_requirements": [
+    "为Agent身份定义最小权限角色，明确每类角色可调用的工具和API，并将用户委派权限绑定临时会话。",
+    "对修改生产数据、代码执行或金融交易等高影响操作增加属性策略、即时提权检查或人工批准。",
+    "在多Agent委派和通信中保持角色边界，并限制超过角色数据敏感度许可的输入。"
+   ],
+   "checks": [
+    "使用低权限身份要求高权限Agent或工具执行同一动作，检查最终执行端是否重新核验角色与委派会话。",
+    "批准一项高影响动作后修改工具、参数、资源或会话，核对原批准能否被不当复用。",
+    "检查角色失效、工作流结束和敏感数据输入场景，确认权限不会跨会话残留。"
+   ],
+   "evidence": [
+    "角色与工具权限矩阵",
+    "委派令牌及策略",
+    "高影响动作批准记录",
+    "授权测试日志"
+   ],
+   "locations": [
+    "调用处理器",
+    "策略服务",
+    "下游业务接口",
+    "跨Agent委派边界"
+   ],
+   "boundary": "批准与具体动作绑定等检查属于本项目细化；不能将模型自述、提示词规则或一次批准视为持久授权。",
+   "source_refs": [
+    {
+     "pdf_page": 34,
+     "printed_page": 29,
+     "section": "Safeguard 6.8: Define and Maintain Role-Based Access Control — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "7.1": {
+   "id": "7.1",
+   "title_en": "Establish and Maintain a Vulnerability Management Process",
+   "title_zh": "建立并维护漏洞管理流程",
+   "agent_requirements": [
+    "明确Agent框架、工具适配器、记忆系统、SDK和运行环境的漏洞信息来源。",
+    "持续跟踪供应商公告、包管理器源、CVE数据库和上游仓库等披露渠道。"
+   ],
+   "checks": [
+    "抽取当前依赖清单，核对每类关键组件是否有对应公告源和责任人。",
+    "选取一项已披露测试漏洞，追踪发现、影响判断、修复和例外审批是否进入流程。"
+   ],
+   "evidence": [
+    "漏洞管理流程",
+    "组件与公告源清单",
+    "漏洞处置记录"
+   ],
+   "locations": [
+    "安全运营",
+    "依赖管理",
+    "补丁与发布流程"
+   ],
+   "boundary": "已知漏洞管理不能覆盖全部提示注入、目标偏移等无CVE行为风险。",
+   "source_refs": [
+    {
+     "pdf_page": 37,
+     "printed_page": 32,
+     "section": "Safeguard 7.1: Establish and Maintain a Vulnerability Management Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "7.5": {
+   "id": "7.5",
+   "title_en": "Perform Automated Vulnerability Scans of Internal Enterprise Assets",
+   "title_zh": "对内部资产执行自动漏洞扫描",
+   "agent_requirements": [
+    "对Agent代码、容器、模型客户端和传递依赖实施已知漏洞扫描。",
+    "扫描范围覆盖运行环境、向量连接器、通信库和完整第三方依赖树，并跟踪新披露漏洞。"
+   ],
+   "checks": [
+    "对比运行实例和扫描清单，确认最终容器、运行时及传递依赖均已纳入。",
+    "检查已知漏洞样本的发现和修复闭环，并核对无法扫描的托管部分是否有供应商证据。"
+   ],
+   "evidence": [
+    "依赖与镜像清单",
+    "漏洞扫描结果",
+    "修复及例外记录"
+   ],
+   "locations": [
+    "CI/CD",
+    "制品与镜像仓库",
+    "运行环境扫描服务"
+   ],
+   "boundary": "扫描结果受组件识别和漏洞库覆盖限制；未发现CVE不代表Agent工作流安全。",
+   "source_refs": [
+    {
+     "pdf_page": 37,
+     "printed_page": 32,
+     "section": "Safeguard 7.5: Perform Automated Vulnerability Scans of Internal Enterprise Assets — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "8.1": {
+   "id": "8.1",
+   "title_en": "Establish and Maintain an Audit Log Management Process",
+   "title_zh": "建立并维护审计日志管理流程",
+   "agent_requirements": [
+    "建立覆盖Agent决策和执行轨迹、工具交互与记忆访问的日志管理流程。",
+    "在日志写入前脱敏，保护日志不被篡改，尤其防止Agent修改自身历史。",
+    "配置更新后重新验证日志管道的覆盖与有效性。"
+   ],
+   "checks": [
+    "追踪一项任务，确认可获取且政策允许的决策、工具和记忆事件均进入日志，并能关联身份和结果。",
+    "在输入中放置测试秘密，核对写盘和外发日志均已脱敏，同时测试Agent是否能修改自身日志。",
+    "改变工具或日志配置后检查回归验证记录，确认没有新增盲区。"
+   ],
+   "evidence": [
+    "日志管理制度与字段规范",
+    "日志脱敏和写入权限",
+    "配置变更后的日志验证记录"
+   ],
+   "locations": [
+    "运行时埋点",
+    "日志处理与存储",
+    "安全运营"
+   ],
+   "boundary": "不要求取得模型未提供的隐藏推理链，也不应为了可观测性保存原始秘密；应记录可用的决策依据、调用与结果。",
+   "source_refs": [
+    {
+     "pdf_page": 40,
+     "printed_page": 35,
+     "section": "Safeguard 8.1: Establish and Maintain an Audit Log Management Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "8.2": {
+   "id": "8.2",
+   "title_en": "Collect Audit Logs",
+   "title_zh": "收集审计日志",
+   "agent_requirements": [
+    "启用Agent工具调用和数据访问的审计记录。",
+    "记录授权决策及试图违反策略的行为，以便追溯Agent的访问判断。"
+   ],
+   "checks": [
+    "分别触发允许、拒绝和异常结束的调用，核对每类事件是否被记录。",
+    "核对工具、数据访问与授权事件能否通过请求标识关联，而不是只记录最终回答。"
+   ],
+   "evidence": [
+    "日志启用配置",
+    "工具与访问事件样本",
+    "授权决策记录"
+   ],
+   "locations": [
+    "调用处理器",
+    "授权服务",
+    "工具和数据服务"
+   ],
+   "boundary": "收集事件不等于自动识别攻击；敏感参数应脱敏且保留足够的调查上下文。",
+   "source_refs": [
+    {
+     "pdf_page": 40,
+     "printed_page": 35,
+     "section": "Safeguard 8.2: Collect Audit Logs — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    },
+    {
+     "pdf_page": 39,
+     "printed_page": 34,
+     "section": "Control 8: AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "8.5": {
+   "id": "8.5",
+   "title_en": "Collect Detailed Audit Logs",
+   "title_zh": "收集详细审计日志",
+   "agent_requirements": [
+    "记录工具调用的时间、身份、参数与结果，以及重要记忆读写和检索来源。",
+    "在政策允许时保存模型输入输出，并以不泄露原始敏感内容的方式记录检索内容性质，支持重建执行过程。"
+   ],
+   "checks": [
+    "从最终业务结果反向关联模型请求、工具调用、记忆变更和检索来源，检查时间与身份字段完整性。",
+    "抽查含敏感数据的任务日志，确认可重建关键动作且未保留不必要的原文或凭据。"
+   ],
+   "evidence": [
+    "调用和记忆事件日志",
+    "检索来源记录",
+    "字段规范与脱敏样本"
+   ],
+   "locations": [
+    "运行时追踪",
+    "工具后端",
+    "记忆与检索服务"
+   ],
+   "boundary": "记录粒度受数据政策和平台可见性约束；日志中的理由或模型文本不能替代业务结果证据。",
+   "source_refs": [
+    {
+     "pdf_page": 40,
+     "printed_page": 35,
+     "section": "Safeguard 8.5: Collect Detailed Audit Logs — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "8.9": {
+   "id": "8.9",
+   "title_en": "Centralize Audit Logs",
+   "title_zh": "集中收集审计日志",
+   "agent_requirements": [
+    "将Agent运行时、工具、记忆系统和检索引擎日志汇聚到集中日志或SIEM系统。",
+    "关联各组件事件，形成跨服务的执行与访问证据链。"
+   ],
+   "checks": [
+    "选择跨Agent与跨工具任务，核对集中系统中事件是否齐全、时钟一致并可关联。",
+    "使一条日志转发链路暂时故障，检查丢失是否可发现且恢复后按策略补传。"
+   ],
+   "evidence": [
+    "集中日志配置",
+    "跨组件关联查询",
+    "日志转发健康与保留记录"
+   ],
+   "locations": [
+    "日志采集代理",
+    "集中日志系统",
+    "SIEM"
+   ],
+   "boundary": "集中汇聚不自动形成有效关联；需要稳定请求标识、身份字段、时序和传输完整性。",
+   "source_refs": [
+    {
+     "pdf_page": 40,
+     "printed_page": 35,
+     "section": "Safeguard 8.9: Centralize Audit Logs — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "9.1": {
+   "id": "9.1",
+   "title_en": "Ensure Use of Only Fully Supported Browsers and Email Clients",
+   "title_zh": "仅使用仍受完整支持的浏览器与邮件客户端",
+   "agent_requirements": [
+    "保持Agent使用的浏览器、AI浏览器、无头引擎、HTML解析器、PDF阅读器和文档处理器处于受支持且及时更新的状态。",
+    "根据已知攻击技术对这些内容处理组件进行加固。"
+   ],
+   "checks": [
+    "核对实际执行镜像内的浏览器、驱动与解析库版本，检查已终止支持或遗漏升级的嵌入组件。",
+    "检查下载、脚本、插件和外部资源加载等加固设置，并关联适用安全公告。"
+   ],
+   "evidence": [
+    "内容处理组件清单",
+    "版本与支持状态",
+    "升级和加固配置"
+   ],
+   "locations": [
+    "浏览器执行器",
+    "内容解析服务",
+    "运行时镜像"
+   ],
+   "boundary": "本指南重点为Agent输入与行为风险；解析器内存破坏等底层漏洞仍需通用应用和平台安全措施。",
+   "source_refs": [
+    {
+     "pdf_page": 43,
+     "printed_page": 38,
+     "section": "Safeguard 9.1: Ensure Use of Only Fully Supported Browsers and Email Clients — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "9.2": {
+   "id": "9.2",
+   "title_en": "Use DNS Filtering Services",
+   "title_zh": "使用DNS过滤服务",
+   "agent_requirements": [
+    "在Agent运行环境部署DNS过滤。",
+    "限制解析已知恶意或未经批准的域名，减少自主浏览时连接恶意站点和非授权服务的机会。"
+   ],
+   "checks": [
+    "从实际运行时与浏览器执行器解析允许、阻止及新出现的测试域名，验证策略。",
+    "检查自带DNS、DoH、代理解析及硬编码IP路径是否绕过已部署的过滤。"
+   ],
+   "evidence": [
+    "DNS过滤策略",
+    "运行时解析配置",
+    "DNS查询和拒绝日志"
+   ],
+   "locations": [
+    "DNS解析器",
+    "运行网络",
+    "浏览器与工具执行器"
+   ],
+   "boundary": "DNS过滤只覆盖经过受管解析路径的域名访问，不能替代出口、IP、URL和内容控制。",
+   "source_refs": [
+    {
+     "pdf_page": 43,
+     "printed_page": 38,
+     "section": "Safeguard 9.2: Use DNS Filtering Services — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "9.3": {
+   "id": "9.3",
+   "title_en": "Maintain and Enforce Network-Based URL Filters",
+   "title_zh": "维护并执行网络URL过滤",
+   "agent_requirements": [
+    "对Agent出站连接采用明确域名与API允许列表。",
+    "结合URL过滤和内容检查处理检索数据，阻止非授权端点、恶意下载及可疑外联。"
+   ],
+   "checks": [
+    "在允许的浏览和API工作流中测试未批准域名、重定向及备用端点，验证最终目的地仍受约束。",
+    "检查检索载荷和下载是否经过相应内容检查，确认工具无法直连绕过出口。"
+   ],
+   "evidence": [
+    "出口域名与URL规则",
+    "代理与内容检查配置",
+    "连接和阻断日志"
+   ],
+   "locations": [
+    "出口代理与网关",
+    "URL过滤服务",
+    "浏览和下载管道"
+   ],
+   "boundary": "域名允许不代表内容可信；加密流量检查与业务兼容性需明确，SSRF和DNS重绑定还需目标校验。",
+   "source_refs": [
+    {
+     "pdf_page": 44,
+     "printed_page": 39,
+     "section": "Safeguard 9.3: Maintain and Enforce Network-Based URL Filters — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "10.1": {
+   "id": "10.1",
+   "title_en": "Deploy and Maintain Anti-Malware Software",
+   "title_zh": "部署并维护反恶意软件",
+   "agent_requirements": [
+    "在Agent检索和存储子系统部署恶意软件检测，下载内容在处理前扫描。",
+    "对活跃内容采用内容消毒与重建等处理，降低恶意脚本或宏进入解析与推理路径的风险。",
+    "避免向量库和记忆系统长期保存带恶意载荷的内容。"
+   ],
+   "checks": [
+    "以无害测试文件检查下载、检索、解压和入库各路径是否执行扫描及处置。",
+    "测试含脚本或宏的样本文档，确认内容消毒结果与失败处理符合策略。",
+    "核对扫描后的内容及其衍生副本是否在入库、缓存与再次检索时保持一致。"
+   ],
+   "evidence": [
+    "恶意内容检测配置",
+    "扫描与隔离记录",
+    "内容消毒结果",
+    "入库处理记录"
+   ],
+   "locations": [
+    "内容下载入口",
+    "文档处理管道",
+    "检索与记忆存储"
+   ],
+   "boundary": "恶意软件检测和内容消毒不等于提示注入检测；文档经过扫描仍可能包含能影响Agent的恶意指令。",
+   "source_refs": [
+    {
+     "pdf_page": 46,
+     "printed_page": 41,
+     "section": "Safeguard 10.1: Deploy and Maintain Anti-Malware Software — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "11.2": {
+   "id": "11.2",
+   "title_en": "Perform Automated Backups",
+   "title_zh": "执行自动备份",
+   "agent_requirements": [
+    "自动备份关键长期记忆、向量数据库和检索语料。",
+    "备份应采用符合数据政策的保护机制，并包含恢复索引与检索所需的元数据。"
+   ],
+   "checks": [
+    "从关键记忆与检索资产清单反查备份覆盖、周期和最近成功状态。",
+    "抽取一个备份核对源文档、索引配置与必要元数据是否能共同恢复。"
+   ],
+   "evidence": [
+    "备份范围与计划",
+    "备份运行记录",
+    "元数据与保留配置"
+   ],
+   "locations": [
+    "记忆与向量服务",
+    "检索语料存储",
+    "备份系统"
+   ],
+   "boundary": "应按数据敏感度和恢复需求确定频率；并非所有短暂上下文都适合长期备份。",
+   "source_refs": [
+    {
+     "pdf_page": 50,
+     "printed_page": 45,
+     "section": "Safeguard 11.2: Perform Automated Backups — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "11.3": {
+   "id": "11.3",
+   "title_en": "Protect Recovery Data",
+   "title_zh": "保护恢复数据",
+   "agent_requirements": [
+    "为备份采用加密、访问控制等与原数据相称的保护。",
+    "阻止Agent本身写入或修改备份目的地，降低攻击者破坏恢复能力的机会。"
+   ],
+   "checks": [
+    "用Agent工作负载身份尝试读取、覆盖和删除备份，核对是否符合严格限定的权限。",
+    "检查备份加密、密钥访问、不可变设置及恢复账户与生产账户的隔离。"
+   ],
+   "evidence": [
+    "备份访问策略",
+    "加密与密钥配置",
+    "不可变或隔离备份设置"
+   ],
+   "locations": [
+    "备份存储",
+    "备份密钥管理",
+    "恢复管理面"
+   ],
+   "boundary": "备份加密不防止具备合法删除权限的身份破坏备份；访问、写入与恢复权限需分别审查。",
+   "source_refs": [
+    {
+     "pdf_page": 50,
+     "printed_page": 45,
+     "section": "Safeguard 11.3: Protect Recovery Data — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    },
+    {
+     "pdf_page": 49,
+     "printed_page": 44,
+     "section": "Control 11: AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "11.5": {
+   "id": "11.5",
+   "title_en": "Test Data Recovery",
+   "title_zh": "测试数据恢复",
+   "agent_requirements": [
+    "定期测试Agent记忆、检索管道和工具产物恢复。",
+    "检查恢复后的功能、语义完整性和数据政策一致性，避免重新引入投毒或对抗内容。"
+   ],
+   "checks": [
+    "在隔离环境恢复选定备份，验证记忆读取、检索结果和依赖元数据是否完整可用。",
+    "对照事件时间线和投毒样本检查恢复点，确认受污染内容不会随恢复重新进入系统。"
+   ],
+   "evidence": [
+    "恢复演练记录",
+    "恢复后完整性与功能检查",
+    "备份污染检查结果"
+   ],
+   "locations": [
+    "恢复演练环境",
+    "记忆与检索服务",
+    "事件恢复流程"
+   ],
+   "boundary": "恢复成功不能只以文件存在或服务启动判断；语义与来源完整性还需结合业务和污染范围核验。",
+   "source_refs": [
+    {
+     "pdf_page": 50,
+     "printed_page": 45,
+     "section": "Safeguard 11.5: Test Data Recovery — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "12.2": {
+   "id": "12.2",
+   "title_en": "Establish and Maintain a Secure Network Architecture",
+   "title_zh": "建立并维护安全网络架构",
+   "agent_requirements": [
+    "将Agent运行时置于专用信任区，通过入口过滤限制调用者。",
+    "模型与记忆服务采用私有、经过认证的连接，降低核心服务与检索流量的公开暴露。",
+    "将代码解释器、Shell和浏览器等高风险工具放入严格限制内网访问的网络沙箱。"
+   ],
+   "checks": [
+    "从互联网和低信任网络检查运行时、模型与记忆端点的暴露和认证情况。",
+    "在执行工具内尝试访问企业内部网段、元数据服务及非批准出口，验证隔离规则。",
+    "核对私有端点、路由和认证配置，确认没有公开备用路径绕过预期边界。"
+   ],
+   "evidence": [
+    "信任区与网络拓扑",
+    "入口出口及私有端点配置",
+    "网络隔离测试结果"
+   ],
+   "locations": [
+    "网络分区",
+    "私有端点与路由",
+    "工具执行网络"
+   ],
+   "boundary": "网络沙箱用于限制连接和横向移动；不能据此保证进程、内核或宿主机逃逸不可能发生。",
+   "source_refs": [
+    {
+     "pdf_page": 53,
+     "printed_page": 48,
+     "section": "Safeguard 12.2: Establish and Maintain a Secure Network Architecture — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "12.3": {
+   "id": "12.3",
+   "title_en": "Securely Manage Network Infrastructure",
+   "title_zh": "安全管理网络基础设施",
+   "agent_requirements": [
+    "安全管理网络基础设施，使用受控配置和安全协议。",
+    "Agent连接工具及其它服务时使用HTTPS等安全协议，降低网络篡改和弱协议风险。"
+   ],
+   "checks": [
+    "检查工具与模型端点配置，验证TLS证书、主机名和不安全降级处理。",
+    "核对网络配置变更是否有版本、审批和可追溯发布记录。"
+   ],
+   "evidence": [
+    "端点与TLS配置",
+    "网络IaC或配置版本",
+    "连接验证与变更记录"
+   ],
+   "locations": [
+    "网络配置管理",
+    "Agent网络客户端",
+    "工具与服务端点"
+   ],
+   "boundary": "HTTPS保护传输通道，不证明对端内容可信，也不替代调用身份认证和业务授权。",
+   "source_refs": [
+    {
+     "pdf_page": 53,
+     "printed_page": 48,
+     "section": "Safeguard 12.3: Securely Manage Network Infrastructure — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "12.5": {
+   "id": "12.5",
+   "title_en": "Centralize Network Authentication, Authorization, and Auditing (AAA)",
+   "title_zh": "集中管理网络认证、授权与审计",
+   "agent_requirements": [
+    "集中管理Agent间及Agent到工具通信的网络认证、授权与审计。",
+    "使Agent角色、用户会话权限和数据敏感度约束影响网络分区及通信策略。",
+    "限制低权限Agent向高权限同伴委派或传输超出其安全级别的数据。"
+   ],
+   "checks": [
+    "对不同角色和用户会话执行同一路径通信，核对网络访问策略是否反映相应权限边界。",
+    "检查跨Agent委派和数据传递事件，验证不能通过备用通信路径绕过分区与审计。"
+   ],
+   "evidence": [
+    "网络AAA配置",
+    "角色到网络策略映射",
+    "跨Agent连接与委派日志"
+   ],
+   "locations": [
+    "服务网格或网络身份控制",
+    "策略网关",
+    "跨Agent通信网络"
+   ],
+   "boundary": "网络层通常无法单独理解提示和业务委派语义；角色与数据策略需要应用、身份及网络控制协同落实。",
+   "source_refs": [
+    {
+     "pdf_page": 53,
+     "printed_page": 48,
+     "section": "Safeguard 12.5: Centralize Network Authentication, Authorization, and Auditing (AAA) — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "13.2": {
+   "id": "13.2",
+   "title_en": "Deploy a Host-Based Intrusion Detection Solution",
+   "title_zh": "部署主机入侵检测",
+   "agent_requirements": [
+    "在受支持的运行主机部署HIDS、EDR等主机行为监测。",
+    "关注Agent异常启动Shell、修改系统文件、使用非授权工具和建立意外网络连接等行为，并关联网络活动。"
+   ],
+   "checks": [
+    "在授权测试环境触发预先约定的异常子进程、文件和网络行为，核对主机可见性与告警。",
+    "检查工具执行器和短暂容器是否处于监测覆盖范围，事件能否归因到具体Agent。"
+   ],
+   "evidence": [
+    "HIDS或EDR策略",
+    "主机进程与网络事件",
+    "检测与处置记录"
+   ],
+   "locations": [
+    "Agent主机",
+    "代码与浏览器执行环境",
+    "终端安全系统"
+   ],
+   "boundary": "托管或Serverless运行时可能无法部署主机代理，应记录平台事件能力和不可见区域，而非声称已完全覆盖。",
+   "source_refs": [
+    {
+     "pdf_page": 56,
+     "printed_page": 51,
+     "section": "Safeguard 13.2: Deploy a Host-Based Intrusion Detection Solution — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "13.4": {
+   "id": "13.4",
+   "title_en": "Perform Traffic Filtering Between Network Segments",
+   "title_zh": "过滤网络分区之间的流量",
+   "agent_requirements": [
+    "在Agent运行时、记忆存储和其它内部网络之间实施流量过滤。",
+    "限制Agent失陷后访问不属于其指定分区的敏感系统。"
+   ],
+   "checks": [
+    "逐项核对允许的源、目的、端口和协议，查找跨区通配和未使用但开放的路径。",
+    "从各Agent与执行工具网络测试分区间可达性，并检查规则变更后是否持续生效。"
+   ],
+   "evidence": [
+    "分区间流量规则",
+    "访问矩阵",
+    "连通与阻断测试记录"
+   ],
+   "locations": [
+    "分区防火墙",
+    "安全组与网络策略",
+    "服务网络边界"
+   ],
+   "boundary": "流量过滤约束可达性；同一允许端点内部的对象级权限和数据授权仍需独立验证。",
+   "source_refs": [
+    {
+     "pdf_page": 56,
+     "printed_page": 51,
+     "section": "Safeguard 13.4: Perform Traffic Filtering Between Network Segments — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    },
+    {
+     "pdf_page": 55,
+     "printed_page": 50,
+     "section": "Control 13: AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "13.6": {
+   "id": "13.6",
+   "title_en": "Collect Network Traffic Flow Logs",
+   "title_zh": "收集网络流量日志",
+   "agent_requirements": [
+    "持续收集Agent网络活动，发现异常域名、高风险流量、请求模式变化及反复失败连接。",
+    "监控多Agent通信中的权限扩大、数据暴露和意外委派，检查路由是否绕过分区控制。"
+   ],
+   "checks": [
+    "关联流量日志与工具调用日志，核对每条异常出站可归因到任务和身份。",
+    "对预设的未授权目的地、频繁失败连接和跨Agent异常通信测试检测规则。"
+   ],
+   "evidence": [
+    "网络流日志",
+    "异常检测与关联规则",
+    "跨Agent路由记录"
+   ],
+   "locations": [
+    "网络流日志采集",
+    "出口网关",
+    "安全监测系统"
+   ],
+   "boundary": "流量元数据能提示异常，但通常不能单独判断提示注入或委派是否合法，需要应用层事件补充。",
+   "source_refs": [
+    {
+     "pdf_page": 56,
+     "printed_page": 51,
+     "section": "Safeguard 13.6: Collect Network Traffic Flow Logs — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "15.1": {
+   "id": "15.1",
+   "title_en": "Establish and Maintain an Inventory of Service Providers",
+   "title_zh": "建立并维护服务提供商清单",
+   "agent_requirements": [
+    "清点Agent依赖的外部模型、嵌入服务、工具后端、记忆服务和托管Agent平台。",
+    "对服务提供商记录分类及企业联系人，并在变更时更新。"
+   ],
+   "checks": [
+    "从运行端点、账单和连接器配置反查供应商清单，查找未登记服务。",
+    "核对每项服务处理的数据、功能、责任人及相关上下游依赖。"
+   ],
+   "evidence": [
+    "服务提供商清单",
+    "端点与连接器配置",
+    "联系人和服务分类"
+   ],
+   "locations": [
+    "供应商管理",
+    "平台管理",
+    "外部服务接入"
+   ],
+   "boundary": "服务商清单与软件组件清单互补；同一厂商的不同服务可能有不同数据和安全边界。",
+   "source_refs": [
+    {
+     "pdf_page": 63,
+     "printed_page": 58,
+     "section": "Safeguard 15.1: Establish and Maintain an Inventory of Service Providers — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "15.4": {
+   "id": "15.4",
+   "title_en": "Ensure Service Provider Contracts Include Security Requirements",
+   "title_zh": "在服务提供商合同中明确安全要求",
+   "agent_requirements": [
+    "在服务合同中约定数据隔离、保留期限、安全删除和适当加密等要求。",
+    "明确安全事件通知、响应时限及协同调查责任，覆盖第三方推理和工具执行环境。"
+   ],
+   "checks": [
+    "将实际服务数据流与合同条款逐项对照，确认记忆、日志、工具数据及子处理商均被覆盖。",
+    "核对事件通知与调查条款能否支持企业响应，并确认删除与隔离承诺有可获得的证据。"
+   ],
+   "evidence": [
+    "服务合同与数据处理协议",
+    "数据保留和删除承诺",
+    "事件响应SLA",
+    "责任分工"
+   ],
+   "locations": [
+    "采购与法务流程",
+    "供应商管理",
+    "数据与事件治理"
+   ],
+   "boundary": "合同承诺属于治理和追责依据，不等于已验证隔离技术有效；还需结合提供商能力和实际配置检查。",
+   "source_refs": [
+    {
+     "pdf_page": 63,
+     "printed_page": 58,
+     "section": "Safeguard 15.4: Ensure Service Provider Contracts Include Security Requirements — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "15.5": {
+   "id": "15.5",
+   "title_en": "Assess Service Providers",
+   "title_zh": "评估服务提供商",
+   "agent_requirements": [
+    "评估第三方工具执行环境的运行时隔离，而不仅检查通用合规证明。",
+    "若提供商处理图像或音频，核对模态转换后的安全检查，避免非文本输入绕过文本策略。"
+   ],
+   "checks": [
+    "检查供应商的隔离架构、测试报告和租户边界证据，识别企业无法直接测试的环节。",
+    "用受控图像或音频样本检查转换后内容是否进入安全检查，并核对失败处理方式。"
+   ],
+   "evidence": [
+    "提供商安全评估",
+    "沙箱与租户隔离证据",
+    "多模态处理和安全流程说明"
+   ],
+   "locations": [
+    "供应商准入评估",
+    "托管执行环境",
+    "多模态输入服务"
+   ],
+   "boundary": "文字转写或一次评估不能保证所有多模态攻击被检测；无法验证的能力应记录为证据缺口。",
+   "source_refs": [
+    {
+     "pdf_page": 63,
+     "printed_page": 58,
+     "section": "Safeguard 15.5: Assess Service Providers — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "15.6": {
+   "id": "15.6",
+   "title_en": "Monitor Service Providers",
+   "title_zh": "持续监控服务提供商",
+   "agent_requirements": [
+    "监测Agent对第三方模型、工具、检索和文件服务的使用，识别异常或过量调用。",
+    "定期复核提供商的安全控制、认证、披露和架构变化，新功能或行为变化时重新评估。"
+   ],
+   "checks": [
+    "将外部调用、成本和连接端点与已批准基线对照，检查异常服务使用。",
+    "抽查近期提供商更新，核对是否重新检查权限、数据处理与隔离影响。"
+   ],
+   "evidence": [
+    "服务调用与费用记录",
+    "供应商变更公告",
+    "定期复核及再评估记录"
+   ],
+   "locations": [
+    "第三方服务网关",
+    "供应商监测",
+    "安全与成本运营"
+   ],
+   "boundary": "用量异常只是调查线索；需区分正常业务变化、计费问题与实际攻击。",
+   "source_refs": [
+    {
+     "pdf_page": 63,
+     "printed_page": 58,
+     "section": "Safeguard 15.6: Monitor Service Providers — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.4": {
+   "id": "16.4",
+   "title_en": "Establish and Manage an Inventory of Third-Party Software Components",
+   "title_zh": "建立并管理第三方软件组件清单",
+   "agent_requirements": [
+    "维护Agent应用依赖的第三方库与组件清单，可采用AI-BOM等形式。",
+    "跟踪组件版本、支持状态和潜在风险，帮助定位受影响组件及安排修复。"
+   ],
+   "checks": [
+    "从部署镜像和依赖解析结果生成组件清单，核对框架、工具适配器和检索客户端是否遗漏。",
+    "以一项上游组件变更检验清单更新、影响定位和补丁责任分配。"
+   ],
+   "evidence": [
+    "软件组件清单或AI-BOM",
+    "依赖锁定文件",
+    "支持状态与风险复核记录"
+   ],
+   "locations": [
+    "依赖管理",
+    "构建与制品仓库",
+    "安全开发流程"
+   ],
+   "boundary": "清单为追踪风险提供基础；不代表组件可信、没有漏洞或运行时不会加载额外依赖。",
+   "source_refs": [
+    {
+     "pdf_page": 66,
+     "printed_page": 61,
+     "section": "Safeguard 16.4: Establish and Manage an Inventory of Third-Party Software Components — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.5": {
+   "id": "16.5",
+   "title_en": "Use Up-to-Date and Trusted Third-Party Software Components",
+   "title_zh": "使用受信且及时更新的第三方软件组件",
+   "agent_requirements": [
+    "从受信仓库获取Agent框架、工具适配器、检索模块和模型客户端。",
+    "通过校验和、签名或供应链控制核验完整性，在支持时验证软件来源证明，并保持组件更新。"
+   ],
+   "checks": [
+    "抽查实际加载的组件，核对下载源、锁定版本、散列或签名与批准制品一致。",
+    "测试依赖替换、未签名更新和来源验证失败时的处理，确认不会静默降级放行。"
+   ],
+   "evidence": [
+    "受信来源与版本策略",
+    "校验、签名或来源证明",
+    "构建与更新验证记录"
+   ],
+   "locations": [
+    "制品准入",
+    "包与镜像仓库",
+    "部署及更新流程"
+   ],
+   "boundary": "完整性和来源验证不证明软件没有恶意逻辑；校验和还需要可信分发与适当的信任根。",
+   "source_refs": [
+    {
+     "pdf_page": 66,
+     "printed_page": 61,
+     "section": "Safeguard 16.5: Use Up-to-Date and Trusted Third-Party Software Components — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.7": {
+   "id": "16.7",
+   "title_en": "Use Standard Hardening Configuration Templates for Application Infrastructure",
+   "title_zh": "采用应用基础设施标准加固模板",
+   "agent_requirements": [
+    "遵循通用Safeguard，为服务器、数据库、Web服务、容器、PaaS和SaaS采用适当的标准加固模板。",
+    "不允许自研应用削弱底层基础设施的既有加固配置。"
+   ],
+   "checks": [
+    "对照适用平台的加固模板检查Agent运行环境，记录例外及其理由。",
+    "检查Agent安装和部署脚本是否放宽权限、开放服务或关闭既有安全配置。"
+   ],
+   "evidence": [
+    "适用加固模板",
+    "配置核查结果",
+    "偏差与例外记录"
+   ],
+   "locations": [
+    "宿主与容器",
+    "数据库及Web服务",
+    "托管平台配置"
+   ],
+   "boundary": "本条在Agent指南中明确标注No Additional AI Agent Guidance；以上要求来自通用Safeguard，未声称存在该条专属Agent测试程序。",
+   "source_refs": [
+    {
+     "pdf_page": 66,
+     "printed_page": 61,
+     "section": "Safeguard 16.7: Use Standard Hardening Configuration Templates for Application Infrastructure — Description / No Additional AI Agent Guidance",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.10": {
+   "id": "16.10",
+   "title_en": "Apply Secure Design Principles in Application Architectures",
+   "title_zh": "在应用架构中落实安全设计原则",
+   "agent_requirements": [
+    "对工具输入输出、检索文档和多模态输入落实验证与适当消毒，保护敏感信息免于进入不应出现的日志、记忆和输出。",
+    "为递归和失控调用链设置熔断，限制多Agent混淆代理，并在模型超时或工具错误时安全失败。",
+    "将代码、Shell和浏览器等危险能力置于临时且受限网络的沙箱，关闭不需要的系统调用和端口。",
+    "在执行前通过确定性策略层拦截Agent动作，按明确策略允许或拒绝工具调用。"
+   ],
+   "checks": [
+    "向工具参数、返回值和检索内容提供受控恶意样本，检查验证位置、错误处理和策略是否在最终执行前生效。",
+    "测试循环调用、模型超时、工具异常及低权限Agent委派，验证熔断和失败默认行为。",
+    "检查执行环境限制与策略中间件，验证被禁止的命令、资源和网络操作确实被拒绝。"
+   ],
+   "evidence": [
+    "工具接口与验证逻辑",
+    "熔断和错误处理配置",
+    "沙箱与能力限制",
+    "执行前策略和拒绝记录"
+   ],
+   "locations": [
+    "编排与规划引擎",
+    "工具调用处理器",
+    "内容接入管道",
+    "执行沙箱"
+   ],
+   "boundary": "原文提出多种纵深措施；正则脱敏、内容扫描和提示策略不能保证消除全部攻击，进程隔离与网络隔离也需分别验证。",
+   "source_refs": [
+    {
+     "pdf_page": 67,
+     "printed_page": 62,
+     "section": "Safeguard 16.10: Apply Secure Design Principles in Application Architectures — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.12": {
+   "id": "16.12",
+   "title_en": "Implement Code-Level Security Checks",
+   "title_zh": "实施代码级安全检查",
+   "agent_requirements": [
+    "在Agent开发管道实施静态与动态代码安全分析。",
+    "尽早发现不安全工具调用、硬编码秘密等代码缺陷并处理。"
+   ],
+   "checks": [
+    "检查Agent代码及自定义工具是否实际纳入SAST、DAST等检查，关键入口是否有覆盖。",
+    "抽查一项已发现缺陷的修复，验证修复进入部署且回归检查通过。"
+   ],
+   "evidence": [
+    "代码分析配置",
+    "缺陷与修复记录",
+    "安全构建和发布结果"
+   ],
+   "locations": [
+    "CI/CD",
+    "Agent源码",
+    "自定义工具与接口"
+   ],
+   "boundary": "代码扫描主要检查可表达的实现缺陷，不能单独验证开放环境下所有Agent行为和业务授权。",
+   "source_refs": [
+    {
+     "pdf_page": 67,
+     "printed_page": 62,
+     "section": "Safeguard 16.12: Implement Code-Level Security Checks — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.13": {
+   "id": "16.13",
+   "title_en": "Conduct Application Penetration Testing",
+   "title_zh": "开展应用渗透测试",
+   "agent_requirements": [
+    "结合自动测试、对抗输入、评测框架与红队场景检查Agent工作流。",
+    "验证畸形输入或意外输出条件下的安全行为，并通过应用渗透测试检查业务逻辑问题。"
+   ],
+   "checks": [
+    "选取关键业务任务构造异常输入、恶意工具响应和检索失败，核对实际动作及业务结果。",
+    "比较已认证与未认证身份的测试覆盖，检查权限和多步工作流是否均被测试。"
+   ],
+   "evidence": [
+    "工作流测试范围",
+    "对抗测试样本和执行轨迹",
+    "实际业务结果与缺陷记录"
+   ],
+   "locations": [
+    "集成测试环境",
+    "Agent工作流",
+    "红队与评测工具"
+   ],
+   "boundary": "测试应明确目标、身份、工具和环境条件；评测分数或模型文字回答不能替代实际动作验证。",
+   "source_refs": [
+    {
+     "pdf_page": 68,
+     "printed_page": 63,
+     "section": "Safeguard 16.13: Conduct Application Penetration Testing — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "16.14": {
+   "id": "16.14",
+   "title_en": "Conduct Threat Modeling",
+   "title_zh": "开展威胁建模",
+   "agent_requirements": [
+    "对Agent架构开展威胁建模。",
+    "考虑提示注入、目标偏移、工具滥用等特有威胁，并在部署前识别设计缺陷和攻击路径。"
+   ],
+   "checks": [
+    "将入口、工具、记忆、身份与信任边界画入设计，核对每条高影响路径的攻击者能力和控制点。",
+    "对提示注入和工具滥用构建具体场景，检查是否有实施责任、可核查控制和剩余风险记录。"
+   ],
+   "evidence": [
+    "架构与信任边界文档",
+    "威胁场景和攻击路径",
+    "控制及剩余风险记录"
+   ],
+   "locations": [
+    "架构设计",
+    "安全评审",
+    "工具和数据接入评审"
+   ],
+   "boundary": "建模是识别和组织风险的方法；模型本身不是已部署防护，也不是对实现安全性的证明。",
+   "source_refs": [
+    {
+     "pdf_page": 68,
+     "printed_page": 63,
+     "section": "Safeguard 16.14: Conduct Threat Modeling — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "17.4": {
+   "id": "17.4",
+   "title_en": "Establish and Maintain an Incident Response Process",
+   "title_zh": "建立并维护事件响应流程",
+   "agent_requirements": [
+    "将提示注入、意外数据泄漏、递归资源耗尽和记忆投毒纳入企业事件响应。",
+    "明确停止或约束失控Agent、清除受污染记忆、轮换工具凭据和重建运行环境的处置步骤。",
+    "将Agent事件纳入统一跟踪、升级及合规报告流程。"
+   ],
+   "checks": [
+    "演练一项记忆投毒或工具凭据泄露事件，检查是否能够暂停相关动作并保留证据。",
+    "按照处置流程清理受影响嵌入、轮换密钥和重建环境，验证恢复后使用的是可信状态。"
+   ],
+   "evidence": [
+    "Agent事件响应预案",
+    "职责与升级联系人",
+    "演练和处置记录",
+    "可信恢复依据"
+   ],
+   "locations": [
+    "安全运营",
+    "Agent控制面",
+    "记忆与凭据管理",
+    "环境恢复流程"
+   ],
+   "boundary": "清除单条记忆未必消除全部污染；处置范围需覆盖衍生索引、副本、缓存和已触发的外部动作。",
+   "source_refs": [
+    {
+     "pdf_page": 70,
+     "printed_page": 65,
+     "section": "Safeguard 17.4: Establish and Maintain an Incident Response Process — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "17.8": {
+   "id": "17.8",
+   "title_en": "Conduct Post-Incident Reviews",
+   "title_zh": "开展事件后复盘",
+   "agent_requirements": [
+    "分析Agent事件的完整链路，包括工具输出、记忆、检索内容、提示配置和策略决策。",
+    "区分恶意输入、配置或记忆问题与监控、策略执行、开发流程、工具设计等系统性缺口，并将结论反馈到控制与架构。"
+   ],
+   "checks": [
+    "用事件证据重建输入到业务结果的因果链，区分已证事实、推断和证据缺口。",
+    "检查复盘措施是否落实到规则、工具、评测和架构更新，并有复测证据。"
+   ],
+   "evidence": [
+    "事件时间线与原始证据",
+    "根因分析",
+    "改进责任和复测结果"
+   ],
+   "locations": [
+    "事件复盘",
+    "安全规则维护",
+    "开发与架构改进"
+   ],
+   "boundary": "可获取的执行轨迹与外部结果优先；模型事后自述不能单独作为根因证据。",
+   "source_refs": [
+    {
+     "pdf_page": 71,
+     "printed_page": 66,
+     "section": "Safeguard 17.8: Conduct Post-Incident Reviews — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "18.2": {
+   "id": "18.2",
+   "title_en": "Perform Periodic External Penetration Tests",
+   "title_zh": "定期执行外部渗透测试",
+   "agent_requirements": [
+    "对解释器、Shell和浏览器等执行工具测试沙箱、文件系统与网络边界。",
+    "在授权范围内检查代码注入、环境逃逸和恶意脚本执行。",
+    "处理非文本输入时加入图像、屏幕、文档和音频中的对抗指令场景。"
+   ],
+   "checks": [
+    "在隔离测试环境分别验证文件访问、命令执行和出站连接约束，并记录实际副作用。",
+    "用受控图像或音频指令测试从输入到工具执行的完整链路，核对安全检查是否被绕过。"
+   ],
+   "evidence": [
+    "授权测试范围",
+    "执行环境与隔离配置",
+    "测试轨迹和实际副作用",
+    "缺陷修复记录"
+   ],
+   "locations": [
+    "外部暴露接口",
+    "代码与浏览器执行环境",
+    "多模态输入管道"
+   ],
+   "boundary": "本条为人工与程序化渗透测试指导，非现成可运行的CIS Benchmark；结果仅适用于被测版本与环境。",
+   "source_refs": [
+    {
+     "pdf_page": 73,
+     "printed_page": 68,
+     "section": "Safeguard 18.2: Perform Periodic External Penetration Tests — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "18.4": {
+   "id": "18.4",
+   "title_en": "Validate Security Measures",
+   "title_zh": "验证安全措施",
+   "agent_requirements": [
+    "渗透测试后验证安全措施是否能够识别并支持调查恶意Agent活动。",
+    "覆盖异常工具调用、数据访问、记忆写入、出站连接和执行事件，必要时调整检测规则和能力。"
+   ],
+   "checks": [
+    "将已执行测试逐项对照日志、告警和调查证据，核对哪些动作被观察、阻断或漏报。",
+    "修订控制或规则后复测相同场景，确认原缺口被修复且证据可重现。"
+   ],
+   "evidence": [
+    "测试与告警对应记录",
+    "调查材料",
+    "控制和规则变更",
+    "复测结果"
+   ],
+   "locations": [
+    "安全检测系统",
+    "红队复盘",
+    "控制与规则维护"
+   ],
+   "boundary": "安全措施是否有效应以测试事件和结果验证，不能仅凭规则存在或告警数量判断。",
+   "source_refs": [
+    {
+     "pdf_page": 73,
+     "printed_page": 68,
+     "section": "Safeguard 18.4: Validate Security Measures — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    },
+    {
+     "pdf_page": 72,
+     "printed_page": 67,
+     "section": "Control 18: AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  },
+  "18.5": {
+   "id": "18.5",
+   "title_en": "Perform Periodic Internal Penetration Tests",
+   "title_zh": "定期执行内部渗透测试",
+   "agent_requirements": [
+    "以对抗提示、歧义指令、递归陷阱和记忆投毒测试Agent推理与策略边界。",
+    "将API连接器、解释器和浏览器接口视为攻击入口，测试参数操纵、越权、沙箱和权限边界。",
+    "检查运行时与模型服务的集成，以及多步自动执行链的限制和终止能力。"
+   ],
+   "checks": [
+    "在授权环境将对抗内容放入提示、RAG和工具返回值，观察是否产生实际越权动作。",
+    "测试工具参数替换、低权限委派和未经授权的文件或网络操作，核对最终执行端权限。",
+    "构造受控循环和长调用链，检查预算、熔断和终止机制能否及时停止执行。"
+   ],
+   "evidence": [
+    "内部渗透测试计划",
+    "对抗与投毒样本",
+    "调用链及业务副作用",
+    "熔断和权限测试结果"
+   ],
+   "locations": [
+    "编排与规划引擎",
+    "记忆和检索系统",
+    "工具接口",
+    "执行与策略层"
+   ],
+   "boundary": "此处具体测试组织为项目改编；测试成功或失败必须结合权限、动作、环境和业务结果解释，不能将提示文本等同于漏洞。",
+   "source_refs": [
+    {
+     "pdf_page": 73,
+     "printed_page": 68,
+     "section": "Safeguard 18.5: Perform Periodic Internal Penetration Tests — AI Agent Applicability",
+     "local_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf"
+    }
+   ],
+   "assessment_origin": "项目据CIS要求细化的核查，非CIS原文测试程序"
+  }
+ },
+ "mcp": {
+  "schema_version": "1.0",
+  "status": "source_grounded_recommendation_summaries_not_executed",
+  "source": {
+   "title": "CIS MCP Server Benchmark",
+   "version": "v1.0.0",
+   "publisher": "Center for Internet Security",
+   "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf",
+   "sha256": "af4d7a3e931c70691cc3529633171468848757dde80baa779746122241ab1aeb",
+   "target_mcp_protocol_version": "2026-07-28",
+   "scope": "MCP 本地 stdio 与远程 Streamable HTTP 服务器、启动并中介这些服务器的 host 应用，以及直接影响 MCP 安全的网关、授权设施、OS、容器与 VM。不是这些基础技术的完整加固基线，也不涵盖组织层的漏洞管理、应急响应或渗透测试计划。",
+   "assessment_prerequisites": [
+    "原文 Audit 参考 bash 与 Ubuntu 24.04，不保证适用于 /bin/sh 或其他系统。",
+    "多数原文命令需要 jq、curl；部分条目另需 ajv-cli、gitleaks、sudo、setfacl 等，具体见条目。",
+    "网络核查需能到达目标端点，并预先确定协议版本、目标工具、合法请求、身份、响应语义与部署日志路径。",
+    "Manual / Automated 是原文评估属性；本来源整理未运行命令、探测端点、修改配置或作出合规判定。"
+   ],
+   "version_boundary": "以上是该固定 PDF 自述的目标版本与行为。部署若使用 2025-11-25 或其他协议版本，应先选择对应规范和基线；不得把 2026-07-28 的无协议会话、元数据或错误语义直接当成所有 MCP 部署的通用要求。",
+   "source_refs": [
+    {
+     "section": "Target Technology Details / Assessment Prerequisites",
+     "pdf_page": 9,
+     "printed_page": 8,
+     "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+    }
+   ],
+   "page_numbering": "pdf_page / pdf_pages 为从 1 起算的 PDF 物理页；printed_page / printed_pages 为页面页脚数字。该文件目录中的若干页码与实际页脚不一致，本整理按正文实际位置核对。",
+   "adaptation_note": "仅整理指定 8 项 Recommendation 的中文摘要及原文支持的核查材料。标题保留来源英文；检查步骤不是原文脚本的全量替代，不是可一键执行的自动化审计器。"
+  },
+  "recommendations": {
+   "3.2.1": {
+    "id": "3.2.1",
+    "kind": "recommendation",
+    "title_en": "Ensure per-tool authorization policies are enforced",
+    "title_zh": "逐工具执行默认拒绝的授权策略",
+    "assessment_status": "Manual",
+    "profile": "Level 2",
+    "requirement": "在 MCP 服务器或网关按已认证身份与角色执行逐工具授权；默认拒绝，只允许策略列出的工具。每次允许和拒绝都记录工具名、调用身份、命中规则、时间及关联标识；不得只在模型或客户端判断权限。",
+    "audit_steps": [
+     "将工具注册表与按角色或身份定义的工具允许清单逐项比对，定位实际的服务器或网关授权执行点。",
+     "在受控环境准备同一特权工具及同一组有效参数：已授权身份调用应成功，最小权限身份应得到可归因的授权拒绝。",
+     "确认拒绝来自 HTTP 403 或部署明确记录的授权错误；鉴权失败、请求畸形、网络故障或其他不明错误不能当成逐工具授权有效的证据。",
+     "按关联标识查验两次受控请求的允许与拒绝记录，确认工具、身份、规则、时间和关联字段齐全。"
+    ],
+    "evidence": [
+     "工具注册表与角色—工具授权清单",
+     "服务器或网关授权中间件及身份映射配置",
+     "同一工具与参数的已授权/最小权限测试记录",
+     "与两次请求关联的授权允许和拒绝日志"
+    ],
+    "applicability": "MCP 逐工具调用授权。执行责任位于 server 或 gateway；原文线上探测采用远程 HTTP 端点、Bearer 测试身份及 2026-07-28 请求信封。不能把该 HTTP 示例原样用于无对应身份机制的本地 stdio 部署。",
+    "boundary": "身份认证成功不代表获得全部工具权限。策略应采用企业维护的工具风险分类，不依赖服务器提供的行为注解；本条不提供可跨实现通用的配置命令。",
+    "source_refs": [
+     {
+      "section": "3.2.1 / Description, Audit, Remediation",
+      "pdf_pages": [
+       91,
+       92,
+       93,
+       94,
+       95
+      ],
+      "printed_pages": [
+       90,
+       91,
+       92,
+       93,
+       94
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "中文要求、检查步骤和材料清单根据本条 Description / Audit / Remediation 摘要；未复制或运行原文 curl、jq 探测脚本。"
+   },
+   "4.1.5": {
+    "id": "4.1.5",
+    "kind": "recommendation",
+    "title_en": "Ensure a human can deny tool invocations and sensitive or high-impact operations require confirmation",
+    "title_zh": "保留人工否决权，敏感和高影响操作执行前确认",
+    "assessment_status": "Manual",
+    "profile": "Level 2",
+    "requirement": "在 host 或网关保留人工拒绝工具调用的能力，调用前展示输入。敏感、高影响、不可逆操作和整体效果高影响的多步序列执行前需明确人工确认；普通非敏感读取可以免提示但必须记录。工具风险分类由运营方维护。",
+    "audit_steps": [
+     "检查 host / gateway / 策略引擎中的人工审批执行点、工具风险分类和调用前输入展示，确认分类独立于服务器提供的工具注解。",
+     "通过实际执行点提交运营方判为敏感或高影响的受控操作，核对执行前出现部署可明确归因的人工批准状态，并确认人可以拒绝。",
+     "另选常规读取验证免提示执行且有记录；对合计产生高影响的多步工作流核对整体批准要求。",
+     "将一般的 input_required、认证错误或协议错误与真正人工审批区分，前者本身不能证明审批门有效。"
+    ],
+    "evidence": [
+     "由运营方维护的敏感/高影响工具与序列分类",
+     "host 或网关审批策略及输入展示记录",
+     "高影响操作的待批、拒绝与执行记录",
+     "常规读取免提示执行及审计日志"
+    ],
+    "applicability": "MCP host/client 或 gateway 的同意与人工监督控制。只有 server 本身就是该部署的审批执行点时，才应直接以 server 端点核查；绕过 host 直接调用服务器不能证明 host 的审批行为。",
+    "boundary": "本条区分敏感/高影响操作与常规读取，不要求每次读取都弹窗。原文没有规定跨实现统一的批准响应结构；必须采用本部署记载的可归因信号。",
+    "source_refs": [
+     {
+      "section": "4.1.5 / Description, Audit, Remediation",
+      "pdf_pages": [
+       143,
+       144,
+       145,
+       146
+      ],
+      "printed_pages": [
+       142,
+       143,
+       144,
+       145
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "按本条摘要审批要求和核查顺序；未运行原文 HTTP 探测，也未把示例 APPROVAL_JQ 误作所有产品统一接口。"
+   },
+   "5.1.1": {
+    "id": "5.1.1",
+    "kind": "recommendation",
+    "title_en": "Ensure tool schemas and argument types are validated",
+    "title_zh": "按工具模式校验参数与结构化结果",
+    "assessment_status": "Automated",
+    "profile": "Level 1",
+    "requirement": "在服务器分发工具前依据其声明的 JSON Schema 方言验证输入；已声明 outputSchema 的结构化结果返回前也要校验。请求结构畸形与工具参数违反模式采用相应错误语义。清理工具名、参数名、描述与输出等所有模式字段；禁止自动解引用外部 $ref，限制模式深度和验证耗时。",
+    "audit_steps": [
+     "收集所有公布的 inputSchema 和 outputSchema，按各自 $schema 声明的方言检查可编译性；未声明方言时按本基线的 2020-12 默认值。",
+     "在受控环境以遗漏必填项或错误类型构造有效 tools/call 信封，核对违规参数产生 result.isError=true 的工具执行错误且未触发工具逻辑。",
+     "检查服务器中间件与返回路径：结构性请求错误采用协议错误，声明 outputSchema 的结果经相应模式校验。",
+     "审阅验证器配置，确认不自动获取外部 $ref，深度和时间有界，并覆盖名称、描述等完整模式字段的清理。"
+    ],
+    "evidence": [
+     "工具清单及输入/输出模式导出",
+     "模式方言编译结果与验证器配置",
+     "违规参数测试响应及工具未执行的记录",
+     "服务端校验与字段清理代码或配置"
+    ],
+    "applicability": "MCP server 的工具注册、调用中间件和结果返回路径；原文接口探测采用 2026-07-28 Streamable HTTP，模式编译示例需 ajv-cli。输入根模式为 object，输出模式按该目标版本可包含数组或基本类型。",
+    "boundary": "严格类型校验不等于工具授权或业务参数安全已完成。外部 $ref / 不支持的方言在原文脚本中是 REVIEW，而不是可以忽略；原文错误语义与方言支持应按目标协议和实现版本核对。",
+    "source_refs": [
+     {
+      "section": "5.1.1 / Description, Audit, Remediation",
+      "pdf_pages": [
+       167,
+       168,
+       169,
+       170,
+       171,
+       172,
+       173
+      ],
+      "printed_pages": [
+       166,
+       167,
+       168,
+       169,
+       170,
+       171,
+       172
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "摘要区分执行前输入校验与返回前输出校验；不提供原文命令的全量替代。原文 Automated 标记不意味着本项目已经实现或执行该自动化核查。"
+   },
+   "5.2.2": {
+    "id": "5.2.2",
+    "kind": "recommendation",
+    "title_en": "Ensure sessions are not used as authentication and, where present, are bound to user identity",
+    "title_zh": "连续性句柄不能替代认证，并须绑定身份与有效期",
+    "assessment_status": "Manual",
+    "profile": "Level 1",
+    "requirement": "远程 HTTP 请求每次独立认证授权，不能以会话标识、连续性句柄或客户端自报元数据代替凭据。应用如需跨调用状态，句柄应由密码学安全随机源生成、不可猜测，服务端绑定已认证身份，每次使用重新验证并按期限失效；多节点使用共享绑定存储。",
+    "audit_steps": [
+     "先确认部署协议版本与跨调用状态机制：本基线目标版本使用普通工具参数中的应用句柄；旧版可能仍有协议会话。",
+     "在受控环境提交结构正确、带既有句柄但不带独立认证凭据的请求，核对因缺少凭据返回 401；其他错误需确认归因。",
+     "审阅句柄生成与服务端绑定逻辑，确认密码学安全随机源、身份绑定、逐请求重新校验和过期机制；多节点检查共享存储。"
+    ],
+    "evidence": [
+     "协议版本与状态/句柄设计说明",
+     "缺少独立凭据的受控请求及拒绝响应",
+     "句柄生成、身份绑定与过期校验代码或配置",
+     "多节点共享绑定存储配置（如适用）"
+    ],
+    "applicability": "主要为远程 HTTP MCP server 的逐请求认证和应用连续性句柄。PDF 目标 2026-07-28 已去除协议级会话和 Mcp-Session-Id；原文说明同一原则也适用于仍采用 2025-11-25 的协议会话，不能混淆两种机制。",
+    "boundary": "本条不是要求所有 Agent 必须设计一个统一会话生命周期。没有跨调用句柄时，句柄部分按实际不适用处理，但远程请求仍需独立认证；_meta 中自报 clientInfo 不是身份凭证。",
+    "source_refs": [
+     {
+      "section": "5.2.2 / Description, Audit, Remediation",
+      "pdf_pages": [
+       187,
+       188,
+       189
+      ],
+      "printed_pages": [
+       186,
+       187,
+       188
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "摘要保留协议版本差异与身份归因要求；未提交原文认证探测请求，也不将 403 或一般 400 自动判为符合独立认证要求。"
+   },
+   "6.2": {
+    "id": "6.2",
+    "kind": "recommendation",
+    "title_en": "Ensure tokens and keys are protected in clients and servers",
+    "title_zh": "在受管存储中保护客户端和服务器凭据",
+    "assessment_status": "Automated",
+    "profile": "Level 1",
+    "requirement": "API token、OAuth 客户端秘密和服务账户密钥存放在系统钥匙串、受管秘密存储或 KMS 支持的存储中，部署配置与制品只引用秘密，运行时读取；按本基线立场，加密后的秘密值也不应嵌入部署制品。实施自动轮换和临近过期告警；轮换曾嵌入部署制品的凭据。",
+    "audit_steps": [
+     "确定实际部署配置和已安装制品目录，使用适合该环境且启用脱敏的秘密扫描器检查内联凭据，并区分扫描完成、发现和工具错误。",
+     "检查部署清单只保存受管存储引用，而不是明文或加密后的秘密值；核对运行时读取路径。",
+     "依据原文要求补充审阅自动轮换与临近过期告警配置；对曾嵌入配置或制品的凭据核对轮换处置。"
+    ],
+    "evidence": [
+     "部署配置/制品清单及脱敏扫描结果",
+     "受管秘密引用与访问配置",
+     "凭据轮换和到期告警配置",
+     "历史嵌入凭据的轮换处置记录（如适用）"
+    ],
+    "applicability": "MCP client/host 和 server 中的部署凭据处理。原文 Audit 示例用 gitleaks 扫描实际部署目录并人工检查清单；只扫描 Git 历史不能覆盖这里的部署制品范围。",
+    "boundary": "轮换与告警来自 Description / Remediation，原文 Audit 的直接检查重点是扫描与清单引用。本整理把二者并列便于检查要求完整性；一次扫描没有发现不能证明所有潜在秘密均不存在。",
+    "source_refs": [
+     {
+      "section": "6.2 / Description, Audit, Remediation",
+      "pdf_pages": [
+       221,
+       222,
+       223
+      ],
+      "printed_pages": [
+       220,
+       221,
+       222
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "根据原文摘要并标明 Audit 与 Description / Remediation 的范围差异；未执行扫描、读取凭据或实施轮换。"
+   },
+   "7.1.1": {
+    "id": "7.1.1",
+    "kind": "recommendation",
+    "title_en": "Ensure lifecycle and invocation metadata is recorded",
+    "title_zh": "记录可关联且防篡改的 MCP 调用与生命周期日志",
+    "assessment_status": "Automated",
+    "profile": "Level 1",
+    "requirement": "为发现、工具/资源/提示调用、认证、信息征询、批准/拒绝和 Task 生命周期等适用事件生成结构化审计记录，每条包含同步时间、事件类型、服务器身份和逐请求关联标识。按版本记录请求与服务器元数据；敏感工具避免完整参数载荷。日志由服务器采集并集中存储，配置完整性保护。",
+    "audit_steps": [
+     "抽查近期结构化日志，核对非空时间戳、关联标识、事件类型与服务器身份，并确认关联标识确实区分请求。",
+     "将日志中的事件类型清单与实际启用的发现、调用、认证、征询、审批和 Task 功能比对，检查应有类别是否缺失。",
+     "审阅 stderr / OpenTelemetry 等采集与集中转发管线，确认完整性保护；若有分布式追踪，trace/span 应补充而非取代请求关联字段。",
+     "检查敏感工具的参数记录策略与版本适配，避免用已弃用 MCP logging utility 代替本基线要求的服务器侧采集。"
+    ],
+    "evidence": [
+     "近期脱敏审计日志样本与字段模式",
+     "已启用 MCP 功能及应记录事件类型清单",
+     "服务器采集、集中转发与存储完整性保护配置",
+     "请求关联/追踪与敏感参数处理配置"
+    ],
+    "applicability": "MCP server 及相关 host/gateway 事件的审计日志与集中管线。server/discover、每请求 _meta、Task 与 logging utility 弃用等细节针对本 PDF 的 2026-07-28 协议目标。",
+    "boundary": "标题里的 lifecycle 是 MCP 操作和 Task 等事件，并不要求框架引入统一的 Agent lifetime 维度。少量样本字段齐全仍需人工确认事件覆盖与集中完整性控制。",
+    "source_refs": [
+     {
+      "section": "7.1.1 / Description, Audit, Remediation",
+      "pdf_pages": [
+       229,
+       230,
+       231
+      ],
+      "printed_pages": [
+       228,
+       229,
+       230
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "检查步骤结合本条 Description / Audit / Remediation，未复制完整 jq 命令或运行日志取样；对隐私参数的核对是来源要求的配置检查。"
+   },
+   "9.2": {
+    "id": "9.2",
+    "kind": "recommendation",
+    "title_en": "Ensure the MCP server process is confined to its working set by OS-level kernel-enforced controls",
+    "title_zh": "以操作系统强制边界约束 MCP 文件工作集",
+    "assessment_status": "Automated",
+    "profile": "Level 1",
+    "requirement": "以服务账户的实际有效权限和内核强制机制，将 MCP server 限制在合法工作目录内；可按平台选择 POSIX ACL、AppArmor/SELinux 或容器挂载，并记录拒绝访问。MCP Roots 不能作为隔离边界。",
+    "audit_steps": [
+     "明确 MCP 服务账户、合法工作集和两个已存在的哨兵文件：一个位于工作集内，一个位于应禁止的范围外。",
+     "在受控环境使用实际服务账户确认工作集内哨兵可读、范围外哨兵被拒；不能以读取本来就被普通账户拒绝的 /etc/shadow 代替边界验证。",
+     "审阅选用的 ACL、强制访问控制配置或容器挂载，确认实际约束与预期目录一致，并核对拒绝访问日志。"
+    ],
+    "evidence": [
+     "服务账户、合法工作集与哨兵文件设计",
+     "以服务账户执行的范围内成功/范围外拒绝记录",
+     "实际生效的 ACL、AppArmor/SELinux 或挂载配置",
+     "拒绝访问审计记录"
+    ],
+    "applicability": "本条是独立 Recommendation，不是章节标题。适用于 MCP server 的 OS 文件访问边界；原文核查采用 Linux 服务账户与 sudo，ACL 修复示例另需 setfacl 和文件系统 ACL 支持。容器环境应核对实际容器上下文与挂载。",
+    "boundary": "只验证文件工作集隔离，不代表网络隔离、进程/系统调用隔离或沙箱全部安全。Description / Remediation 允许 ACL、MAC、挂载等机制；Audit 合规句还点名 MAC profile，应按实际选用机制审阅，不能把 setfacl 当作配置了 AppArmor/SELinux。",
+    "source_refs": [
+     {
+      "section": "9.2 / Description, Audit, Remediation",
+      "pdf_pages": [
+       277,
+       278,
+       279
+      ],
+      "printed_pages": [
+       276,
+       277,
+       278
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "摘要保留两哨兵、真实服务账户和实际执行上下文的前提；没有执行 sudo、setfacl、文件读取或修改隔离配置。"
+   },
+   "10.2": {
+    "id": "10.2",
+    "kind": "recommendation",
+    "title_en": "Ensure request and response body size limits, token budgets, and per-principal quotas are enforced",
+    "title_zh": "分别限制报文大小、模型预算与主体配额",
+    "assessment_status": "Manual",
+    "profile": "Level 1",
+    "requirement": "在反向代理和应用中间件分别限制入站 JSON-RPC 请求大小；限制非流式结果总大小和流式响应中每条消息的大小。代理模型调用时配置每请求/工作负载 token 预算；主体和租户配额独立于全局限流，主体由授权上下文或工作负载定义，不能按连接充当会话。",
+    "audit_steps": [
+     "取得配置的请求大小阈值，在受控环境比较一个有效普通请求与超过阈值的请求：前者成功，后者应产生可归因的大小限制响应。",
+     "确认探测证明的是响应请求的那一层；继续审阅代理和应用各自独立的请求大小限制。",
+     "检查非流式输出和流式单条消息大小限制，以及适用的每请求/工作负载 token 预算。",
+     "审阅独立的主体/租户配额及耗尽行为，确保明确错误而非静默排队；普通请求失败或超大请求断连时需先确认归因。"
+    ],
+    "evidence": [
+     "代理与应用中间件的独立报文限制配置",
+     "普通和超阈值受控请求的对照记录",
+     "非流式/流式消息及模型 token 预算配置",
+     "主体/租户配额、耗尽策略与错误记录"
+    ],
+    "applicability": "MCP server、应用中间件和反向代理；token 预算要求适用于代理模型调用的服务器。原文线上示例是 2026-07-28 Streamable HTTP，请求大小和其他限制需按实际工作负载调优。",
+    "boundary": "不能给任意长流设置一个总量上限来替代单消息限制。单个 HTTP 413 对照仅证明回答请求层的大小检查，不证明全部预算、租户配额或应用内限制已生效；nginx 1m 是示例值。",
+    "source_refs": [
+     {
+      "section": "10.2 / Description, Audit, Remediation",
+      "pdf_pages": [
+       292,
+       293,
+       294,
+       295
+      ],
+      "printed_pages": [
+       291,
+       292,
+       293,
+       294
+      ],
+      "local_path": "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf"
+     }
+    ],
+    "adaptation_note": "依据原文摘要限制维度、对照测试与配置检查；未发送超大请求或制造配额耗尽，未复制 nginx 示例为项目默认值。"
+   }
+  },
+  "scope_note": "条目按其要求实际落在哪个对象的职责上挂载：协议面留在MCP组件，授权、审批、会话、令牌、进程约束与配额分别挂到承担该职责的对象。全部条目仅适用于实际存在MCP部署的目标。"
+ },
+ "object_mappings": {
+  "A1.1": {
+   "cis_ids": [
+    "6.1",
+    "6.6",
+    "16.10",
+    "8.2"
+   ],
+   "reason": "入口处理外部事件与身份，需核对所有鉴权路径、参数处理和访问决策。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-04",
+    "SAFEAI-07",
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "入口认证与主体绑定",
+    "事件来源、重放和重复触发处理"
+   ],
+   "technical_requirement_ids": [
+    "TR-A1.1"
+   ]
+  },
+  "A1.2": {
+   "cis_ids": [
+    "9.1",
+    "16.10",
+    "12.2",
+    "18.2"
+   ],
+   "reason": "浏览器和文档处理依赖需更新；输入/输出解释与执行环境隔离应在最终消费处检查。；内容呈现同时检查安全相关字段与后台实际上下文的一致性。",
+   "scope": "CIS Agent指南提供依赖更新、输入处理与隔离要求；具体解析器漏洞、DOM/XSS和服务端SSRF仍须结合实现、维护者通告及适用软件基线核查。内容解析与呈现由此对象核查；动作授权与批准决策仍由A2.6承担。",
+   "safeai_ids": [
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "不安全内容解释",
+    "浏览器外发与服务端SSRF分别判断",
+    "安全相关呈现与实际主体、数据归属及最终动作一致"
+   ],
+   "technical_requirement_ids": [
+    "TR-A1.2"
+   ]
+  },
+  "A1.3": {
+   "cis_ids": [
+    "6.1",
+    "6.8",
+    "3.3",
+    "8.5"
+   ],
+   "reason": "会话句柄、身份与数据权限共同决定访问范围，不能只核对标识格式。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-10",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [
+    "5.2.2"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "会话归属与历史访问",
+    "恢复和重连后的授权"
+   ],
+   "technical_requirement_ids": [
+    "TR-A1.3"
+   ]
+  },
+  "A2.1": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "任务规划要受权限与执行策略约束，需验证目标诱导、重规划和失控动作链。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "目标与任务范围完整性",
+    "计划变更和任务终止约束"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.1"
+   ]
+  },
+  "A2.2": {
+   "cis_ids": [
+    "4.1",
+    "3.12",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "模板属于受控配置，外部上下文须按安全设计处理并验证其对动作的影响。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "来源与消息角色保持",
+    "隐藏上下文与敏感内容范围"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.2"
+   ]
+  },
+  "A2.3": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "8.5",
+    "18.5"
+   ],
+   "reason": "编排承接动作策略、故障处理与循环限制，应在真实执行链验证。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-10",
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "循环预算与终止",
+    "重试/回退中的副作用一致性"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.3"
+   ]
+  },
+  "A2.4": {
+   "cis_ids": [
+    "4.1",
+    "16.4",
+    "16.5",
+    "6.8"
+   ],
+   "reason": "注册声明与来源、配置变更及实际权限需分别核对。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "注册/发现真实性",
+    "能力声明与实际启用能力一致性"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.4"
+   ]
+  },
+  "A2.5": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "4.1",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "Skill同时包含制品和指令，应核对来源、变更准入及宿主实际执行约束。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "加载/覆盖语义",
+    "动态引用与宿主执行能力"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.5"
+   ]
+  },
+  "A2.6": {
+   "cis_ids": [
+    "6.8",
+    "5.4",
+    "16.10",
+    "8.2"
+   ],
+   "reason": "高影响动作需要有效授权或批准；策略管理面与任务权限须分开保护。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-05",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [
+    "4.1.5"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "批准与最终动作绑定",
+    "策略旁路与故障默认行为"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.6"
+   ]
+  },
+  "A2.7": {
+   "cis_ids": [
+    "5.6",
+    "6.8",
+    "12.5",
+    "18.5"
+   ],
+   "reason": "协作必须传播用户权限上下文，限制同伴委派、网络通信和共享状态影响。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "代表关系与权限收敛",
+    "消息可信度及跨Agent传播"
+   ],
+   "technical_requirement_ids": [
+    "TR-A2.7"
+   ]
+  },
+  "A3.1": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "3.3",
+    "15.5"
+   ],
+   "reason": "Agent指南可支持依赖来源、访问和提供方评估；模型后门与鲁棒性需专项评估补充。",
+   "scope": "CIS Agent指南不重复模型级要求。这里仅复用通用制品、访问与提供方要求；模型后门、隐私和对抗鲁棒性应结合SAFE-AI及模型专项材料评估。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "模型/制品来源与加载完整性",
+    "模型行为约束及数据泄露"
+   ],
+   "technical_requirement_ids": [
+    "TR-A3.1"
+   ]
+  },
+  "A3.2": {
+   "cis_ids": [
+    "3.3",
+    "3.12",
+    "6.1",
+    "15.4"
+   ],
+   "reason": "关注推理调用的数据范围、身份与供应责任；模型行为保证须另行评估。",
+   "scope": "托管推理可见性受服务接口和合同限制；CIS条目支持调用与数据治理，不能据此推断模型内部安全性。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-04",
+    "SAFEAI-07",
+    "SAFEAI-10",
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [
+    "10.2"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "请求数据范围与服务授权",
+    "推理配置、缓存隔离和消费限制"
+   ],
+   "technical_requirement_ids": [
+    "TR-A3.2"
+   ]
+  },
+  "A3.3": {
+   "cis_ids": [
+    "15.1",
+    "12.3",
+    "3.12",
+    "6.6"
+   ],
+   "reason": "中间提供方和转发路径决定数据去向，需要核对安全通信、授权和路由变化。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-04"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "模型/提供方路由完整性",
+    "凭据受众与回退路径"
+   ],
+   "technical_requirement_ids": [
+    "TR-A3.3"
+   ]
+  },
+  "A3.4": {
+   "cis_ids": [
+    "3.3",
+    "16.5",
+    "15.5",
+    "16.14"
+   ],
+   "reason": "这些CIS条目只覆盖通用权限、来源和设计责任；训练/微调安全仍需SAFE-AI等专项依据。",
+   "scope": "分别记录适用性、责任边界和证据可见性；不把不可见自动视为不适用。 模型训练、微调和数据集策展超出CIS Agent指南的直接范围；本处仅采用通用控制，专项风险由SAFE-AI和现有OWASP材料补充。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "数据准入与训练任务权限",
+    "模型产物发布、版本和回滚"
+   ],
+   "technical_requirement_ids": [
+    "TR-A3.4"
+   ]
+  },
+  "A4.1": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "4.1",
+    "18.5"
+   ],
+   "reason": "工具定义是可变的外部依赖，声明、实际实现和加载内容需对应。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "定义完整性与来源",
+    "发现结果和实际调用绑定"
+   ],
+   "technical_requirement_ids": [
+    "TR-A4.1"
+   ]
+  },
+  "A4.2": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "8.5",
+    "18.5"
+   ],
+   "reason": "最终调用需落实权限、业务约束和故障处理，并记录动作结果。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-06",
+    "SAFEAI-07",
+    "SAFEAI-10",
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [
+    "3.2.1"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "最终主体/资源/参数核验",
+    "异步、批量、重试的副作用"
+   ],
+   "technical_requirement_ids": [
+    "TR-A4.2"
+   ]
+  },
+  "A4.3": {
+   "cis_ids": [
+    "6.6",
+    "6.8",
+    "16.10",
+    "8.2"
+   ],
+   "reason": "按MCP角色检查身份、工具访问与输入处理；额外基准条目需匹配版本和实现。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-04",
+    "SAFEAI-06",
+    "SAFEAI-07",
+    "SAFEAI-08",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [
+    "5.1.1",
+    "7.1.1"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "按角色与传输核查认证",
+    "tools/resources/prompts及交互能力分别审查"
+   ],
+   "technical_requirement_ids": [
+    "TR-A4.3"
+   ]
+  },
+  "A4.4": {
+   "cis_ids": [
+    "6.8",
+    "3.3",
+    "16.10",
+    "16.13"
+   ],
+   "reason": "业务后端必须独立检查资源和动作；工具名称或Agent身份不能替代业务授权。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-04",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "下游资源授权与输入约束",
+    "URL目标、重定向及数据发送范围"
+   ],
+   "technical_requirement_ids": [
+    "TR-A4.4"
+   ]
+  },
+  "A4.5": {
+   "cis_ids": [
+    "9.1",
+    "9.3",
+    "16.10",
+    "12.2",
+    "18.2"
+   ],
+   "reason": "自动化浏览器与桌面工具处理不可信内容且能产生副作用，需限制能力并隔离。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-04",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "账号/配置文件隔离",
+    "导航、文件与本地资源访问约束"
+   ],
+   "technical_requirement_ids": [
+    "TR-A4.5"
+   ]
+  },
+  "A4.6": {
+   "cis_ids": [
+    "16.10",
+    "12.2",
+    "13.2",
+    "18.2"
+   ],
+   "reason": "动态执行能力应采用模型外强制边界，并验证实际隔离及异常进程行为。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-04",
+    "SAFEAI-05",
+    "SAFEAI-06",
+    "SAFEAI-08",
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "命令/文件/网络有效权限",
+    "安装和子进程的限制继承"
+   ],
+   "technical_requirement_ids": [
+    "TR-A4.6"
+   ]
+  },
+  "A5.1": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "3.12",
+    "8.5"
+   ],
+   "reason": "历史和工作状态同时涉及数据范围、保留与上下文信任，需沿读写路径核查。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "上下文归属与来源",
+    "内容选择和跨用户隔离"
+   ],
+   "technical_requirement_ids": [
+    "TR-A5.1"
+   ]
+  },
+  "A5.2": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "11.2",
+    "18.5"
+   ],
+   "reason": "持久化记忆需要授权、生命周期控制和污染验证，备份本身不证明内容可信。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-09",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "记忆写入来源与完整性",
+    "读取范围、更新及删除残留"
+   ],
+   "technical_requirement_ids": [
+    "TR-A5.2"
+   ]
+  },
+  "A5.3": {
+   "cis_ids": [
+    "3.3",
+    "3.7",
+    "3.1",
+    "18.5",
+    "10.1"
+   ],
+   "reason": "知识来源和分级控制影响后续行为，须验证不可信材料进入记忆/检索后的影响。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "内容来源、版本与完整性",
+    "知识数据访问和污染处理"
+   ],
+   "technical_requirement_ids": [
+    "TR-A5.3"
+   ]
+  },
+  "A5.4": {
+   "cis_ids": [
+    "3.3",
+    "3.12",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "召回必须保留数据访问限制与来源，不将检索结果自动视为可信指令。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-07",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "过滤与租户范围有效性",
+    "检索结果完整性和来源"
+   ],
+   "technical_requirement_ids": [
+    "TR-A5.4"
+   ]
+  },
+  "A5.5": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "11.2",
+    "11.5"
+   ],
+   "reason": "共享缓存与恢复状态需防串用；恢复流程应验证数据、权限及可信状态。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-09",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "缓存键及命名空间隔离",
+    "旧状态重放与恢复后的授权"
+   ],
+   "technical_requirement_ids": [
+    "TR-A5.5"
+   ]
+  },
+  "A5.6": {
+   "cis_ids": [
+    "3.3",
+    "3.12",
+    "12.2",
+    "11.2"
+   ],
+   "reason": "存储服务需独立执行数据和网络边界，并提供可验证的恢复能力。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-04",
+    "SAFEAI-09",
+    "SAFEAI-10",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "平台访问控制与租户隔离",
+    "加密、持久化及可用性"
+   ],
+   "technical_requirement_ids": [
+    "TR-A5.6"
+   ]
+  },
+  "A6.1": {
+   "cis_ids": [
+    "8.1",
+    "8.5",
+    "8.9",
+    "3.3",
+    "15.6"
+   ],
+   "reason": "日志需可关联、受保护且避免敏感信息过曝，记录存在不等于事件链完整。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [
+    "7.1.1"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "事件覆盖、关联与防篡改",
+    "敏感数据和租户访问隔离"
+   ],
+   "technical_requirement_ids": [
+    "TR-A6.1"
+   ]
+  },
+  "A6.2": {
+   "cis_ids": [
+    "16.10",
+    "13.2",
+    "18.4",
+    "18.5"
+   ],
+   "reason": "护栏应覆盖实际路径，并验证绕路、故障、误报与正常任务可用性。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-05",
+    "SAFEAI-07",
+    "SAFEAI-09",
+    "SAFEAI-10",
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "覆盖路径与绕过",
+    "检测不可用时的处理及阻断联动"
+   ],
+   "technical_requirement_ids": [
+    "TR-A6.2"
+   ]
+  },
+  "A6.3": {
+   "cis_ids": [
+    "18.2",
+    "18.5",
+    "16.13",
+    "3.3",
+    "16.10",
+    "16.12"
+   ],
+   "reason": "评测与红队需覆盖真实对象及行为路径，区分替身、真实目标和未覆盖条件。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "member_checks": [
+    {
+     "member_id": "A6.3.evaluator",
+     "name": "评估器与判定规则",
+     "requirements": [
+      "判据独立于待测内容，内容不获规则修改或执行权限；裁判模型注明适用前提并支持复核。"
+     ],
+     "checks": [
+      "已知结果正反对照，测试恶意裁判输入，比较评分与外部真实结果。"
+     ],
+     "evidence": [
+      "评估器版本和评分规则",
+      "已知结果的正反样本",
+      "裁判结果与外部状态对照"
+     ],
+     "location": "裁判输入、评分规则与外部结果复核处",
+     "scope": "应用安全检查支持评分规则和输入路径审查；模型裁判的偏差、稳定性及污染需要已知结果对照与专项评测。"
+    }
+   ],
+   "technical_focus": [
+    "评测环境与真实副作用隔离",
+    "样本、判据及结果完整性"
+   ],
+   "technical_requirement_ids": [
+    "TR-A6.3"
+   ]
+  },
+  "A7.1": {
+   "cis_ids": [
+    "4.1",
+    "16.7",
+    "16.10",
+    "18.2"
+   ],
+   "reason": "依实际环境采用加固配置与执行隔离，并从工作负载验证边界。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-04",
+    "SAFEAI-05",
+    "SAFEAI-06",
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [
+    "9.2",
+    "10.2"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "特权和边界配置",
+    "资源配额及子进程限制继承"
+   ],
+   "technical_requirement_ids": [
+    "TR-A7.1"
+   ]
+  },
+  "A7.2": {
+   "cis_ids": [
+    "3.3",
+    "4.1",
+    "16.10",
+    "10.1"
+   ],
+   "reason": "工作区权限及共享挂载决定真实文件能力，路径格式检查不能代替OS边界。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "路径越界与符号链接",
+    "共享、临时文件和生成产物的访问"
+   ],
+   "technical_requirement_ids": [
+    "TR-A7.2"
+   ]
+  },
+  "A7.3": {
+   "cis_ids": [
+    "12.2",
+    "13.4",
+    "13.6",
+    "9.2",
+    "9.3"
+   ],
+   "reason": "网络架构、分段过滤、出站URL过滤与流量观测共同决定实际可达性与旁路情况。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-04",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "实际可达性与直连旁路",
+    "入口、东西向和出口控制",
+    "解析与回退后的实际目标"
+   ],
+   "technical_requirement_ids": [
+    "TR-A7.3"
+   ]
+  },
+  "A7.4": {
+   "cis_ids": [
+    "5.1",
+    "5.5",
+    "6.1",
+    "6.2"
+   ],
+   "reason": "身份、服务凭据和撤权流程必须覆盖Agent与其工具，不只管理用户账户。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-05",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [
+    "6.2"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "身份签发/交换与受众",
+    "凭据投递、撤销和暴露"
+   ],
+   "technical_requirement_ids": [
+    "TR-A7.4"
+   ]
+  },
+  "A7.5": {
+   "cis_ids": [
+    "4.1",
+    "16.4",
+    "16.5",
+    "5.4",
+    "4.7"
+   ],
+   "reason": "发布链需确保可信来源、受控配置和独立管理权限，检查实际生效状态。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-05",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "构建和发布执行身份",
+    "配置变更、版本与回滚完整性"
+   ],
+   "technical_requirement_ids": [
+    "TR-A7.5"
+   ]
+  },
+  "A7.6": {
+   "cis_ids": [
+    "7.1",
+    "7.5",
+    "4.1",
+    "13.2"
+   ],
+   "reason": "依赖漏洞、基础设施配置和主机观测适用于计算承载；设备/微架构隔离需平台专项依据。",
+   "scope": "分别记录适用性、责任边界和证据可见性；不把不可见自动视为不适用。 CIS要求作为基础设施治理入口；GPU/驱动/硬件隔离需按目标平台版本和适用基线补充验证。",
+   "safeai_ids": [
+    "SAFEAI-06",
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "设备/租户隔离",
+    "驱动和计算依赖的完整性及资源限制"
+   ],
+   "technical_requirement_ids": [
+    "TR-A7.6"
+   ]
+  },
+  "X1.1": {
+   "cis_ids": [
+    "5.1",
+    "5.5",
+    "6.1",
+    "4.7"
+   ],
+   "reason": "身份主体需要可追溯的清单、归属和访问授予流程。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-05"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "主体真实性与归属",
+    "主体在调用链中的一致性"
+   ],
+   "technical_requirement_ids": [
+    "TR-X1.1"
+   ]
+  },
+  "X1.2": {
+   "cis_ids": [
+    "5.5",
+    "5.6",
+    "6.1",
+    "6.2"
+   ],
+   "reason": "服务凭据和用户委派需有清晰范围、生命周期与撤销传播。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-05"
+   ],
+   "mcp_ids": [
+    "6.2"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "受众、scope和令牌混用",
+    "泄露、撤销和跨会话残留"
+   ],
+   "technical_requirement_ids": [
+    "TR-X1.2"
+   ]
+  },
+  "X1.3": {
+   "cis_ids": [
+    "6.8",
+    "5.6",
+    "16.10",
+    "3.3",
+    "3.12"
+   ],
+   "reason": "授权需落实到业务能力与资源，并在多Agent链中维持用户权限范围。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-05"
+   ],
+   "mcp_ids": [
+    "3.2.1"
+   ],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "主体—动作—资源—条件一致性",
+    "各执行点有效权限"
+   ],
+   "technical_requirement_ids": [
+    "TR-X1.3"
+   ]
+  },
+  "X1.4": {
+   "cis_ids": [
+    "6.8",
+    "5.4",
+    "8.2",
+    "18.5"
+   ],
+   "reason": "高影响操作的批准和后台执行应共同核验，批准记录本身属于受保护控制数据。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-05"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "授权与动作/任务绑定",
+    "过期、撤销、变参及重放"
+   ],
+   "technical_requirement_ids": [
+    "TR-X1.4"
+   ]
+  },
+  "X2.1": {
+   "cis_ids": [
+    "3.1",
+    "3.7",
+    "3.8"
+   ],
+   "reason": "需要明确数据属性、持有者与流向；来源标签不单独证明内容可信。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07",
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "属性绑定与转换保留",
+    "来源与完整性验证"
+   ],
+   "technical_requirement_ids": [
+    "TR-X2.1"
+   ]
+  },
+  "X2.2": {
+   "cis_ids": [
+    "16.10",
+    "3.12",
+    "18.5"
+   ],
+   "reason": "不可信内容进入推理和动作前需受控，并验证信任提升及跨通道注入。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-03",
+    "SAFEAI-07",
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "不可信内容被提升为指令的路径",
+    "转换后信任语义及实际动作效果"
+   ],
+   "technical_requirement_ids": [
+    "TR-X2.2"
+   ]
+  },
+  "X2.4": {
+   "cis_ids": [
+    "3.12",
+    "3.14",
+    "16.10",
+    "13.6"
+   ],
+   "reason": "敏感信息可能经过多种允许通道，需要结合目的地和实际输出验证流向。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-03",
+    "SAFEAI-07",
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "敏感内容与接收方匹配",
+    "实际输出、模型请求和遥测外发"
+   ],
+   "technical_requirement_ids": [
+    "TR-X2.4"
+   ]
+  },
+  "X2.5": {
+   "cis_ids": [
+    "3.4",
+    "3.12",
+    "11.2",
+    "11.5"
+   ],
+   "reason": "数据保留和恢复需要覆盖派生副本，并验证删除或恢复后的实际状态。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-03",
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "逐副本保留与删除",
+    "恢复后权限和已删内容复活"
+   ],
+   "technical_requirement_ids": [
+    "TR-X2.5"
+   ]
+  },
+  "X3.1": {
+   "cis_ids": [
+    "16.5",
+    "15.6"
+   ],
+   "reason": "提供方责任、受信来源与真实访问目标需要相互对应。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "来源身份与允许源",
+    "验证信任根及替代/回退来源"
+   ],
+   "technical_requirement_ids": [
+    "TR-X3.1"
+   ]
+  },
+  "X3.2": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "7.1"
+   ],
+   "reason": "清单必须覆盖真实内容与运行依赖，支持定位来源变化和漏洞。",
+   "scope": "CIS条目支持通用清单、软件来源与漏洞治理；模型权重、adapter和纯数据制品的专项验证仍需SAFE-AI及相应模型/数据依据。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "清单与实际内容一致性",
+    "依赖、动态下载及远程资源"
+   ],
+   "technical_requirement_ids": [
+    "TR-X3.2"
+   ]
+  },
+  "X3.3": {
+   "cis_ids": [
+    "16.5",
+    "4.1",
+    "5.4"
+   ],
+   "reason": "分发渠道与管理权限应受控，防止来源替换与未授权发布。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "发布/修改/下载权限",
+    "来源优先级、替换与撤销传播"
+   ],
+   "technical_requirement_ids": [
+    "TR-X3.3"
+   ]
+  },
+  "X3.4": {
+   "cis_ids": [
+    "16.5",
+    "16.4",
+    "15.5"
+   ],
+   "reason": "完整性证据需绑定实际制品，并区分来源证明与行为安全结论。",
+   "scope": "CIS软件组件条目支持来源与完整性治理，不直接证明模型权重、adapter或知识语料安全；模型与数据专项验证由SAFE-AI等补充。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "证明到实际制品的绑定",
+    "验证配置及失败处理"
+   ],
+   "technical_requirement_ids": [
+    "TR-X3.4"
+   ]
+  },
+  "X3.5": {
+   "cis_ids": [
+    "4.1",
+    "16.5",
+    "7.5",
+    "16.13"
+   ],
+   "reason": "变更控制必须延伸到实际生效版本，并在更新后复核安全措施。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "实际加载版本及漂移",
+    "动态定义、远程依赖和更新回退"
+   ],
+   "technical_requirement_ids": [
+    "TR-X3.5"
+   ]
+  },
+  "A5.7": {
+   "cis_ids": [
+    "3.3",
+    "3.8",
+    "3.12",
+    "16.10"
+   ],
+   "reason": "摄入内容、处理权限、来源/访问属性与索引写入是不同技术责任，需沿真实处理链核验。",
+   "scope": "按实际接入源、转换器、模型处理、写入后端和责任边界选择检查；不将来源证明当作内容良性保证。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_requirement_ids": [
+    "TR-A5.7"
+   ]
+  },
+  "X4.1": {
+   "cis_ids": [
+    "12.2",
+    "13.4",
+    "4.2"
+   ],
+   "reason": "网络架构、分段过滤与网络基础设施配置共同决定允许存在哪些通信关系。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "同区与跨区实际可达性",
+    "默认处理与规则实际附着"
+   ],
+   "technical_requirement_ids": [
+    "TR-X4.1"
+   ]
+  },
+  "X4.2": {
+   "cis_ids": [
+    "9.3",
+    "9.2",
+    "13.4",
+    "12.3"
+   ],
+   "reason": "出站域名与API允许列表、DNS过滤与分段过滤共同限定对外连接可以到达哪里。",
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "按对象职责细化的技术要求；CIS作为来源线索，检测与取证单独表达",
+   "technical_focus": [
+    "强制经由与旁路路径",
+    "解析、重定向与回退后的真实目标"
+   ],
+   "technical_requirement_ids": [
+    "TR-X4.2"
+   ]
+  }
+ },
+ "risk_mappings": {
+  "ASI01": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "按任务权限约束工具动作，在模型之外校验执行策略，并用目标偏转场景验证授权边界。",
+   "scope": "适用于可改变后续决策的输入和结果通道；意图识别或单次提示过滤不能证明目标始终正确。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI02": {
+   "cis_ids": [
+    "6.8",
+    "16.13",
+    "8.5"
+   ],
+   "reason": "限制可调用工具及资源范围，以业务逻辑测试检查合法工具的有害组合，并记录实际参数和结果。",
+   "scope": "重点检查权限内的动作是否仍需业务约束；仅确认账户有权限不足以排除滥用。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI03": {
+   "cis_ids": [
+    "5.6",
+    "6.1",
+    "6.8",
+    "8.2"
+   ],
+   "reason": "传播发起用户身份，使用可追溯的短期访问凭据，并校验委派后的有效权限及授权决策。",
+   "scope": "必须覆盖跨 Agent、工具和会话交接；认证成功不能代替委派范围检查。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI04": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5",
+    "15.6"
+   ],
+   "reason": "登记动态接入组件，核验软件来源与完整性，评估远端服务隔离，并监测其行为或版本变化。",
+   "scope": "本地制品和远端服务需分别取证；可信签名不等于工具定义、实现或后续响应无恶意。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI05": {
+   "cis_ids": [
+    "16.10",
+    "12.2",
+    "16.12",
+    "18.2"
+   ],
+   "reason": "在执行前校验输入并隔离解释器，限制其网络访问，以代码分析及执行面测试检查注入和逃逸。",
+   "scope": "区分宿主逃逸、沙箱内命令执行与已授权业务动作；网络隔离不等于进程隔离。",
+   "safeai_ids": [
+    "SAFEAI-06",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI06": {
+   "cis_ids": [
+    "3.3",
+    "3.1",
+    "11.5",
+    "18.5"
+   ],
+   "reason": "限制记忆写入主体和来源，验证摄入内容，恢复时检查污染是否重现，并测试持久化恶意上下文。",
+   "scope": "覆盖写入、摘要、检索和恢复路径；内容来自已认证用户也不能自动提升为可信指令。",
+   "safeai_ids": [
+    "SAFEAI-09",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI07": {
+   "cis_ids": [
+    "6.8",
+    "12.3",
+    "12.5",
+    "13.6"
+   ],
+   "reason": "对 Agent 间调用绑定角色与网络身份，使用安全协议并监测异常委派和跨边界流量。",
+   "scope": "传输加密只保护链路；仍需独立校验消息来源、授权和内容能否驱动操作。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-04"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI08": {
+   "cis_ids": [
+    "16.10",
+    "8.9",
+    "11.5",
+    "17.4"
+   ],
+   "reason": "用熔断和安全失败阻止错误链扩散，关联跨组件轨迹，并验证受污染状态清理与恢复。",
+   "scope": "需在实际依赖图中测试传播和终止；单 Agent 测试不能证明跨工作流故障受到约束。",
+   "safeai_ids": [
+    "SAFEAI-10",
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI09": {
+   "cis_ids": [
+    "6.8",
+    "16.13",
+    "16.14"
+   ],
+   "reason": "在高影响动作上设置独立批准策略，威胁建模并测试诱导批准、误导说明和反馈展示。",
+   "scope": "检查批准者实际可见的信息与最终动作；本目录不替代人员安全培训或认知实验。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "ASI10": {
+   "cis_ids": [
+    "13.2",
+    "8.9",
+    "17.4",
+    "17.8"
+   ],
+   "reason": "监测异常执行与调用链，建立隔离和重建流程，并从配置、记忆与策略决策追溯持续偏离根因。",
+   "scope": "仅以防御方可观察行为判定处置；不能从模型自述或异常一次性输出认定其主观恶意。",
+   "safeai_ids": [
+    "SAFEAI-05",
+    "SAFEAI-10",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST01": {
+   "cis_ids": [
+    "16.5",
+    "16.12",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "核验 Skill 来源，审查脚本及自然语言载荷，限制能力范围，并测试条件触发的越权动作。",
+   "scope": "需审查资源、远程引用和实际执行；静态扫描通过或可信作者均不构成无恶意证明。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST02": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5",
+    "15.6"
+   ],
+   "reason": "维护 Skill 及传递依赖清单，验证来源与完整性，评估分发服务并监控更新渠道变化。",
+   "scope": "分别检查维护者账户、注册表、依赖和安装钩子；包签名不能覆盖包外可变资源。",
+   "safeai_ids": [
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST03": {
+   "cis_ids": [
+    "6.8",
+    "5.5",
+    "12.2"
+   ],
+   "reason": "把 Skill 工具与数据访问绑定任务角色，隔离调用凭据和网络范围，避免继承宿主全部能力。",
+   "scope": "检查实际授予的文件、进程、网络和业务权限；声明权限必须与平台执行策略一致。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST04": {
+   "cis_ids": [
+    "4.1",
+    "16.12",
+    "16.13"
+   ],
+   "reason": "版本化元数据和配置，检查解析及初始化代码，并用欺骗性声明和恶意定义测试接入流程。",
+   "scope": "元数据是待校验输入；名称、作者和权限声明不能作为身份、完整性或可信度证明。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST05": {
+   "cis_ids": [
+    "3.8",
+    "9.3",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "登记远端内容流，限制获取目的地，把外部内容作为数据处理，并测试其被误用为指令的路径。",
+   "scope": "Skill 包未变化不代表远端引用不变；域名允许访问不代表返回内容可提升权限。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST06": {
+   "cis_ids": [
+    "16.10",
+    "12.2",
+    "18.2"
+   ],
+   "reason": "将 Skill 执行放入受限运行环境和网络分区，并验证文件、进程及网络边界能否被绕过。",
+   "scope": "需按实际宿主及执行器测试；容器存在、工具名称或网络策略声明不能单独证明隔离有效。",
+   "safeai_ids": [
+    "SAFEAI-04",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST07": {
+   "cis_ids": [
+    "4.1",
+    "16.5",
+    "15.6",
+    "16.13"
+   ],
+   "reason": "记录获批配置与版本，核验更新来源，监控远端行为变化，并在变更后验证安全控制仍生效。",
+   "scope": "需覆盖自动更新、热加载和远端资源；版本号不变或首次审查通过均不足以证明当前内容相同。 更新后的行为核查采用应用测试要求细化，不将CIS 18.4的渗透测试后验证要求解释为通用变更管理。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST08": {
+   "cis_ids": [
+    "7.5",
+    "16.12",
+    "18.5",
+    "18.4"
+   ],
+   "reason": "组合依赖扫描、代码检查和行为测试，再验证监测措施是否能发现测试中使用的攻击。",
+   "scope": "扫描器覆盖范围、语言和触发条件要明确；任何单项通过结果都不是 Skill 安全认证。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST09": {
+   "cis_ids": [
+    "16.4",
+    "4.1",
+    "6.2",
+    "15.1"
+   ],
+   "reason": "登记 Skill、运行配置和外部服务，明确责任与接入状态，并落实撤销身份和权限的流程。",
+   "scope": "应用于已安装、动态加载和个人侧接入；只有仓库清单而无运行实例盘点会遗漏影子 Skill。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-08",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AST10": {
+   "cis_ids": [
+    "4.1",
+    "6.8",
+    "15.5",
+    "16.13"
+   ],
+   "reason": "记录平台配置，核对迁移后的实际授权与隔离能力，并在目标环境重新验证控制措施。",
+   "scope": "语法兼容或能运行不代表安全语义等价；目标平台不支持的策略必须显式阻止或补偿。 更新后的行为核查采用应用测试要求细化，不将CIS 18.4的渗透测试后验证要求解释为通用变更管理。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-02",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI01": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "3.12",
+    "3.14"
+   ],
+   "reason": "限制敏感记录与衍生副本访问，最小化留存并分隔上下文，记录数据访问以追踪持续泄漏。",
+   "scope": "需沿原文、嵌入、日志和备份检查；模型输出过滤无法证明所有持久副本均受保护。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI02": {
+   "cis_ids": [
+    "5.1",
+    "5.5",
+    "6.1",
+    "6.2"
+   ],
+   "reason": "登记 Agent 凭据及归属，绑定工具能力，采用短期凭据和轮换，并在退役或泄漏时撤销。",
+   "scope": "覆盖配置、提示、记忆和日志中秘密的暴露路径；账户清单不等于秘密已安全存储。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI03": {
+   "cis_ids": [
+    "15.1",
+    "3.8",
+    "9.3",
+    "15.5"
+   ],
+   "reason": "盘点实际使用的 AI 提供方及数据流，对外连设置允许范围，并在接入前评估服务数据保护。",
+   "scope": "需从真实网络和业务使用补全影子服务；仅采购清单无法覆盖员工或软件内嵌 AI 功能。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI04": {
+   "cis_ids": [
+    "3.1",
+    "3.3",
+    "4.1",
+    "11.5"
+   ],
+   "reason": "校验摄入来源与数据访问权限与来源，版本化配置，并在恢复时检查被污染的数据和制品是否重新引入。",
+   "scope": "Agent Guide 只覆盖接入与使用侧；训练算法层的后门检测需额外模型评估，哈希一致不证明内容可信。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI05": {
+   "cis_ids": [
+    "3.1",
+    "16.12",
+    "16.13"
+   ],
+   "reason": "检查摄入验证逻辑和归档处理代码，用结构合法但语义异常的数据测试边界及写入路径。",
+   "scope": "语法和 Schema 验证不足以排除语义污染；解压路径越界与模型事实校验是不同检查。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI06": {
+   "cis_ids": [
+    "3.8",
+    "3.4",
+    "15.4",
+    "6.8"
+   ],
+   "reason": "明确每次交接的数据接收者，最小化工具输入，并约束第三方留存与身份可访问范围。",
+   "scope": "正常且已授权的集成也可能产生过度披露；需核对接收方、用途、字段和下游保留行为。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI07": {
+   "cis_ids": [
+    "3.1",
+    "3.7",
+    "3.8",
+    "3.4"
+   ],
+   "reason": "建立数据管理和分类，记录转换与外发流向，并将保留要求落实到记忆、嵌入和日志副本。",
+   "scope": "源记录的标签不会自动传播到衍生制品；需检查实际分类、所有权和删除执行记录。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI08": {
+   "cis_ids": [
+    "3.1",
+    "3.8",
+    "15.4",
+    "3.4"
+   ],
+   "reason": "用管理流程、数据流记录、提供方合同和保留执行证据支撑用途约束及权利履行核查。",
+   "scope": "这些是合规取证相关控制；CIS 条目不能替代特定辖区的合法依据、同意或法律结论。",
+   "safeai_ids": [
+    "SAFEAI-01",
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI09": {
+   "cis_ids": [
+    "3.7",
+    "3.8",
+    "3.4",
+    "15.5"
+   ],
+   "reason": "识别各模态及转换副本的数据级别和流向，最小化内容，并评估提供方转换后的保护能力。",
+   "scope": "OCR、转录和缩略图须纳入同一敏感数据范围；文本过滤通过不证明原始图像或音频无敏感信息。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI10": {
+   "cis_ids": [
+    "3.1",
+    "3.7",
+    "3.3",
+    "16.13"
+   ],
+   "reason": "以数据管理和分类约束匿名化产物的使用与访问，并对重识别和恢复风险进行专项测试。",
+   "scope": "匿名化或合成隐私保证不在 Agent Guide 的充分覆盖范围；需结合攻击假设与模型数据隐私评估。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI11": {
+   "cis_ids": [
+    "3.12",
+    "3.3",
+    "6.8",
+    "16.13"
+   ],
+   "reason": "隔离租户及会话的数据范围，在读取处执行访问控制，并测试共享缓存、记忆和检索的跨主体访问。",
+   "scope": "需要使用实际多用户状态验证；数据存储隔离不能代替提示组装、缓存命中与恢复路径检查。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI12": {
+   "cis_ids": [
+    "6.8",
+    "3.3",
+    "16.12",
+    "16.13"
+   ],
+   "reason": "限制数据网关的有效角色和行列访问，检查查询生成与执行代码，并测试越权查询和参数操纵。",
+   "scope": "自然语言意图或 SQL 语法安全不能替代数据源授权；读取工具也需约束敏感字段和聚合范围。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI13": {
+   "cis_ids": [
+    "16.7",
+    "4.7",
+    "3.3",
+    "12.2"
+   ],
+   "reason": "按存储平台基线加固配置和默认账户，限制集合权限，并通过受限网络连接访问向量服务。",
+   "scope": "Agent Guide 对存储基础设施覆盖有限；数据库配置需结合对应平台基线，不能只检查检索提示。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-04",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI14": {
+   "cis_ids": [
+    "8.1",
+    "3.4",
+    "3.3",
+    "15.4"
+   ],
+   "reason": "要求日志写入前脱敏，限定保留及读取权限，并约束外部遥测提供方的数据生命周期。",
+   "scope": "需验证采集管道、失败路径及导出副本；删除页面展示字段不能证明原始追踪记录没有保存秘密。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI15": {
+   "cis_ids": [
+    "3.4",
+    "3.7",
+    "3.8"
+   ],
+   "reason": "按任务需要裁剪上下文，依据分类限制可附加字段，并记录提示向模型及工具传播的数据流。",
+   "scope": "检查提示组装的实际最小字段与接收方；合法数据访问并不意味着全部内容都需要发送给模型。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI16": {
+   "cis_ids": [
+    "3.3",
+    "6.8",
+    "9.1",
+    "12.2"
+   ],
+   "reason": "限制端点助手可读文件和应用权限，维护浏览器组件安全，并隔离开放网页执行环境的网络范围。",
+   "scope": "检查宿主登录会话、剪贴板、DOM 和本地文件的实际继承；助手声明权限不足以证明访问被限制。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI17": {
+   "cis_ids": [
+    "11.2",
+    "11.3",
+    "11.5",
+    "16.10"
+   ],
+   "reason": "保护并备份关键状态，测试恢复后的语义完整性，并要求检索故障或陈旧数据进入安全失败路径。",
+   "scope": "可用性不能只测服务存活；需确认索引、引用、版本和回退逻辑一致且没有恢复污染或秘密。",
+   "safeai_ids": [
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI18": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "16.13",
+    "8.5"
+   ],
+   "reason": "减少公开信号和可查询数据范围，用隐私攻击测试评估接口，并保留可分析的查询行为记录。",
+   "scope": "模型成员推断和重建需要专项隐私评估；访问控制或限速只能缩小暴露，不能证明模型无训练数据记忆。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI19": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "15.4",
+    "3.14"
+   ],
+   "reason": "按职责限制审核人员和外包平台可见内容，脱敏及缩短保留，并记录人员访问和供应商责任。",
+   "scope": "人工复核是额外数据接收环节；需检查原始样本、导出和反馈副本，不能因用于安全评测而豁免。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI20": {
+   "cis_ids": [
+    "6.8",
+    "3.4",
+    "8.5",
+    "15.6"
+   ],
+   "reason": "限定模型 API 使用范围和响应细节，分析批量采集行为，并监测外部服务异常使用模式。",
+   "scope": "只覆盖防御方可控 API 与输出采集；模型功能近似复制的抵抗性需专门测量，不能保证合法查询无法提取。",
+   "safeai_ids": [
+    "SAFEAI-10",
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "DSGAI21": {
+   "cis_ids": [
+    "3.1",
+    "3.8",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "核验知识来源和摄入过程，保护索引前处理，并测试带可信引用的虚假内容是否被传播或用于行动。",
+   "scope": "来源、签名或引用存在不等于事实正确；需保留语义核实及自动决策边界，不能只靠字节完整性。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM01": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "把外部内容视为不可信输入，在模型之外约束动作授权，并测试直接、间接及多模态注入路径。",
+   "scope": "提示安全和过滤器是纵深措施；测试需确认最终工具副作用而非只判断回复是否拒绝。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM02": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "8.1",
+    "15.4"
+   ],
+   "reason": "最小化提示和输出中的敏感内容，保护数据及日志访问，并约束外部模型与工具接收方保留。",
+   "scope": "除回答外需检查工具参数、推理轨迹和日志；加密或授权读入不能保证后续内容不会被披露。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM03": {
+   "cis_ids": [
+    "6.8",
+    "5.5",
+    "16.10"
+   ],
+   "reason": "按任务授予最小工具能力与凭据，并由独立策略层在每次执行前拦截高影响或越界动作。",
+   "scope": "区分功能、权限与自主性三个范围；模型愿意遵守规则不等于运行时具备确定性边界。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-05"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM04": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5",
+    "15.6"
+   ],
+   "reason": "登记模型客户端和第三方组件，校验来源与完整性，评估托管服务，并监控更新及行为变化。",
+   "scope": "模型权重、转换合并和训练制品的专项验证超出 Agent Guide；来源可信不等于模型行为安全。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM05": {
+   "cis_ids": [
+    "3.1",
+    "3.3",
+    "4.1",
+    "18.5"
+   ],
+   "reason": "限制数据摄入与修改权限，核对来源及配置版本，并测试污染内容在检索和行动链中的传播。",
+   "scope": "预训练后门、权重投毒与触发器检测需补充模型级方法；摄入校验不能证明模型未被投毒。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM06": {
+   "cis_ids": [
+    "16.10",
+    "4.1",
+    "8.5",
+    "18.5"
+   ],
+   "reason": "将步数、递归和工具调用限制纳入配置，记录消耗并用高代价与循环任务验证熔断。",
+   "scope": "需核对跨委派、重试与会话累计预算；单次请求长度限制不能证明总费用和后台任务有界。",
+   "safeai_ids": [
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM07": {
+   "cis_ids": [
+    "16.14",
+    "16.13",
+    "6.8"
+   ],
+   "reason": "按错误影响分析决策风险，用工作流测试核实输出依据，并在高影响操作上保持独立授权和复核。",
+   "scope": "CIS Agent Guide 不提供模型事实正确率保证；仅控制错误输出造成的业务后果及可验证使用条件。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM08": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "4.1",
+    "16.13"
+   ],
+   "reason": "避免向隐藏上下文放入秘密，保护相关配置读取，并用提取测试核查泄露及后续利用条件。",
+   "scope": "系统提示内容暴露本身不等于权限突破；秘密、商业逻辑和辅助攻击信息需分别判断影响。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM09": {
+   "cis_ids": [
+    "3.3",
+    "3.12",
+    "3.1",
+    "18.5"
+   ],
+   "reason": "限定检索和缓存范围，隔离不同信任上下文，验证摄入来源，并测试检索偏转和跨范围召回。",
+   "scope": "向量相似度不是授权判据；嵌入反演等模型层性质需要额外验证，不能由存储 ACL 推导安全。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "LLM10": {
+   "cis_ids": [
+    "16.12",
+    "16.10",
+    "9.1",
+    "16.13"
+   ],
+   "reason": "检查输出到浏览器、SQL、终端和文件接口的处理代码，实施上下文验证和编码，并测试解释执行路径。",
+   "scope": "按实际渲染或执行上下文检查；HTML 转义不能代替 Shell 参数化，浏览器 XSS 与服务端 SSRF 也需分别验证。",
+   "safeai_ids": [
+    "SAFEAI-06",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0006.002": {
+   "cis_ids": [
+    "12.2",
+    "4.2",
+    "13.6"
+   ],
+   "reason": "限制 AI 服务直接暴露与入口网络范围，维护分区配置，并监测扫描和重复连接行为。",
+   "scope": "防御方只能控制自己服务的可达性和流量证据；端口隐藏不能代替接口认证或漏洞修复。",
+   "safeai_ids": [
+    "SAFEAI-04",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0006.003": {
+   "cis_ids": [
+    "6.8",
+    "8.2",
+    "16.13"
+   ],
+   "reason": "限制能触发 Agent 的主体与能力，记录触发和授权结果，并测试邮件、Webhook 和消息入口。",
+   "scope": "公开触发通道可按设计接受消息；需验证触发后的任务范围，不把所有探测消息都视为成功入侵。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0010": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5"
+   ],
+   "reason": "登记 AI 软件与依赖，验证获准来源及完整性，并评估供应商提供的组件和更新路径。",
+   "scope": "范围随实际供应链确定；软件条目不能充分覆盖硬件篡改或训练层后门，需要相应专项证据。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0010.005": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.6",
+    "6.8"
+   ],
+   "reason": "核对 Agent 工具、MCP 和 Skill 的来源与版本，监测远端服务变化，并限制工具可继承权限。",
+   "scope": "包、工具定义和服务响应是不同信任面；一次制品完整性校验不能覆盖后续动态响应。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0011": {
+   "cis_ids": [
+    "16.5",
+    "10.1",
+    "18.2"
+   ],
+   "reason": "对用户将加载的制品核验来源并实施恶意软件防护，以受控测试验证危险文件和脚本的执行边界。",
+   "scope": "用户行为本身不能由制品检查完全约束；防护只适用于已纳入管理的加载、执行和终端路径。",
+   "safeai_ids": [
+    "SAFEAI-06",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0011.002": {
+   "cis_ids": [
+    "16.5",
+    "6.8",
+    "16.13"
+   ],
+   "reason": "校验工具来源，约束用户触发后工具取得的权限，并测试恶意定义和响应能否诱导额外动作。",
+   "scope": "工具有正常功能且用户点击批准也可能含隐藏行为；要检查实际调用参数及副作用。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0012": {
+   "cis_ids": [
+    "5.5",
+    "6.1",
+    "6.2",
+    "8.2"
+   ],
+   "reason": "管理服务凭据及短期授权，及时撤销泄露或失效身份，并记录凭据使用及授权结果。",
+   "scope": "有效身份也可被攻击者使用；检查实际使用主体、目的和权限，不能只以认证成功判定正常。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0015": {
+   "cis_ids": [
+    "16.13",
+    "18.4",
+    "16.14"
+   ],
+   "reason": "围绕依赖 AI 判定的业务边界设计对抗测试，并验证模型误判时独立安全措施能否发现或限制影响。",
+   "scope": "模型级对抗鲁棒性超出 Agent Guide 的充分覆盖；关联只支持应用防线评估，不保证所有对抗样本可检测。",
+   "safeai_ids": [
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0018": {
+   "cis_ids": [
+    "3.3",
+    "16.5",
+    "4.1",
+    "16.12"
+   ],
+   "reason": "限制模型和打包代码的写入，验证来源及版本，并检查提示构造与可执行加载逻辑是否被修改。",
+   "scope": "权重字节未变化不能证明无恶意行为；模型后门和架构层异常仍需专门评估。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0020": {
+   "cis_ids": [
+    "3.1",
+    "3.8",
+    "3.3",
+    "16.13"
+   ],
+   "reason": "保护训练及反馈数据写入，记录来源与流向，并测试恶意样本和标签进入后对使用流程的影响。",
+   "scope": "训练投毒检测及统计可靠性不由 Agent Guide 提供；关联限于数据入口治理与可验证集成测试。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0024": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "8.5",
+    "16.13"
+   ],
+   "reason": "减少推理响应中不必要信息，限制接口可读数据，并通过查询行为与隐私测试评估外泄。",
+   "scope": "推理访问可完全合法；成员推断、反演和提取需要分别测量，不能由授权与日志证明信息不会泄漏。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0024.000": {
+   "cis_ids": [
+    "3.4",
+    "16.13",
+    "8.5"
+   ],
+   "reason": "约束输出分数和统计细节，使用成员推断专项测试，并保留可关联的重复查询记录。",
+   "scope": "成员属性属于统计隐私风险；隐藏置信分数或设置速率限制都不能保证训练成员无法被推断。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0024.001": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "16.13"
+   ],
+   "reason": "控制响应细节与敏感样本访问，使用代表性反演攻击检查接口能否重建敏感特征。",
+   "scope": "需明确重建目标、辅助知识和成功判据；CIS 访问控制不是模型反演的充分防御。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0024.002": {
+   "cis_ids": [
+    "6.8",
+    "8.5",
+    "15.6"
+   ],
+   "reason": "限定 API 使用权限，分析系统性采集输入输出对的行为，并监测超出约定用途的提供方使用模式。",
+   "scope": "模型提取可依赖合法查询且离线训练不可见；控制只限制和观察采集面，不保证阻止功能复制。",
+   "safeai_ids": [
+    "SAFEAI-10",
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0025": {
+   "cis_ids": [
+    "9.3",
+    "13.4",
+    "13.6",
+    "3.14"
+   ],
+   "reason": "限制允许的外发目的地和跨分区流量，关联敏感数据读取与实际网络外传证据。",
+   "scope": "需按文件、网络和云接口实际通道取证；加密流量或允许域名不代表内容可被授权外传。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-04",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0029": {
+   "cis_ids": [
+    "16.10",
+    "4.1",
+    "13.6",
+    "17.4"
+   ],
+   "reason": "在配置中落实资源上限和熔断，监测异常请求，并建立耗尽后的限制与恢复流程。",
+   "scope": "应同时检查请求洪泛和单次高代价输入；Agent 控制不能替代底层推理服务容量及平台抗拒绝服务能力。",
+   "safeai_ids": [
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0031": {
+   "cis_ids": [
+    "3.1",
+    "16.13",
+    "17.8"
+   ],
+   "reason": "管控反馈及数据摄入，用对抗测试确认性能退化路径，并在事件后追查输入、配置和模型行为。",
+   "scope": "需要长期性能和业务影响证据；输出质量下降不能单独归因为攻击，也不能由数据哈希排除。",
+   "safeai_ids": [
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0034": {
+   "cis_ids": [
+    "16.10",
+    "4.1",
+    "8.5",
+    "15.6"
+   ],
+   "reason": "限制高代价调用与扩张路径，记录请求和工具消耗，并监测外部服务使用量及费用模式。",
+   "scope": "平台计费、跨会话累计和后台重试需共同检查；单次 token 上限不能保证总成本有界。",
+   "safeai_ids": [
+    "SAFEAI-11"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0034.002": {
+   "cis_ids": [
+    "16.10",
+    "4.1",
+    "18.5",
+    "8.5"
+   ],
+   "reason": "为递归委派、工具扇出和重试设置可执行预算，测试耗尽场景，并关联完整调用链的消耗。",
+   "scope": "需覆盖子 Agent 和远端任务的共享预算；根任务停止后仍运行的调用可能继续计费。",
+   "safeai_ids": [
+    "SAFEAI-11",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0035": {
+   "cis_ids": [
+    "3.3",
+    "3.14",
+    "8.5"
+   ],
+   "reason": "限制模型、数据集和遥测制品读取，记录访问及导出行为，为异常聚合提供可重建证据。",
+   "scope": "收集可能使用原本合法的权限；需结合数量、对象和任务判断，不能把读取记录等同外泄证据。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0036": {
+   "cis_ids": [
+    "3.3",
+    "6.8",
+    "3.14"
+   ],
+   "reason": "在知识库和业务数据库执行细粒度权限，限制 Agent 角色可读范围，并记录敏感资料访问。",
+   "scope": "应在原始数据源落实授权；向 Agent 返回的数据已越过读取边界，提示规则不能补回缺失权限。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0037": {
+   "cis_ids": [
+    "3.3",
+    "6.8",
+    "13.2"
+   ],
+   "reason": "限制 Agent 和执行工具可读本地路径，约束身份能力，并监测异常文件枚举或敏感文件访问进程。",
+   "scope": "检查实际进程身份、挂载和宿主文件可见性；工具界面声明只读不代表无法广泛收集数据。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0044": {
+   "cis_ids": [
+    "3.3",
+    "3.7",
+    "16.5"
+   ],
+   "reason": "保护非公开模型权重及配置的读取，明确可公开制品类别，并验证模型发布来源。",
+   "scope": "开放权重模型本就允许白盒访问；这些要求只治理受限制品暴露，不保证公开模型抵抗离线攻击。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0049": {
+   "cis_ids": [
+    "7.1",
+    "7.5",
+    "16.12",
+    "18.2"
+   ],
+   "reason": "跟踪并扫描公开应用依赖弱点，检查入口代码，并针对互联网可达接口开展授权渗透测试。",
+   "scope": "需包含传统 Web、API、管理面和 Agent 适配器；内部资产扫描结果不能自动覆盖所有外部暴露。",
+   "safeai_ids": [
+    "SAFEAI-05",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0050": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "13.2",
+    "18.2"
+   ],
+   "reason": "限制解释器调用权限，将执行置于受限环境，并通过进程监测与执行面测试检查非预期命令。",
+   "scope": "解释器执行本身可能是正常功能；需结合命令参数、文件和网络副作用判断是否越过任务边界。",
+   "safeai_ids": [
+    "SAFEAI-06",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0051": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "校验不可信输入并在每次动作前执行独立策略，用多轮注入测试验证工具和数据边界。",
+   "scope": "风险在指令被误信及后续动作；模型回复中的拒绝语或提示词优先级不能替代运行时授权。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0051.000": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "16.13"
+   ],
+   "reason": "对直接提交的提示保持输入不可信原则，约束用户与 Agent 权限，并测试诱导违规动作的业务路径。",
+   "scope": "用户可提交自由文本是正常设计；重点是输入能否使服务执行超出该用户权限或任务范围的行为。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0051.001": {
+   "cis_ids": [
+    "3.8",
+    "16.10",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "识别检索和工具内容来源，保持数据与指令边界，并测试恶意文档、网页及消息能否改变授权动作。",
+   "scope": "已批准读取某来源不等于批准其指令；需验证内容进入模型后的工具副作用和敏感数据流。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0051.002": {
+   "cis_ids": [
+    "4.1",
+    "6.8",
+    "8.5",
+    "18.5"
+   ],
+   "reason": "登记自动触发配置，限定事件可启动的任务，记录事件与动作关系，并测试预埋载荷在后续触发时的影响。",
+   "scope": "需覆盖定时、通知和用户动作等原生触发语义；即时对话测试不能排除延时触发注入。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0053": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "8.5",
+    "16.13"
+   ],
+   "reason": "对每次工具调用重新校验身份与业务策略，记录参数和副作用，并测试合法工具的越权组合。",
+   "scope": "已连接或工具执行成功不等于本次动作获授权；深链和操作系统跳转也需落入同一执行边界。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0054": {
+   "cis_ids": [
+    "16.13",
+    "16.10",
+    "15.5"
+   ],
+   "reason": "测试安全限制绕过后的系统行为，保留模型之外的执行策略，并评估外部模型服务的安全能力。",
+   "scope": "越狱是模型安全行为绕过，不必然形成系统权限突破；Agent Guide 不替代模型对齐与权重修改专项评估。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0055": {
+   "cis_ids": [
+    "5.5",
+    "6.1",
+    "3.3",
+    "16.12"
+   ],
+   "reason": "管理和轮换工具秘密，限制凭据文件读取，并用代码检查发现硬编码或不安全暴露路径。",
+   "scope": "需检查环境、历史记录、配置和日志等实际落点；凭据存入管理器不保证运行时不会重新泄漏。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0056": {
+   "cis_ids": [
+    "3.4",
+    "4.1",
+    "3.3",
+    "16.13"
+   ],
+   "reason": "从系统提示中移除秘密，保护提示配置读取，并用提取测试评估隐藏指令泄露的具体影响。",
+   "scope": "系统提示保密不能充当授权控制；公开行为规则与泄漏凭据的影响不同，需分别判定。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0057": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "3.12",
+    "16.13"
+   ],
+   "reason": "控制连接数据访问和提示输入，隔离用户上下文，并用泄露测试检查训练记忆与检索资料披露。",
+   "scope": "训练数据记忆需要模型级隐私评估；应用 ACL 和脱敏仅覆盖可控数据路径，不能保证模型不记忆。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0063": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "8.1"
+   ],
+   "reason": "移除业务不需要的分数与内部输出，限制调试与日志读取，并在记录中避免过量敏感信号。",
+   "scope": "某些分数是业务必需输出；应评估其攻击辅助价值而非一概禁止，日志保护也不能覆盖公开 API 数据。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0066": {
+   "cis_ids": [
+    "3.1",
+    "3.8",
+    "16.13"
+   ],
+   "reason": "核验可被检索内容的来源和摄入路径，并测试误导条目是否经引用影响人员或自动行动。",
+   "scope": "能被检索或带有来源引用不证明事实可靠；无提示指令的错误内容仍需真实性和业务复核。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0068": {
+   "cis_ids": [
+    "16.10",
+    "15.5",
+    "18.2"
+   ],
+   "reason": "对编码、隐藏排版和模态转换后的内容实施验证，评估提供方转换后保护，并测试多模态绕过。",
+   "scope": "检测需覆盖模型实际读取的表示；人眼不可见与机器不可检测不是同一概念，规范化也不能保证全部载荷被发现。",
+   "safeai_ids": [
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0070": {
+   "cis_ids": [
+    "3.3",
+    "3.1",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "限制知识源写入，校验索引前内容，并用投毒条目验证检索到动作链中的信任边界。",
+   "scope": "向量存储权限和摄入来源只降低投毒机会；可信账户写入或检索排名正常不代表内容无恶意。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0077": {
+   "cis_ids": [
+    "16.12",
+    "9.3",
+    "3.4",
+    "16.13"
+   ],
+   "reason": "检查响应渲染代码，限制自动加载目的地，最小化可拼入 URL 的敏感内容，并测试预览与图片请求。",
+   "scope": "需确定请求由浏览器还是服务端发起；URL 允许列表和输出转义不能互相替代，也不代表敏感参数已被阻止。",
+   "safeai_ids": [
+    "SAFEAI-03",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0080": {
+   "cis_ids": [
+    "3.3",
+    "16.10",
+    "8.5",
+    "18.5"
+   ],
+   "reason": "限制上下文及记忆写入，验证不可信内容处理，记录状态变化，并测试恶意指令的持续影响。",
+   "scope": "上下文包含线程和长期状态；一次当前回复安全不能证明后续轮次或新会话不受污染。",
+   "safeai_ids": [
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0080.000": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "11.5",
+    "18.5"
+   ],
+   "reason": "约束长期记忆写入和保留，测试跨会话污染，并检查恢复是否重新带回恶意偏好或指令。",
+   "scope": "用户相关记忆也需来源与授权判断；删除原对话不证明摘要、嵌入和备份中的影响已清除。",
+   "safeai_ids": [
+    "SAFEAI-09",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0080.001": {
+   "cis_ids": [
+    "3.12",
+    "3.3",
+    "8.5",
+    "16.13"
+   ],
+   "reason": "隔离线程参与者和状态范围，记录消息及记忆操作，并测试共享线程中恶意内容的跨轮影响。",
+   "scope": "需要结合共享会话的真实权限语义；同一线程可见不等于任何参与者都可改变其他人的任务授权。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0081": {
+   "cis_ids": [
+    "4.1",
+    "5.4",
+    "16.12",
+    "8.5"
+   ],
+   "reason": "版本化并保护 Agent 配置，分离管理员权限，检查配置修改代码并记录安全开关与工具变更。",
+   "scope": "配置变化可能影响多个实例并持续生效；需核对最终运行配置，不能仅审查仓库中的已批准版本。",
+   "safeai_ids": [
+    "SAFEAI-05",
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0083": {
+   "cis_ids": [
+    "5.5",
+    "3.3",
+    "6.2",
+    "16.12"
+   ],
+   "reason": "管理配置中的工具凭据，限制读取，发现硬编码路径并在暴露后撤销或轮换相关秘密。",
+   "scope": "应核查密钥能直接访问哪些下游系统；隐藏配置界面或结束 Agent 会话不等于凭据失效。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0084": {
+   "cis_ids": [
+    "3.3",
+    "4.1",
+    "3.4"
+   ],
+   "reason": "控制配置和管理面读取，明确对外可见设置，并移除响应中任务不需要的内部连接信息。",
+   "scope": "发现配置属于侦察，正常可见工具信息未必是漏洞；需按秘密、权限和后续利用条件判断。",
+   "safeai_ids": [
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0084.001": {
+   "cis_ids": [
+    "6.8",
+    "4.1",
+    "3.4"
+   ],
+   "reason": "按身份裁剪可枚举工具，管理工具定义版本，避免定义和 Schema 返回非必要内部信息或秘密。",
+   "scope": "工具定义通常需要向模型公开；仅隐藏工具名称无法约束调用，必须以执行端授权为准。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0085.001": {
+   "cis_ids": [
+    "3.3",
+    "6.8",
+    "3.14",
+    "16.13"
+   ],
+   "reason": "在下游数据源执行细粒度权限，记录敏感访问，并测试工具查询能否越过用户或任务范围。",
+   "scope": "工具本身可正常返回数据；需验证代理身份是否扩大了调用者原本拥有的资源或字段权限。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0086": {
+   "cis_ids": [
+    "6.8",
+    "9.3",
+    "3.4",
+    "8.5"
+   ],
+   "reason": "限制可写工具及接收方，约束外发目的地和字段，记录参数与结果以检验敏感数据是否被转送。",
+   "scope": "传输使用正常邮箱、文档或 API 也可能泄密；域名允许并不意味着任意收件人、资源和内容均获授权。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0092": {
+   "cis_ids": [
+    "8.1",
+    "3.3",
+    "8.9",
+    "17.8"
+   ],
+   "reason": "防止 Agent 修改自身审计历史，限制会话状态写入，把独立日志集中留存并追溯被隐藏的操作。",
+   "scope": "用户可编辑的聊天记录不同于不可篡改审计证据；删除对话不应同时删除执行与授权记录。",
+   "safeai_ids": [
+    "SAFEAI-09",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0097": {
+   "cis_ids": [
+    "16.12",
+    "18.2",
+    "13.2"
+   ],
+   "reason": "检查被审组件的环境识别分支，在多种隔离环境测试，并用生产运行遥测对照分析期行为。",
+   "scope": "该技术是识别沙箱后反分析，不是沙箱逃逸；防御只能提高分析覆盖和观测能力，不能由未触发恶意证明无恶意。",
+   "safeai_ids": [
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0098": {
+   "cis_ids": [
+    "3.3",
+    "5.5",
+    "3.14",
+    "16.13"
+   ],
+   "reason": "限制工具可读凭据资料的范围，管理这些秘密的归属，并记录和测试异常凭据搜索行为。",
+   "scope": "重点是工具可访问仓库、邮件和文档中的秘密；不等同直接读取 Agent 配置，也不能只扫描代码仓。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-03",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0099": {
+   "cis_ids": [
+    "3.3",
+    "3.1",
+    "3.8",
+    "18.5"
+   ],
+   "reason": "限制工具数据源写入，记录摄入来源，并测试正常查询返回被污染内容时的后续行为。",
+   "scope": "工具实现可信不代表其数据库、网页或文件可信；数据源投毒与工具主动返回恶意响应需区分责任和控制点。",
+   "safeai_ids": [
+    "SAFEAI-07",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0100": {
+   "cis_ids": [
+    "16.13",
+    "6.8",
+    "9.3",
+    "18.2"
+   ],
+   "reason": "测试视觉诱饵及界面误导，限制点击后可执行动作和跳转目的地，并验证浏览器执行边界。",
+   "scope": "需使用实际计算机操作环境核查；识别页面文字不能保证理解真实点击目标或复制代码的后果。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0101": {
+   "cis_ids": [
+    "6.8",
+    "11.2",
+    "11.3",
+    "11.5"
+   ],
+   "reason": "限制数据修改与删除权限，保护备份，并测试被工具破坏后的数据和业务状态恢复。",
+   "scope": "恢复应排除已污染状态和过期凭据；备份成功不能证明远端业务副作用可自动撤销。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-12"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0109": {
+   "cis_ids": [
+    "16.5",
+    "4.1",
+    "15.6",
+    "16.13"
+   ],
+   "reason": "逐次核验更新来源和部署版本，监测发布渠道或远端行为变化，并在更新后验证安全措施。",
+   "scope": "初始版本正常不能证明后续版本安全；已签名更新也需审核行为差异和新增能力。 更新后的行为核查采用应用测试要求细化，不将CIS 18.4的渗透测试后验证要求解释为通用变更管理。",
+   "safeai_ids": [
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0110": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "16.13",
+    "6.8"
+   ],
+   "reason": "登记并审查工具来源和能力，用行为测试比较承诺功能与实际调用，并限制其可影响资源。",
+   "scope": "工具定义、可执行实现与响应是独立载荷面；仅检查代码或元数据均无法覆盖全部投毒方式。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07",
+    "SAFEAI-08"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0110.000": {
+   "cis_ids": [
+    "4.1",
+    "16.12",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "版本化工具描述和 Schema，检查含指令的定义，限制可诱导的权限，并测试跨工具动作操纵。",
+   "scope": "描述文字是输入而非授权；恶意要求可不含可执行代码，代码扫描通过不能证明定义安全。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0110.001": {
+   "cis_ids": [
+    "16.5",
+    "16.12",
+    "12.2",
+    "13.2"
+   ],
+   "reason": "验证工具实现完整性，审查隐藏代码路径，限制执行网络范围，并监测额外文件、进程和连接行为。",
+   "scope": "承诺功能可能与恶意副作用同时发生；需观察实际运行而非只以正常返回值判断工具可信。",
+   "safeai_ids": [
+    "SAFEAI-06",
+    "SAFEAI-08",
+    "SAFEAI-09"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0110.002": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "16.13",
+    "8.5"
+   ],
+   "reason": "将工具结果作为不可信输入，在下一步动作前重新授权，测试伪造错误和嵌入资源并保留调用证据。",
+   "scope": "批准一次工具调用不等于批准其响应中的指令；工具签名和传输认证不证明返回内容可被信任。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-07",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0112.000": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "12.2",
+    "13.2"
+   ],
+   "reason": "限制本地 Agent 继承的宿主权限，隔离代码及浏览器执行，约束网络并监测系统级异常行为。",
+   "scope": "需以实际终端、文件、凭据和应用访问证据判定宿主影响；控制了界面动作不自动等于内核或全部机器权限失陷。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-04",
+    "SAFEAI-06"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0126": {
+   "cis_ids": [
+    "3.3",
+    "6.8",
+    "3.14",
+    "13.2"
+   ],
+   "reason": "限制自动读取资源范围，记录敏感数据访问，并从进程与调用行为识别批量遍历和聚合。",
+   "scope": "自动化收集可由合法工具和权限实现；需按任务、数据范围与行为量级判断，不把自动化本身视作违规。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0132": {
+   "cis_ids": [
+    "4.7",
+    "4.2",
+    "6.8",
+    "12.2"
+   ],
+   "reason": "治理默认账户与公开网络配置，限制接口身份和功能范围，并隔离原本应受限的 AI 服务。",
+   "scope": "公开端点可属正常部署；需确认是否存在缺少认证、过宽授权或非预期可达，而非仅凭可访问就判定暴露。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-04"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0133": {
+   "cis_ids": [
+    "6.8",
+    "3.4",
+    "8.2",
+    "16.13"
+   ],
+   "reason": "按调用者裁剪可见能力与元数据，记录试探和授权结果，并测试运行时枚举是否突破资源范围。",
+   "scope": "交互发现的工具能力可能是正常产品功能；主要防线是执行端授权，隐藏能力列表不能替代权限校验。",
+   "safeai_ids": [
+    "SAFEAI-02",
+    "SAFEAI-10"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0134": {
+   "cis_ids": [
+    "16.13",
+    "18.2",
+    "15.6"
+   ],
+   "reason": "在真实 Agent 浏览上下文中测试差异响应，检查外部服务行为变化，比较人和自动化访问获得的内容。",
+   "scope": "这是识别 AI 客户端后的选择性投放；单次人工浏览或固定扫描样本无恶意不能证明 Agent 实际收到的内容安全。",
+   "safeai_ids": [
+    "SAFEAI-07"
+   ],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0006.001": {
+   "cis_ids": [
+    "5.6",
+    "6.1",
+    "6.8"
+   ],
+   "reason": "定位到部署与配置系统对外提供的控制面接口，不把平台存在本身当作缺陷。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0018.003": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5"
+   ],
+   "reason": "定位到提示与上下文配置、模型制品及其供应链来源三处；不涉及权重本身的训练污染。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0061": {
+   "cis_ids": [
+    "6.8",
+    "18.5",
+    "16.10"
+   ],
+   "reason": "定位到指令信任边界、协作消息与长期记忆三处传播环节。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0067": {
+   "cis_ids": [
+    "6.8",
+    "16.13",
+    "16.14"
+   ],
+   "reason": "定位到内容解析与渲染组件对可信信号的呈现责任。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0067.000": {
+   "cis_ids": [
+    "6.8",
+    "16.13",
+    "16.14"
+   ],
+   "reason": "定位到呈现组件；引用与召回记录的对应关系由该处维护。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0069": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "4.1"
+   ],
+   "reason": "定位到提示与上下文配置以及推理服务的返回内容两处。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0069.000": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "定位到提示与上下文配置中分隔符的可观察性。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0069.001": {
+   "cis_ids": [
+    "16.13",
+    "3.4",
+    "3.3"
+   ],
+   "reason": "定位到提示与上下文配置中功能关键字的可观察性。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0069.002": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "4.1"
+   ],
+   "reason": "定位到承载系统指令的提示配置，以及返回内容的推理服务。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0071": {
+   "cis_ids": [
+    "18.5",
+    "3.3",
+    "3.1"
+   ],
+   "reason": "定位到检索召回的条目边界、摄取写入与知识内容三处；指令地位问题另由信任边界承担。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0082": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "3.12"
+   ],
+   "reason": "定位到知识语料、检索返回范围与凭据材料三处；不把存储平台越权访问计入本项。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0085": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "15.4"
+   ],
+   "reason": "定位到工具调用器与数据连接器的实际执行权限。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0085.000": {
+   "cis_ids": [
+    "3.4",
+    "3.3",
+    "3.12"
+   ],
+   "reason": "定位到检索范围与存储平台的实际访问能力。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0090": {
+   "cis_ids": [
+    "6.1",
+    "5.1",
+    "5.5"
+   ],
+   "reason": "定位到执行环境内的进程与凭据可见性、文件中的明文凭据，以及凭据设施的交付方式。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0091": {
+   "cis_ids": [
+    "6.1",
+    "5.6",
+    "6.8"
+   ],
+   "reason": "定位到凭据材料自身的绑定条件与身份设施的签发交付。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0091.000": {
+   "cis_ids": [
+    "6.1",
+    "5.1",
+    "5.5"
+   ],
+   "reason": "定位到凭据材料的范围绑定与凭据设施的保存交付方式。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0091.001": {
+   "cis_ids": [
+    "6.8",
+    "5.6",
+    "6.1"
+   ],
+   "reason": "定位到会话管理对会话凭证的主体校验，以及凭据材料自身的绑定条件。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0094": {
+   "cis_ids": [
+    "18.5",
+    "16.10",
+    "6.8"
+   ],
+   "reason": "定位到信任边界的跨轮保持、记忆中的留存，以及按轮次判定的检测控制。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0102": {
+   "cis_ids": [
+    "16.10",
+    "16.12",
+    "12.2"
+   ],
+   "reason": "定位到代码与脚本执行器把模型产出变为实际命令的环节。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0105": {
+   "cis_ids": [
+    "16.10",
+    "12.2",
+    "16.12"
+   ],
+   "reason": "定位到执行环境自身的隔离配置，以及可被改写的Agent配置这条路径。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0106": {
+   "cis_ids": [
+    "16.10",
+    "12.2",
+    "16.12"
+   ],
+   "reason": "定位到执行环境内的进程与凭据可见性，以及凭据设施的保存交付方式。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0111": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5"
+   ],
+   "reason": "定位到分发渠道的信任信号，以及版本更新配置对后续版本的重新核验要求。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0113": {
+   "cis_ids": [
+    "9.1",
+    "3.3",
+    "6.8"
+   ],
+   "reason": "定位到浏览器账号上下文的凭证可读性、渲染执行能力与本地文件三处。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0115": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5"
+   ],
+   "reason": "定位到仓库与分发渠道的交付环节。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0115.000": {
+   "cis_ids": [
+    "3.1",
+    "3.3",
+    "4.1"
+   ],
+   "reason": "定位到分发渠道、数据制品本身与实际训练语料三处。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0115.001": {
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "15.5"
+   ],
+   "reason": "定位到分发渠道、模型制品与实际采用的模型资产三处。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0115.002": {
+   "cis_ids": [
+    "16.5",
+    "16.4",
+    "15.5"
+   ],
+   "reason": "定位到分发渠道、制品内容、工具定义与Skill包四处。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0119": {
+   "cis_ids": [
+    "16.12",
+    "16.10",
+    "16.13"
+   ],
+   "reason": "定位到自动处理管线的权限与执行能力，以及解析组件对内容的解释。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0127": {
+   "cis_ids": [
+    "3.3",
+    "3.4",
+    "3.12"
+   ],
+   "reason": "定位到文件工作区的写入与留存，以及存储平台上的汇集行为。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0129": {
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "18.5"
+   ],
+   "reason": "定位到解析渲染组件的模态覆盖范围，以及指令信任边界的处理。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  },
+  "AML.T0131": {
+   "cis_ids": [
+    "6.8",
+    "16.10",
+    "18.5"
+   ],
+   "reason": "定位到接入面对URL参数提示的处理，以及外部内容的指令地位。",
+   "scope": "关联为候选控制选择，需按目标配置与责任边界核查；本条目的具体核查见其checks与对象技术要求。",
+   "safeai_ids": [],
+   "mcp_ids": [],
+   "origin": "项目按风险/技术含义逐项选择；非CIS或MITRE官方风险映射"
+  }
+ },
+ "mapping_meta": {
+  "schema_version": "1.0",
+  "created_at": "2026-10-14",
+  "title": "风险与攻击技术关联的 CIS Safeguards 候选选取",
+  "mapping_status": "project_candidate_associations_not_official_crosswalk_not_validation_results",
+  "statement": "以下关联为本项目逐项分析后提出的候选控制选择，不是 CIS、OWASP 或 MITRE 发布的官方映射，也不是目标系统的验证结果。",
+  "source": "CIS Controls v8.1 AI Agents Companion Guide v1.0, April 2026；原件见 sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf",
+  "source_path": "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf",
+  "selection_method": "依据每项风险或技术的机制、可见防御面、CIS Safeguard 的 Agent 适用说明，独立选择具体条目；未从旧 C/M 编号、OWASP 相关编号或架构对象的控制并集自动继承。",
+  "field_semantics": {
+   "cis_ids": "具体 CIS Safeguard 编号；关联为候选，需按目标配置和范围核查。",
+   "reason": "本项选择这些条目的具体防御理由；项目分析，不是来源原文。",
+   "scope": "防御方可检查范围、适用前提与不可由本目录推导的结论。",
+   "safeai_ids": "现有 safeai-notes.json 中补充评估条目的内部引用；不是新的 SAFE-AI 官方编号，展示应使用实际控制名称。"
+  },
+  "coverage": {
+   "owasp_risks": 51,
+   "atlas_techniques": 64,
+   "total": 115
+  },
+  "scope_boundary": "本 Agent Guide 不替代模型层专门指南、数据存储平台基线或物理安全规范。公开侦察、攻击者离线准备与外部协作只能映射防御方可控的暴露治理、遥测和授权验证，不声称能够直接阻止。",
+  "source_sha256": "824ab8a2e829a11a66318339180366339088813be8b6ee0dc2a64391bb476c3b",
+  "source_catalog_check": {
+   "catalog_file": "cis-defense-source.json",
+   "all_selected_ids_exist": true,
+   "distinct_selected_safeguards": 51,
+   "note": "逐项对照 source catalog 的 Agent 适用说明；技术专属 reason/scope 为项目分析，不是原文逐字摘录。"
+  },
+  "active_catalog_exclusions": "data/risk-catalog-exclusions.json"
+ },
+ "joint_checks": [
+  {
+   "name": "执行隔离与控制不可自改",
+   "cis_ids": [
+    "16.10",
+    "12.2",
+    "5.4",
+    "18.2"
+   ],
+   "location": "规划、工具和子进程的执行环境、继承权限及控制面隔离",
+   "checks": [
+    "规划、工具和子进程实际在哪执行；文件/进程/设备/凭据权限如何继承；控制组件是否位于任务不可修改的边界；分别检查客户执行器和托管沙箱。"
+   ],
+   "evidence": [
+    "运行身份和沙箱配置",
+    "管理面及工作负载权限",
+    "边界正反对照与系统事件"
+   ],
+   "object_ids": [
+    "A2.3",
+    "A2.6",
+    "A4.5",
+    "A4.6",
+    "A7.1",
+    "A7.2",
+    "A7.3",
+    "A7.4",
+    "A7.5"
+   ],
+   "scope": "结合真实调用链核查；CIS通用要求不直接提供整个Agent任务的统一事务或预算保证。"
+  },
+  {
+   "name": "累计预算、事务与故障隔离",
+   "cis_ids": [
+    "16.10",
+    "18.5",
+    "8.5"
+   ],
+   "location": "任务、委派、重试、并发与外部业务副作用的累计边界",
+   "checks": [
+    "用户/租户/任务级总预算覆盖会话、子Agent、工具、重试、并发和旁路；核对幂等/事务、真实副作用、故障域与级联。单会话限额不代表全任务限额。"
+   ],
+   "evidence": [
+    "各级预算与熔断策略",
+    "调用链和外部事务状态",
+    "循环、重试、超时及取消记录"
+   ],
+   "object_ids": [
+    "A1.3",
+    "A2.3",
+    "A2.7",
+    "A3.2",
+    "A4.2",
+    "A4.4",
+    "A4.6",
+    "A5.5",
+    "A7.1",
+    "A7.6"
+   ],
+   "scope": "结合真实调用链核查；CIS通用要求不直接提供整个Agent任务的统一事务或预算保证。"
+  },
+  {
+   "name": "停止、撤销与状态恢复",
+   "cis_ids": [
+    "6.2",
+    "11.2",
+    "11.5",
+    "17.4",
+    "11.3",
+    "17.8"
+   ],
+   "location": "任务停止、凭据撤销、污染状态清理与可信恢复",
+   "checks": [
+    "停止是否到达子Agent/工具/后台写入；撤权是否到达凭据及资源；污染记忆、缓存、索引、日志和备份如何清理或恢复；记录残留与未覆盖副本。",
+    "撤销范围是否按完整事件链路确定：工具输出、记忆写入、检索内容、提示配置与策略决策都纳入复盘，不是只看最后一次调用。",
+    "恢复所用的副本与备份是否保持与原数据相称的加密和访问控制，恢复后不降级。"
+   ],
+   "evidence": [
+    "后台动作与撤权记录",
+    "副本/备份和恢复计划",
+    "恢复后权限、残留与业务状态",
+    "完整事件链路的复盘记录",
+    "备份的加密与访问控制配置"
+   ],
+   "object_ids": [
+    "A1.3",
+    "A2.3",
+    "A2.6",
+    "A2.7",
+    "A4.2",
+    "A4.4",
+    "A5.1",
+    "A5.2",
+    "A5.4",
+    "A5.5",
+    "A6.1",
+    "A7.1",
+    "A7.2",
+    "A7.4",
+    "A7.5"
+   ],
+   "scope": "结合真实调用链核查；CIS通用要求不直接提供整个Agent任务的统一事务或预算保证。"
+  },
+  {
+   "name": "身份代表链末端的有效主体",
+   "cis_ids": [
+    "6.8",
+    "5.5",
+    "6.1"
+   ],
+   "location": "用户、Agent、子Agent、工具到资源的整条调用链",
+   "checks": [
+    "沿一次真实调用追到最后一跳，核对资源侧看到的主体是最终用户、Agent还是共享服务账户；核对多级委派后权限是收敛还是累积。"
+   ],
+   "evidence": [
+    "各跳使用的主体与凭据受众",
+    "资源侧访问记录中的主体",
+    "委派链与权限范围对照"
+   ],
+   "object_ids": [
+    "X1.1",
+    "X1.2",
+    "X1.3",
+    "A2.7",
+    "A4.2",
+    "A4.3",
+    "A4.4",
+    "A7.4"
+   ],
+   "scope": "单跳的授权正确不代表整条链正确；需以资源侧记录为准。"
+  },
+  {
+   "name": "不可信内容的指令提升路径",
+   "cis_ids": [
+    "16.10",
+    "3.8",
+    "18.5"
+   ],
+   "location": "摄取、知识、记忆、上下文组装到工具调用的完整路径",
+   "checks": [
+    "从每一类外部入口各注入一次，沿摄取、检索、记忆、上下文组装追踪来源标记是否保留，并核对最终是否改变工具调用。"
+   ],
+   "evidence": [
+    "各环节的来源与信任标记",
+    "上下文组装记录",
+    "注入到动作的关联追踪"
+   ],
+   "object_ids": [
+    "A1.2",
+    "A2.2",
+    "A4.1",
+    "A4.5",
+    "A5.2",
+    "A5.3",
+    "A5.4",
+    "A5.7",
+    "X2.1",
+    "X2.2"
+   ],
+   "scope": "任一环节丢失来源标记即整条路径失效；需逐环节核对而非只测最终拒绝。"
+  },
+  {
+   "name": "出口收敛",
+   "cis_ids": [
+    "9.3",
+    "13.4",
+    "12.2",
+    "13.6"
+   ],
+   "location": "工具HTTP、浏览器、子进程、模型网关、遥测与摄取抓取的全部出站路径",
+   "checks": [
+    "逐类出站组件核对是否都经受约束出口；用内网与元数据地址、跳转URL和触发回退的故障条件，核对实际连接目标。"
+   ],
+   "evidence": [
+    "各组件的实际连接路径",
+    "允许目的地清单",
+    "解析、重定向与回退后的连接记录"
+   ],
+   "object_ids": [
+    "A1.2",
+    "A3.3",
+    "A4.4",
+    "A4.5",
+    "A4.6",
+    "A5.7",
+    "A6.1",
+    "A7.3",
+    "X4.1",
+    "X4.2"
+   ],
+   "scope": "任一组件绕过则整体不成立；规则覆盖与设施执行分别核查。"
+  },
+  {
+   "name": "批准与最终动作的绑定",
+   "cis_ids": [
+    "16.10",
+    "6.8",
+    "8.5"
+   ],
+   "location": "动作预览、批准票据与最终调用参数之间",
+   "checks": [
+    "比较人工所见预览、批准票据绑定内容与最终执行参数；在批准后、执行前修改参数与目标，核对是否仍被放行。"
+   ],
+   "evidence": [
+    "预览内容记录",
+    "批准票据字段",
+    "最终执行参数与结果"
+   ],
+   "object_ids": [
+    "A1.2",
+    "A2.6",
+    "A4.2",
+    "X1.4"
+   ],
+   "scope": "批准存在不等于绑定成立；时序差是该链的主要缺口。"
+  },
+  {
+   "name": "多租户隔离的横向一致性",
+   "cis_ids": [
+    "3.3",
+    "3.12",
+    "12.2"
+   ],
+   "location": "会话、工作上下文、记忆、缓存、索引、日志与存储的同一组范围判定",
+   "checks": [
+    "对同一组越权参数，在会话、记忆、检索、缓存、恢复、日志与存储七处分别发起访问，核对是否使用同一套范围判定。"
+   ],
+   "evidence": [
+    "各处的过滤条件与生效位置",
+    "跨主体访问的返回对照",
+    "恢复与缓存命中后的归属"
+   ],
+   "object_ids": [
+    "A1.3",
+    "A5.1",
+    "A5.2",
+    "A5.4",
+    "A5.5",
+    "A5.6",
+    "A6.1",
+    "X1.3",
+    "X2.3"
+   ],
+   "scope": "任一处使用独立判定即形成绕过；需七处同时核对。"
+  },
+  {
+   "name": "加载时的来源校验链",
+   "cis_ids": [
+    "16.4",
+    "16.5",
+    "4.1"
+   ],
+   "location": "受信来源、制品、签名证明、版本配置到实际加载内容",
+   "checks": [
+    "取一个实际加载的制品，沿来源、签名、版本与内容摘要逐环节核对；再触发一次更新，核对是否重走同一链路。"
+   ],
+   "evidence": [
+    "来源与信任根配置",
+    "签名验证结果",
+    "版本解析与实际加载摘要"
+   ],
+   "object_ids": [
+    "A2.5",
+    "A3.1",
+    "A4.1",
+    "A7.5",
+    "X3.1",
+    "X3.2",
+    "X3.3",
+    "X3.4",
+    "X3.5"
+   ],
+   "scope": "首次准入通过不代表后续版本同样校验；更新路径单独核查。"
+  }
+ ],
+ "content_policy": {
+  "requirements": "CIS Agent指南要求的中文概述",
+  "checks": "据文档要求和对象实现细化的核查；MCP条目另明确原文Audit摘要",
+  "source_pages": "页码只在数据中保留，页面不展示文档引用标签",
+  "legacy_ids": "C/M旧索引保留历史兼容，不参与本轮CIS条目选择，也不在页面展示",
+  "technical_scope_only": true,
+  "whole_safeguards_as_object_controls": false,
+  "governance_processes": "保留在来源资料中，不作为对象技术防御展示",
+  "verification_is_not_prevention": true
+ },
+ "view_contexts": {
+  "X2.3": {
+   "location": "检索、存储、缓存和业务端的数据授权关口",
+   "checks": [
+    "比较可见与不可见数据在查询、检索、重排、缓存及恢复后的返回；核对伪造租户参数、跨用户句柄与范围扩大。"
+   ],
+   "evidence": [
+    "租户/字段/行级规则",
+    "主体与资源绑定",
+    "读取、写入和列表的独立对照"
+   ],
+   "scope": "按当前对象的实际能力、部署方式和责任边界确定适用性；下列核查为结合实现细化。",
+   "reason": "数据访问应在实际持有和使用数据的组件落实，分别核对列表和单项访问。"
+  }
+ },
+ "technical_requirements": {
+  "TR-A1.1": {
+   "id": "TR-A1.1",
+   "title": "API与消息接口",
+   "owner_object_id": "A1.1",
+   "requirements": [
+    "入口验证主体、来源与事件条件，限制流量并绑定任务；动作权限由执行端复核。"
+   ],
+   "checks": [
+    "枚举入口，以正常请求和无凭据、错误受众、重放事件作对照。"
+   ],
+   "evidence": [
+    "入口与事件源清单",
+    "实际鉴权/限流配置",
+    "允许与拒绝请求记录"
+   ],
+   "location": "API入口、消息消费者与请求鉴权中间件",
+   "source_cis_ids": [
+    "6.1",
+    "6.6",
+    "16.10",
+    "8.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "接入面由提供商运营时，入口清单与认证实现只能依据其文档与返回行为推断；记录实际探测到的入口集合与无法确认的处理逻辑。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A1.2": {
+   "id": "TR-A1.2",
+   "title": "内容解析与渲染",
+   "owner_object_id": "A1.2",
+   "requirements": [
+    "实际解析/DOM/SVG/资源加载处验证与消毒，限制危险协议和外部资源，保护渲染配置、升级受影响依赖、隔离渲染环境及限制资源；服务端出口联动 A7.3。",
+    "呈现用户/租户、数据归属或动作预览时，保持其与后台上下文一致；具有批准交互时展示最终工具、关键参数和接收方，保护这些内容不被伪装、隐藏或替换。"
+   ],
+   "checks": [
+    "检查原始/转换内容、最终DOM/SVG、库/配置、执行位置及实际请求；核验编码、流式拼接、嵌入HTML、外部资源、重定向和DNS目标。普通浏览器外发不直接称SSRF。",
+    "对照原始内容、最终呈现、实际主体/租户及最终动作，验证编码、布局、流式更新或内容替换是否造成误导；批准决策与执行绑定继续在A2.6/A4.2核验。"
+   ],
+   "evidence": [
+    "解析/渲染调用链与版本",
+    "安全配置及最终DOM/SVG",
+    "外部资源与服务端请求记录",
+    "最终呈现与原始内容/主体上下文的对照",
+    "动作预览与最终工具、参数及接收方的对照（存在批准交互时）"
+   ],
+   "location": "内容解析器、最终DOM/SVG渲染器与服务端预览执行环境；页面/结果/动作预览的最终呈现处",
+   "source_cis_ids": [
+    "9.1",
+    "16.10",
+    "12.2",
+    "18.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "渲染发生在提供商前端时，转义与白名单规则不可读；以实际提交的构造内容和渲染结果作为证据，并记录未能覆盖的标记类型。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A1.3": {
+   "id": "TR-A1.3",
+   "title": "会话管理",
+   "owner_object_id": "A1.3",
+   "requirements": [
+    "会话解析与访问时复核主体/租户；核对客户自定userId/actorId和服务端授权的关系，缓存/恢复键保留主体归属。"
+   ],
+   "checks": [
+    "交换句柄/身份，在并发、重连和恢复后检查绑定；单独核对计算停止、会话有效性、记录与记忆保留。"
+   ],
+   "evidence": [
+    "会话到主体/租户绑定实现",
+    "并发、重连与恢复测试记录",
+    "会话及历史访问日志"
+   ],
+   "location": "会话解析、恢复与历史访问处理器",
+   "source_cis_ids": [
+    "6.1",
+    "6.8",
+    "3.3",
+    "8.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "会话实现由提供商承担时，绑定与失效逻辑不可直接读取；以跨客户端重放与恢复测试的结果为准，记录其会话策略文档的声明。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.1": {
+   "id": "TR-A2.1",
+   "title": "任务与计划",
+   "owner_object_id": "A2.1",
+   "requirements": [
+    "建立及更新任务时维护允许范围；新计划和重规划不得自行增加权限。"
+   ],
+   "checks": [
+    "追踪目标到计划和最终动作，测试任务材料诱导的目标/范围变化。"
+   ],
+   "evidence": [
+    "任务范围与权限定义",
+    "计划/重规划记录",
+    "执行结果和预算记录"
+   ],
+   "location": "任务建立、计划更新与委派入口",
+   "source_cis_ids": [
+    "6.8",
+    "16.10",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "任务与计划数据在托管平台内部时，变更来源不可直接审计；记录平台提供的任务变更记录字段及其缺口。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.2": {
+   "id": "TR-A2.2",
+   "title": "提示词与上下文配置",
+   "owner_object_id": "A2.2",
+   "requirements": [
+    "模板变更受控，保留来源与最小上下文；提示词不承担最终授权。"
+   ],
+   "checks": [
+    "核对模板版本、实际拼装路径与模型请求，检查权限是否依赖提示保密。"
+   ],
+   "evidence": [
+    "模板版本和变更记录",
+    "带来源的上下文与实际模型请求",
+    "注入/良性对照记录"
+   ],
+   "location": "提示模板仓库、上下文组装及模型请求入口",
+   "source_cis_ids": [
+    "4.1",
+    "3.12",
+    "16.10",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "系统提示由提供商维护时内容不可见；以诱导复述与行为对照为证据，记录无法确认的部分。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.3": {
+   "id": "TR-A2.3",
+   "title": "编排引擎",
+   "owner_object_id": "A2.3",
+   "requirements": [
+    "约束计划消费、全局预算、重试/恢复及取消传播；扩展加载校验当前版本和权限。"
+   ],
+   "checks": [
+    "测试异常输出、重规划、超时、重启和循环委派，核对外部效果。"
+   ],
+   "evidence": [
+    "编排源码与运行配置",
+    "调用/重试/委派链",
+    "预算、取消与外部副作用记录"
+   ],
+   "location": "调度、工具分派、重试、恢复与取消传播路径",
+   "source_cis_ids": [
+    "16.10",
+    "6.8",
+    "8.5",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "编排实现为提供商黑盒时，循环与预算执行点不可读；以构造任务的实际行为与计费用量为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.4": {
+   "id": "TR-A2.4",
+   "title": "Agent定义与注册信息",
+   "owner_object_id": "A2.4",
+   "requirements": [
+    "限制Agent定义及注册条目的发布、更新和发现权限，核对注册主体、版本与实际加载内容。",
+    "验证能力声明和协作配置的来源；声明本身不授予运行身份或工具权限。"
+   ],
+   "checks": [
+    "比较发布与实际加载配置，检查发现、角色和委派目标变化。"
+   ],
+   "evidence": [
+    "注册/能力定义及来源",
+    "加载版本和变更记录",
+    "发布者与调用者权限"
+   ],
+   "location": "Agent注册、能力发现、定义加载与发布入口",
+   "source_cis_ids": [
+    "4.1",
+    "16.4",
+    "16.5",
+    "6.8"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "注册与发现由平台提供时，加载校验不可读；记录平台声明的验证方式与实际加载结果的对照。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.5": {
+   "id": "TR-A2.5",
+   "title": "Skill与规则文件",
+   "owner_object_id": "A2.5",
+   "requirements": [
+    "制品准入和版本核对；编排引擎加载时保留来源；包自述权限不代替宿主强制约束。"
+   ],
+   "checks": [
+    "检查正文、脚本和资源，比较安装、加载、批准与使用版本。"
+   ],
+   "evidence": [
+    "Skill正文、脚本与依赖清单",
+    "安装/加载摘要和版本",
+    "宿主权限及恶意/良性对照"
+   ],
+   "location": "Skill安装、规则加载与包内资源使用路径",
+   "source_cis_ids": [
+    "16.4",
+    "16.5",
+    "4.1",
+    "16.10",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "Skill市场由第三方运营时，发布者身份与审核流程只能依据其公开说明；记录可核的签名与内容审查结果。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.6": {
+   "id": "TR-A2.6",
+   "title": "动作策略与审批组件",
+   "owner_object_id": "A2.6",
+   "requirements": [
+    "在执行链中以实际主体、任务、资源和参数作出动作授权决策，拒绝未经授权的例外或旁路。",
+    "批准状态绑定最终动作及有效条件；变参、过期、撤销、重放和策略不可用时按明确规则处理。"
+   ],
+   "checks": [
+    "变更参数/版本、复用或重放批准，并检查旁路和执行端拒绝。",
+    "将用户看到并确认的内容、后台批准记录和最终动作逐项对照；动作或主体变化时重新取得有效授权/批准，拒绝与原确认内容不一致的执行。"
+   ],
+   "evidence": [
+    "授权策略与管理权限",
+    "批准内容、有效期与动作绑定",
+    "变参、重放及旁路验证记录",
+    "用户确认内容、批准记录与实际业务结果的对应关系"
+   ],
+   "location": "策略决策、批准存储、管理入口与动作执行关口",
+   "source_cis_ids": [
+    "6.8",
+    "5.4",
+    "16.10",
+    "8.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "审批流程由平台实现时，票据绑定方式不可读；以批准后改参数的实测结果为准。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A2.7": {
+   "id": "TR-A2.7",
+   "title": "协作通信与委派",
+   "owner_object_id": "A2.7",
+   "requirements": [
+    "把真实发起主体、任务范围和有效权限贯穿委派与交接，接收方核验委派而非信任角色自述。",
+    "限制同伴消息和共享状态的指令地位及访问范围，核对取消、失败与权限撤销传播。"
+   ],
+   "checks": [
+    "重建显式和共享状态路径，测试角色冒充、恶意结果、循环与取消。"
+   ],
+   "evidence": [
+    "委派链主体/权限",
+    "通道认证与网络策略",
+    "跨Agent动作和取消记录"
+   ],
+   "location": "Agent通信、交接、委派与共享状态入口",
+   "source_cis_ids": [
+    "5.6",
+    "6.8",
+    "12.5",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "多Agent编排由平台承担时，委派链实现不可读；以消息内容与最终执行主体的对照为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A3.1": {
+   "id": "TR-A3.1",
+   "title": "模型与权重",
+   "owner_object_id": "A3.1",
+   "requirements": [
+    "制品访问/加载约束，行为评测与检测；高影响动作由模型外控制。"
+   ],
+   "checks": [
+    "核对来源、加载与版本；在指定条件下评测行为，抽测不等于排除后门。"
+   ],
+   "evidence": [
+    "模型/adapter版本与来源",
+    "制品访问和加载记录",
+    "可见模型行为及供应方证据"
+   ],
+   "location": "模型制品仓库、加载器与推理服务的模型选择",
+   "source_cis_ids": [
+    "16.4",
+    "16.5",
+    "3.3",
+    "15.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "使用托管模型时无法获取权重制品；记录提供商公布的模型版本、变更说明与可核的行为基线。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A3.2": {
+   "id": "TR-A3.2",
+   "title": "推理服务",
+   "owner_object_id": "A3.2",
+   "requirements": [
+    "服务端及调用前绑定身份、最小化数据和限制预算；核对缓存隔离、保留与供应责任。"
+   ],
+   "checks": [
+    "核对实际请求、数据配置、凭据受众、资源消耗和可见范围。"
+   ],
+   "evidence": [
+    "实际请求字段与端点",
+    "凭据受众及访问策略",
+    "供应方保留/处理条款和请求日志"
+   ],
+   "location": "推理请求构造、模型端点、凭据与服务数据设置",
+   "source_cis_ids": [
+    "3.3",
+    "3.12",
+    "6.1",
+    "15.4"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "推理服务由提供商运营时，服务端保留与缓存策略不可验证；以其数据处理条款与可观测的返回行为为证据，并记录缺口。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A3.3": {
+   "id": "TR-A3.3",
+   "title": "模型网关与代理",
+   "owner_object_id": "A3.3",
+   "requirements": [
+    "提供方/端点准入，链路认证、凭据绑定、路由/版本追踪及备用路径限制。"
+   ],
+   "checks": [
+    "核对DNS/TLS、路由、配置和流量；行为指纹不单独证明模型身份。"
+   ],
+   "evidence": [
+    "路由及备用提供方清单",
+    "TLS/凭据配置",
+    "实际目的地与转发日志"
+   ],
+   "location": "模型路由、备用端点、代理凭据与协议转换路径",
+   "source_cis_ids": [
+    "15.1",
+    "12.3",
+    "3.12",
+    "6.6"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "网关为托管组件时，路由与回退配置不可读；以实际上游目标与故障时的行为为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A3.4": {
+   "id": "TR-A3.4",
+   "title": "训练与微调管线",
+   "owner_object_id": "A3.4",
+   "requirements": [
+    "数据准入、来源与访问隔离，版本验证和回滚；隐私机制须核对假设。"
+   ],
+   "checks": [
+    "核对数据与工序，对适用模型进行记忆、重构或后门检验；不可见项限制结论。"
+   ],
+   "evidence": [
+    "训练数据与标签来源",
+    "作业、产物及权限记录",
+    "专项隐私/投毒评估与回滚证据"
+   ],
+   "location": "数据获取、训练/微调作业、产物发布与回滚入口",
+   "source_cis_ids": [
+    "3.3",
+    "16.5",
+    "15.5",
+    "16.14"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "不自建训练时本项多不适用；若使用提供商微调服务，记录其数据用途与保留声明。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A4.1": {
+   "id": "TR-A4.1",
+   "title": "工具定义与能力目录",
+   "owner_object_id": "A4.1",
+   "requirements": [
+    "提供方和定义版本可追溯；描述是待处理资料，不自动取得指令或动作权限。"
+   ],
+   "checks": [
+    "比较声明/实现与批准/加载版本，测试清单变更和描述对计划的影响。"
+   ],
+   "evidence": [
+    "工具schema与实现清单",
+    "发布者/版本/摘要",
+    "定义变化和行为对照记录"
+   ],
+   "location": "工具目录发布、发现、同步与定义加载入口",
+   "source_cis_ids": [
+    "16.4",
+    "16.5",
+    "4.1",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "工具目录由平台维护时，模型实际看到的描述不可直接导出；以行为对照与平台提供的定义快照为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A4.2": {
+   "id": "TR-A4.2",
+   "title": "工具调用器",
+   "owner_object_id": "A4.2",
+   "requirements": [
+    "最终调用前检查主体/任务/参数/批准；调用与结果保留来源，失败与重试核对真实副作用。"
+   ],
+   "checks": [
+    "测试直接/批量/异步/重试调用、参数变化和返回；关联实际业务结果。"
+   ],
+   "evidence": [
+    "调用链和最终参数",
+    "身份/资源/批准校验",
+    "重试记录与下游实际副作用"
+   ],
+   "location": "工具dispatch、参数规范化、批准校验与返回消费处",
+   "source_cis_ids": [
+    "6.8",
+    "16.10",
+    "8.5",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "调用器为平台内部组件时，核验点位置不可读；以决策后改参数、并发与重试的实测结果为准。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A4.3": {
+   "id": "TR-A4.3",
+   "title": "MCP宿主、客户端与服务端",
+   "owner_object_id": "A4.3",
+   "requirements": [
+    "按协议版本鉴权和校验受众/URL/会话，约束本地进程与回调；另查业务授权。"
+   ],
+   "checks": [
+    "检查发现、重定向、重连、令牌和进程权限；协议合规不代替动作授权。"
+   ],
+   "evidence": [
+    "MCP版本、角色与transport",
+    "发现、令牌、会话和工具策略",
+    "协议日志及真实目标结果"
+   ],
+   "location": "MCP Host、Client、Server及其凭据、会话与本地进程边界",
+   "source_cis_ids": [
+    "6.6",
+    "6.8",
+    "16.10",
+    "8.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "远程MCP服务由第三方运营时，服务端授权实现不可读；以受控的授权与最小权限对照请求为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A4.4": {
+   "id": "TR-A4.4",
+   "title": "API与数据连接器",
+   "owner_object_id": "A4.4",
+   "requirements": [
+    "业务端验证资源与参数，危险操作参数化，限制接收方/金额/字段并约束重复操作。"
+   ],
+   "checks": [
+    "身份/资源/参数正反对照，追踪到危险操作与真实业务状态。"
+   ],
+   "evidence": [
+    "业务资源与字段权限",
+    "参数化实现与业务规则",
+    "正反对照及外部状态"
+   ],
+   "location": "业务API最终资源授权、查询/命令执行及事务处理器",
+   "source_cis_ids": [
+    "6.8",
+    "3.3",
+    "16.10",
+    "16.13"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "连接器为平台内置时，下游请求构造不可读；以目标系统侧的访问日志为准。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A4.5": {
+   "id": "TR-A4.5",
+   "title": "浏览器与桌面工具",
+   "owner_object_id": "A4.5",
+   "requirements": [
+    "约束站点、账号、文件和高影响动作，隔离浏览器身份及工作区。"
+   ],
+   "checks": [
+    "检查弹窗、导航、下载和剪贴板路径，核对实际目的地/文件及账号。"
+   ],
+   "evidence": [
+    "浏览器/扩展版本与账号",
+    "URL/下载/剪贴板策略",
+    "导航、文件和实际外连记录"
+   ],
+   "location": "浏览器配置、账号会话、桌面自动化与下载执行环境",
+   "source_cis_ids": [
+    "9.1",
+    "9.3",
+    "16.10",
+    "12.2",
+    "18.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "浏览器由平台托管时，配置文件与进程边界不可直接检查；以可观测的账号上下文与下载落点为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A4.6": {
+   "id": "TR-A4.6",
+   "title": "代码与脚本执行器",
+   "owner_object_id": "A4.6",
+   "requirements": [
+    "限制执行入口、代码/参数解释与继承能力；采用适用沙箱和有限文件/网络/凭据。"
+   ],
+   "checks": [
+    "核对实际执行器、危险操作、子进程、依赖安装及跨工作区权限。"
+   ],
+   "evidence": [
+    "执行身份与沙箱配置",
+    "文件/进程/设备/网络权限",
+    "允许与禁止操作和系统事件"
+   ],
+   "location": "解释器、Shell、子进程及执行沙箱",
+   "source_cis_ids": [
+    "16.10",
+    "12.2",
+    "13.2",
+    "18.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "执行器为托管沙箱时，权限与隔离配置不可读；以沙箱内实测的文件、进程与网络能力为准，并记录其公开的隔离说明。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.1": {
+   "id": "TR-A5.1",
+   "title": "对话历史与工作记忆",
+   "owner_object_id": "A5.1",
+   "requirements": [
+    "读写绑定主体和用途，摘要保留来源/权限，限制复用范围。"
+   ],
+   "checks": [
+    "核对摘要前后来源和权限，测试切换用户/任务后的残留。"
+   ],
+   "evidence": [
+    "主体/会话/租户绑定",
+    "内容来源与保留规则",
+    "跨会话访问及删除记录"
+   ],
+   "location": "对话/工作记忆写入、读取、上下文组装与清理路径",
+   "source_cis_ids": [
+    "3.3",
+    "3.4",
+    "3.12",
+    "8.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "历史存储在平台侧时，隔离实现不可读；以跨用户访问测试与平台的导出接口返回为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.2": {
+   "id": "TR-A5.2",
+   "title": "长期记忆",
+   "owner_object_id": "A5.2",
+   "requirements": [
+    "写入和提交校验来源/主体/用途，版本化并支持可追溯清除和回滚。"
+   ],
+   "checks": [
+    "关联写入、提交、读出和后续影响，检查失败请求、删除后索引/备份。"
+   ],
+   "evidence": [
+    "记忆权限与来源",
+    "写入/提取/检索记录",
+    "污染回放及可信恢复证据"
+   ],
+   "location": "长期记忆提取、提交、检索、纠错与恢复路径",
+   "source_cis_ids": [
+    "3.3",
+    "3.4",
+    "11.2",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "记忆服务为平台能力时，命名空间实现不可读；以跨用户读取测试与删除后的实际返回为准。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.3": {
+   "id": "TR-A5.3",
+   "title": "知识库与语料",
+   "owner_object_id": "A5.3",
+   "requirements": [
+    "摄取时保留来源、审核及版本，约束更新权限；内容质量与访问控制分别检查。"
+   ],
+   "checks": [
+    "核对来源、变更和构建输出，抽样检查恶意/重复片段及标签。"
+   ],
+   "evidence": [
+    "语料与来源/分类清单",
+    "摄取和变更权限",
+    "投毒样本及后续召回记录"
+   ],
+   "location": "语料摄取、标注、清洗、发布与索引准入处",
+   "source_cis_ids": [
+    "3.3",
+    "3.7",
+    "3.1",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "语料由本方维护时可直接核查；若使用平台托管知识库，记录其写入与访问控制的可核部分。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.4": {
+   "id": "TR-A5.4",
+   "title": "检索器与索引",
+   "owner_object_id": "A5.4",
+   "requirements": [
+    "检索前后维护资源ACL/租户和来源；返回文本不自获指令权限。"
+   ],
+   "checks": [
+    "可见/不可见文档对照，检查过滤/缓存/重排；LLM09须依赖嵌入机制。"
+   ],
+   "evidence": [
+    "查询与召回ACL",
+    "索引版本/来源",
+    "跨用户召回和恶意内容对照"
+   ],
+   "location": "查询构造、检索ACL、索引访问与召回内容消费处",
+   "source_cis_ids": [
+    "3.3",
+    "3.12",
+    "16.10",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "检索在平台内部执行时，过滤生效点不可读；以不同主体的返回差异为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.5": {
+   "id": "TR-A5.5",
+   "title": "缓存与检查点",
+   "owner_object_id": "A5.5",
+   "requirements": [
+    "键与内容绑定主体、版本和用途；共享范围明确，恢复重验完整性和当前授权。"
+   ],
+   "checks": [
+    "跨身份复用、并发写入、状态回滚和重启；追踪共享对象读写者。"
+   ],
+   "evidence": [
+    "缓存/检查点主体与版本键",
+    "副本和保留设置",
+    "并发、失效、停止恢复记录"
+   ],
+   "location": "缓存键、检查点写入及恢复/失效入口",
+   "source_cis_ids": [
+    "3.3",
+    "3.4",
+    "11.2",
+    "11.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "缓存由平台管理时，键构成不可读；以相同输入在不同主体下的命中行为为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.6": {
+   "id": "TR-A5.6",
+   "title": "数据存储服务",
+   "owner_object_id": "A5.6",
+   "requirements": [
+    "后端自身执行数据ACL/租户/字段/行约束，限制导出，备份恢复可验证。"
+   ],
+   "checks": [
+    "核对后端权限和导出路径，检查参数化与恢复；不以应用鉴权代替平台权限。"
+   ],
+   "evidence": [
+    "行/字段/租户策略",
+    "实际网络与存储配置",
+    "导出、备份和恢复验证"
+   ],
+   "location": "数据库、向量存储和对象存储自身的访问/导出接口",
+   "source_cis_ids": [
+    "3.3",
+    "3.12",
+    "12.2",
+    "11.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "使用托管存储时，平台侧配置可经管理接口核查；跨租户隔离实现不可验证，记录其合规声明。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A6.1": {
+   "id": "TR-A6.1",
+   "title": "日志、追踪与遥测系统",
+   "owner_object_id": "A6.1",
+   "requirements": [
+    "关键关口记录主体/版本/决定/结果；最小采集、脱敏、访问隔离和防篡改。"
+   ],
+   "checks": [
+    "比对应用、网关、系统和外部状态，检查敏感字段到导出路径及盲区。"
+   ],
+   "evidence": [
+    "采集/脱敏/保留配置",
+    "事件关联键与日志权限",
+    "任务到外部结果的关联样本"
+   ],
+   "location": "采集器、关联管道、日志存储与查询/导出接口",
+   "source_cis_ids": [
+    "8.1",
+    "8.5",
+    "8.9",
+    "3.3"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "遥测由平台采集时，字段清单与保留期限依据其文档；记录可导出的实际字段与敏感内容抽查结果。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A6.2": {
+   "id": "TR-A6.2",
+   "title": "安全检测与护栏组件",
+   "owner_object_id": "A6.2",
+   "requirements": [
+    "说明可见路径、服务权限和失效策略；实际阻断/撤权连接到对应执行组件。"
+   ],
+   "checks": [
+    "良性/攻击对照、绕路与超时测试，关联检测、误报、正常任务和实际阻断结果。"
+   ],
+   "evidence": [
+    "检测位置与执行策略",
+    "良性/攻击/超时对照",
+    "告警、拦截及业务副作用"
+   ],
+   "location": "内容检测、动作拦截、告警联动与故障处理关口",
+   "source_cis_ids": [
+    "16.10",
+    "13.2",
+    "18.4",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "护栏为提供商能力时，规则与覆盖范围不可读；以绕过测试的结果与其公开说明为证据，不以存在护栏推定有效。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A6.3": {
+   "id": "TR-A6.3",
+   "title": "评测与红队系统",
+   "owner_object_id": "A6.3",
+   "requirements": [
+    "隔离评测/红队执行环境与真实业务资源，限制工具副作用及测试凭据权限。",
+    "保护测试样本、标签、评分代码和判定配置的来源、版本与访问；保留原始运行结果。"
+   ],
+   "checks": [
+    "抽查样本→适配→执行→评分→报告，复核来源/标签、权限、真实/模拟边界和外部结果。"
+   ],
+   "evidence": [
+    "目标/模型/样本版本",
+    "测试范围与成功判据",
+    "原始运行记录、标签及报告分母"
+   ],
+   "location": "目标适配器、样本存储、运行器与评测报告管道",
+   "source_cis_ids": [
+    "18.2",
+    "18.5",
+    "16.13",
+    "3.3",
+    "16.10",
+    "16.12"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "评测体系由本方建设时可直接核查；使用平台评测能力时记录其样本处理与结果留存方式。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A7.1": {
+   "id": "TR-A7.1",
+   "title": "主机、容器与沙箱",
+   "owner_object_id": "A7.1",
+   "requirements": [
+    "有限系统/进程权限和适用隔离，受信控制组件与工作负载分离；配额、故障域和恢复明确。"
+   ],
+   "checks": [
+    "核对生效配置，受控隔离负例、子进程、资源限制与故障恢复测试。"
+   ],
+   "evidence": [
+    "有效部署与运行身份",
+    "内核/容器/沙箱配置",
+    "跨边界对照和宿主系统事件"
+   ],
+   "location": "宿主OS、容器、沙箱及其安全配置",
+   "source_cis_ids": [
+    "4.1",
+    "16.7",
+    "16.10",
+    "18.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "托管运行时无法检查宿主配置；以沙箱内实测能力、平台公布的隔离模型与其认证报告为证据，并记录不可见区域。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A7.2": {
+   "id": "TR-A7.2",
+   "title": "文件系统与工作区",
+   "owner_object_id": "A7.2",
+   "requirements": [
+    "最小挂载、读写隔离，策略/批准记录置于任务不可写范围，工作区按主体隔离。"
+   ],
+   "checks": [
+    "检查实际路径、符号链接、共享卷及恢复后权限。"
+   ],
+   "evidence": [
+    "文件ACL与挂载清单",
+    "链接/路径解析实现",
+    "读写边界与残留清理记录"
+   ],
+   "location": "工作目录、挂载、共享卷、临时文件与路径解析处",
+   "source_cis_ids": [
+    "3.3",
+    "4.1",
+    "16.10"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "文件系统由平台提供时，挂载与权限不可读；以路径穿越与越界读取的实测结果为准。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A7.3": {
+   "id": "TR-A7.3",
+   "title": "网络与出口代理",
+   "owner_object_id": "A7.3",
+   "requirements": [
+    "不可绕过的网络关口约束目的地与协议，限制内网和元数据地址，并以解析与重定向后的实际目标判定。",
+    "关口覆盖全部执行环境的出站流量，子进程、浏览器与替代代理继承同一约束；故障与回退不放宽限制。"
+   ],
+   "checks": [
+    "核对工具、子进程、浏览器与遥测的真实网络路径及实际连接目标；可达性与业务授权分别验证。",
+    "在授权测试环境用内网与元数据地址、跳转URL和触发回退的故障条件，检查关口放行结果与记录。"
+   ],
+   "evidence": [
+    "网络与允许通信矩阵",
+    "策略、DNS和路由",
+    "网关及目标侧流量证据",
+    "放行判定与实际连接的对应记录"
+   ],
+   "location": "网络分区、路由、DNS、入口/出口执行与代理",
+   "source_cis_ids": [
+    "12.2",
+    "13.4",
+    "13.6",
+    "9.2",
+    "9.3"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "网络由平台托管时，规则与路由不可读；以从运行环境发起的实际连接结果为准，记录无法枚举的路径。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A7.4": {
+   "id": "TR-A7.4",
+   "title": "身份与凭据设施",
+   "owner_object_id": "A7.4",
+   "requirements": [
+    "短期且有受众/范围的凭据，按需代持/注入，限制任务读取，撤销传播可验证。"
+   ],
+   "checks": [
+    "核对有效权限、暴露面、委派链和撤权；vault存在不等于使用安全。"
+   ],
+   "evidence": [
+    "账户和凭据清单",
+    "签发/委派/轮换/撤销设置",
+    "资源服务的授权和使用记录"
+   ],
+   "location": "IAM、密钥库、工作负载身份与令牌签发/撤销处",
+   "source_cis_ids": [
+    "5.1",
+    "5.5",
+    "6.1",
+    "6.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "凭据设施为平台能力时，签发与存储实现不可读；以令牌字段、受众与撤销生效时间的实测为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A7.5": {
+   "id": "TR-A7.5",
+   "title": "构建、部署与配置系统",
+   "owner_object_id": "A7.5",
+   "requirements": [
+    "管理权限隔离，制品准入和配置变更授权，发布到运行可追溯；任务不可自改强制边界。"
+   ],
+   "checks": [
+    "核对发布/加载版本，检查管理面权限、策略修改和替代执行路径。"
+   ],
+   "evidence": [
+    "制品清单与发布版本",
+    "管理/发布权限及审批",
+    "实际运行配置与回滚记录"
+   ],
+   "location": "构建、发布、配置存储、激活与回滚控制面",
+   "source_cis_ids": [
+    "4.1",
+    "16.4",
+    "16.5",
+    "5.4"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "构建与部署由平台承担时，流水线配置不可读；以版本切换记录与回滚行为为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A7.6": {
+   "id": "TR-A7.6",
+   "title": "硬件、驱动与计算组件",
+   "owner_object_id": "A7.6",
+   "requirements": [
+    "资产/漏洞治理，设备最小暴露和资源配额；隔离/可信执行依赖实际配置与假设。"
+   ],
+   "checks": [
+    "核对版本、设备映射、补丁与配额；无访问权时限定供应方证据结论。"
+   ],
+   "evidence": [
+    "硬件/驱动及运行库版本",
+    "有效资源配置与设备权限",
+    "漏洞处置、耗用和故障记录"
+   ],
+   "location": "硬件/驱动运行栈、计算资源调度和监控接口",
+   "source_cis_ids": [
+    "7.1",
+    "7.5",
+    "4.1",
+    "13.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "几乎总由提供商运营；记录其公布的硬件与驱动供应说明，不声称已直接验证。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X1.1": {
+   "id": "TR-X1.1",
+   "title": "身份主体与服务账户",
+   "owner_object_id": "X1.1",
+   "requirements": [
+    "验证调用链中用户、Agent和服务主体的真实性，并将主体与正确租户、会话或任务关联。",
+    "在跨组件与恢复路径维持主体对应关系，拒绝主体伪造及不受约束的身份切换。"
+   ],
+   "checks": [
+    "比较认证入口、用户到会话绑定、委派后的主体和最终资源所见身份；核验错误用户、受众与租户对照及撤权后的访问。"
+   ],
+   "evidence": [
+    "人/Agent/工具账户清单",
+    "负责人和用途",
+    "配置主体与真实执行主体对照"
+   ],
+   "location": "账户目录、工作负载身份与主体注册处",
+   "source_cis_ids": [
+    "5.1",
+    "5.5",
+    "6.1"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "身份体系多由本方控制，可直接核查；若主体由平台生成，记录其标识规则与租户归属字段。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X1.2": {
+   "id": "TR-X1.2",
+   "title": "凭据与委派令牌",
+   "owner_object_id": "X1.2",
+   "requirements": [
+    "按实际接收服务限制凭据受众、scope和有效期，限制令牌转交、代持及环境暴露。",
+    "验证撤销、轮换和任务结束后的有效性，避免凭据进入不应出现的上下文、日志和制品。"
+   ],
+   "checks": [
+    "沿工具与资源请求核对令牌受众、有效权限、传递方和接收方；检查上下文、文件、日志暴露以及撤销与恢复后的残留。"
+   ],
+   "evidence": [
+    "凭据scope与audience",
+    "委派/轮换/撤销记录",
+    "最终资源服务的接受与拒绝证据"
+   ],
+   "location": "凭据保管、令牌签发、委派、轮换与撤销处",
+   "source_cis_ids": [
+    "5.5",
+    "5.6",
+    "6.1",
+    "6.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "令牌由平台签发时，范围与受众以实际令牌内容为准；无法解析的不透明令牌记录其行为表现。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X1.3": {
+   "id": "TR-X1.3",
+   "title": "授权策略",
+   "owner_object_id": "X1.3",
+   "requirements": [
+    "以主体、动作、资源和条件定义有效权限，并由实际执行或资源端核验。",
+    "在工具、数据和委派路径维持最小权限；检索、行列访问、列表与单项操作分别落实资源范围。"
+   ],
+   "checks": [
+    "从已授权任务推到规范化动作、参数与资源，比较入口、网关及最终资源拒绝结果；检查批量、异步、委派和直达路径。"
+   ],
+   "evidence": [
+    "角色/属性/资源策略",
+    "委派链权限",
+    "正反对照和动作记录"
+   ],
+   "location": "策略管理、每跳委派及最终资源动作入口",
+   "source_cis_ids": [
+    "6.8",
+    "5.6",
+    "16.10",
+    "3.3",
+    "3.12"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "授权规则多由本方维护，可直接核查；平台内置的默认权限记录其文档声明与实测差异。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X1.4": {
+   "id": "TR-X1.4",
+   "title": "授权与批准状态",
+   "owner_object_id": "X1.4",
+   "requirements": [
+    "将授权及批准状态绑定到实际主体、任务、最终动作、参数、接收方和有效条件。",
+    "对变更、过期、撤销、重放、重复消费和状态恢复执行核验，保护状态修改权限。"
+   ],
+   "checks": [
+    "对照界面、批准记录和实际请求；在批准后改变参数、目标或工具版本，检查重放、过期、取消及后台绕过。"
+   ],
+   "evidence": [
+    "批准内容、版本、有效条件",
+    "管理与修改权限",
+    "变参、过期、重放和执行结果"
+   ],
+   "location": "批准记录、规范化参数绑定与执行前校验处",
+   "source_cis_ids": [
+    "6.8",
+    "5.4",
+    "8.2",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "批准状态由平台维护时，票据字段不可读；以批准后改参数与重放的实测结果为准。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X2.1": {
+   "id": "TR-X2.1",
+   "title": "数据属性与来源信息",
+   "owner_object_id": "X2.1",
+   "requirements": [
+    "将来源、归属、敏感性和完整性信息绑定实际内容及派生记录，限制属性伪造和未授权修改。",
+    "在转换、摘要、切分、嵌入和复制后核对属性语义及可追溯关系。"
+   ],
+   "checks": [
+    "抽取原始与转换后的同一内容，检查来源和敏感性怎样进入上下文与动作；核对总结、嵌入、缓存和日志中的标签保留。"
+   ],
+   "evidence": [
+    "分类规则与来源记录",
+    "数据流向清单",
+    "实际内容和转换链抽样"
+   ],
+   "location": "数据分类/来源登记、摄取与跨对象流转处",
+   "source_cis_ids": [
+    "3.1",
+    "3.7",
+    "3.8"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "数据属性由本方定义时可直接核查；平台内部的派生处理记录其是否保留属性字段。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X2.2": {
+   "id": "TR-X2.2",
+   "title": "指令通道与信任边界",
+   "owner_object_id": "X2.2",
+   "requirements": [
+    "维护指令来源、消息角色与外部内容之间的解释边界，限制不可信内容被提升为高权限指令。",
+    "通过实际上下文与动作效果核验边界；标签、角色名或提示声明本身不构成安全证明。"
+   ],
+   "checks": [
+    "沿外部内容→解析/总结→上下文→计划/动作重建解释链；采用标签机制时核对降密、去污或信任提升的主体、条件和批准绑定。"
+   ],
+   "evidence": [
+    "角色/来源元数据",
+    "原始及转换内容",
+    "不可信指令对照和最终动作"
+   ],
+   "location": "消息构造、上下文组装、工具返回与记忆消费边界",
+   "source_cis_ids": [
+    "16.10",
+    "3.12",
+    "18.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "信任边界的实现多在平台内部；以多通道注入的行为对照为证据，记录无法确认的组装逻辑。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X2.4": {
+   "id": "TR-X2.4",
+   "title": "数据使用与外发策略",
+   "owner_object_id": "X2.4",
+   "requirements": [
+    "按任务与接收方限制上下文、模型请求、工具参数、输出及遥测中的数据范围。",
+    "在实际消费或外发关口落实内容、用途和目的地约束，并检查编码、资源加载和替代通道。"
+   ],
+   "checks": [
+    "追踪测试标记到最终DOM、资源请求、工具目的地、模型请求和遥测导出；核对编码、重定向和未接入检测的路径。"
+   ],
+   "evidence": [
+    "允许接收方与数据范围",
+    "输出/DLP/出口配置",
+    "实际外发与拦截结果"
+   ],
+   "location": "模型请求、输出、渲染、遥测与网络外发处",
+   "source_cis_ids": [
+    "3.12",
+    "3.14",
+    "16.10",
+    "13.6"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "数据使用规则多由本方制定，执行点可能在平台；记录各执行点的实际生效证据与不可见部分。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X2.5": {
+   "id": "TR-X2.5",
+   "title": "副本与保留配置",
+   "owner_object_id": "X2.5",
+   "requirements": [
+    "在历史、记忆、缓存、检查点、日志及备份等实际副本上落实保留、删除和访问配置。",
+    "验证清除及恢复后的内容与权限状态，避免已删或被隔离内容通过旧副本重新生效。"
+   ],
+   "checks": [
+    "逐副本核对保留期限、清除状态与恢复后的权限；检查删除前缓存、日志和检查点是否仍能返回旧内容。"
+   ],
+   "evidence": [
+    "副本和保留清单",
+    "TTL/删除/备份策略",
+    "恢复后授权及污染残留检查"
+   ],
+   "location": "历史、缓存、日志、备份、索引与删除恢复流程",
+   "source_cis_ids": [
+    "3.4",
+    "3.12",
+    "11.2",
+    "11.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "保留与删除由平台执行时，副本范围不可枚举；以删除后的实际返回与其保留条款为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X3.1": {
+   "id": "TR-X3.1",
+   "title": "可信来源与信任根",
+   "owner_object_id": "X3.1",
+   "requirements": [
+    "约束消费者实际使用的发布身份、下载或服务来源及验证信任根。",
+    "验证来源替换、回退与委托链，分别判断来源真实性、内容安全和远程行为证据。"
+   ],
+   "checks": [
+    "核对发布主体、账户/域名归属、受信源规则及实际下载/调用目标；检查同名条目、失效依赖与来源替换。"
+   ],
+   "evidence": [
+    "允许源与验证根配置",
+    "实际获取/连接目标及主体证据",
+    "错误来源和回退路径的处理结果"
+   ],
+   "location": "消费者的受信源、发布身份、验证信任根及下载/连接选择处",
+   "source_cis_ids": [
+    "16.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "信任根与受信来源多由本方配置，可直接核查；平台内置的信任根记录其公开清单。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X3.2": {
+   "id": "TR-X3.2",
+   "title": "制品与依赖",
+   "owner_object_id": "X3.2",
+   "requirements": [
+    "将清单与实际包、模型、镜像、脚本和运行依赖对照，包含动态下载及远程引用。",
+    "核对内容、来源、版本和实际加载状态，按制品类型采用适用的完整性与安全检查。"
+   ],
+   "checks": [
+    "从清单核对真实包内容与运行依赖；检查脚本、资源、模型加载器、测试数据及外部引用，记录无法检查的远程行为。"
+   ],
+   "evidence": [
+    "包、模型、Skill及依赖清单",
+    "来源/版本和扫描结果",
+    "运行时加载及外部依赖记录"
+   ],
+   "location": "制品获取、包展开、依赖解析与实际加载处",
+   "source_cis_ids": [
+    "16.4",
+    "16.5",
+    "7.1"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "制品清单可直接核查；平台内置依赖不可枚举时，记录其公布的组件清单与更新策略。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X3.3": {
+   "id": "TR-X3.3",
+   "title": "仓库与分发渠道",
+   "owner_object_id": "X3.3",
+   "requirements": [
+    "限制仓库、市场、目录和发布账户的修改/分发权限，保护来源优先级及回退配置。",
+    "从消费者核对实际拉取目标、条目替换及撤销后的使用状态。"
+   ],
+   "checks": [
+    "核对发布者与仓库权限、来源优先级和下载回退路径；从消费者还原选中条目及拉取目标，追查被撤销条目是否仍被使用。"
+   ],
+   "evidence": [
+    "仓库与发布权限",
+    "来源优先级及回退规则",
+    "消费者实际获取记录"
+   ],
+   "location": "制品仓库、发布账户、分发与消费者回退路径",
+   "source_cis_ids": [
+    "16.5",
+    "4.1",
+    "5.4"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "第三方渠道的内部流程不可审计；以拉取路径、校验结果与条目撤销后的本地状态为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X3.4": {
+   "id": "TR-X3.4",
+   "title": "签名与来源证明",
+   "owner_object_id": "X3.4",
+   "requirements": [
+    "在实际准入或加载路径验证签名/来源证明的主体、摘要、内容和适用范围。",
+    "检查证明缺失、错误主体、内容变化及验证不可用时的处理；签名不能证明内容良性。"
+   ],
+   "checks": [
+    "核对证明签发者、验证配置、审核范围和加载记录；分别检查未签名、错误主体、内容变化及证明缺失时的实际处理。"
+   ],
+   "evidence": [
+    "签名主体/证明链",
+    "摘要和审查范围",
+    "缺失或错误证明的处理结果"
+   ],
+   "location": "签名、来源证明、审核记录与加载验证处",
+   "source_cis_ids": [
+    "16.5",
+    "16.4",
+    "15.5"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "签名验证若由平台执行，验证逻辑不可读；以构造不匹配制品的准入结果为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X3.5": {
+   "id": "TR-X3.5",
+   "title": "版本与更新配置",
+   "owner_object_id": "X3.5",
+   "requirements": [
+    "核对安装、批准、发布和实际加载的版本，并约束默认指针、自动更新和动态定义变化。",
+    "验证变更、回退及远程依赖变化后的重新校验和实际生效状态。"
+   ],
+   "checks": [
+    "在安装、批准、加载和调用时分别核对版本；检查默认指针改变、工具rug pull、缓存与更新回退，确认变更会否触发重新审查。"
+   ],
+   "evidence": [
+    "安装/批准/加载版本",
+    "更新和回退策略",
+    "变更后的验证与运行证据"
+   ],
+   "location": "锁定版本、默认指针、更新、激活与回滚处",
+   "source_cis_ids": [
+    "4.1",
+    "16.5",
+    "7.5",
+    "16.13"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "版本固定多由本方配置；平台自动更新的触发条件记录其文档声明与实际版本变化。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-A5.7": {
+   "id": "TR-A5.7",
+   "title": "数据摄取与处理管线",
+   "owner_object_id": "A5.7",
+   "requirements": [
+    "限制接入源及写入权限，在处理不可信文档时限制解释、代码和网络能力。",
+    "验证内容与元数据；转换、切分和嵌入后保持来源、租户及访问约束，并核对更新/删除同步。"
+   ],
+   "checks": [
+    "对照接入内容、转换结果和索引记录，检查来源、主体、敏感性及访问属性是否保留。",
+    "在授权测试环境使用畸形文档、归档路径、错误元数据和越权写入对照，检查处理与最终写入结果。",
+    "若管线调用模型，验证外部指令能否改变处理目标或触发额外动作；纯解析流程按其实际能力检查。"
+   ],
+   "evidence": [
+    "接入/转换/写入配置与版本",
+    "源内容及派生记录的属性对照",
+    "处理身份、实际网络请求和索引访问结果",
+    "更新/删除同步与失败恢复记录"
+   ],
+   "location": "数据连接器、摄取任务、转换/嵌入步骤与索引写入关口",
+   "source_cis_ids": [
+    "3.3",
+    "3.8",
+    "3.12",
+    "16.10"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "摄取管线由平台提供时，解析与写入步骤不可读；以构造文档的处理结果与产生的外部请求为证据。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X4.1": {
+   "id": "TR-X4.1",
+   "title": "网络可达策略",
+   "owner_object_id": "X4.1",
+   "requirements": [
+    "区域归属与允许规则覆盖全部Agent、工具、子进程与管理面工作负载，默认处理为拒绝。",
+    "高风险执行环境（代码执行器、浏览器、Skill执行域）具备独立于宿主与管理面的通信边界。"
+   ],
+   "checks": [
+    "按规则清单与实际附着关系列出允许通信矩阵，再从真实工作负载验证同区、跨区与管理面可达性。",
+    "核对IPv4/IPv6、环回与未被规则覆盖的路径；默认处理以实际连接结果判断，不以配置名称推断。"
+   ],
+   "evidence": [
+    "区域划分与规则清单",
+    "规则与工作负载的附着关系",
+    "同区、跨区与管理面可达性对照"
+   ],
+   "location": "网络区域划分、安全组与防火墙规则、运行环境网络配置",
+   "source_cis_ids": [
+    "12.2",
+    "13.4",
+    "4.2"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "网络规则由平台托管时不可枚举；以从真实工作负载发起的可达性矩阵为准，记录无法覆盖的路径。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  },
+  "TR-X4.2": {
+   "id": "TR-X4.2",
+   "title": "出口与目标约束",
+   "owner_object_id": "X4.2",
+   "requirements": [
+    "全部出站路径收敛到受约束出口：工具HTTP、浏览器、子进程、模型网关、遥测与摄取抓取均在覆盖范围内。",
+    "允许目的地按明确清单限定，排除内网地址与云实例元数据端点；放行以解析、重定向与回退之后的实际目标为准。"
+   ],
+   "checks": [
+    "逐类出站组件比较经网关路径与直连、替代代理、子进程路径的实际目标，记录未被覆盖的路径。",
+    "用指向内网与元数据地址的目标、跳转到其它地址的URL以及触发回退的故障条件，核对实际连接结果。"
+   ],
+   "evidence": [
+    "强制出口配置与适用范围",
+    "允许目的地与协议清单",
+    "解析、重定向与回退后的实际连接记录"
+   ],
+   "location": "出口代理与网关、DNS与URL过滤、各执行环境的出站配置",
+   "source_cis_ids": [
+    "9.3",
+    "9.2",
+    "13.4",
+    "12.3"
+   ],
+   "source_relation": "项目结合具体对象细化；来源条款不自动等同本对象全部技术要求",
+   "status": "project_authored_not_executed",
+   "visibility_boundary": "出口约束由平台实施时，规则不可读；以各类出站组件的实际连接目标为证据，并记录未能测试的通道。",
+   "responsibility_note": "实施与取证责任按目标的部署与托管形态确定：自托管可直接验证，提供商托管须以其证据核实并记录缺口；\"查不到\"与\"不合规\"分别记录，不得互相代替。"
+  }
+ }
+}
