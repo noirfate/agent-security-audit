@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1160" viewBox="0 0 1440 1160" role="img" aria-labelledby="title desc">
+<title id="title">AI Agent 安全分析框架</title>
+<desc id="desc">审计材料经过对象识别、检查命题和技术核查形成证据与结论。风险与攻击技术用于分类和检索，跨域安全对象提供约束，案例和控制条款提供参考。</desc>
+<rect width="1440" height="1160" fill="white"/>
+<text x="720" y="35" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="32" font-weight="700" fill="#0f172a">AI Agent 安全分析框架</text>
+<text x="720" y="67" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="19" font-weight="400" fill="#64748b">对象、约束与证据之间的关系</text>
+<polyline points="720,202 720,252" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="720.00,252.00 725.00,241.00 715.00,241.00" fill="#2563eb"/>
+<polyline points="720,350 720,440" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="720.00,440.00 725.00,429.00 715.00,429.00" fill="#2563eb"/>
+<polyline points="720,564 720,648" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="720.00,648.00 725.00,637.00 715.00,637.00" fill="#2563eb"/>
+<polyline points="720,750 720,805" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="720.00,805.00 725.00,794.00 715.00,794.00" fill="#2563eb"/>
+<polyline points="720,907 720,962" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="720.00,962.00 725.00,951.00 715.00,951.00" fill="#2563eb"/>
+<polyline points="400,500 500,500" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="500.00,500.00 489.00,495.00 489.00,505.00" fill="#64748b"/>
+<polyline points="1040,315 990,315 990,474 940,474" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="940.00,474.00 951.00,479.00 951.00,469.00" fill="#0f766e"/>
+<polyline points="1040,526 940,526" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<polygon points="940.00,526.00 951.00,531.00 951.00,521.00" fill="#64748b"/>
+<polyline points="400,702 500,702" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<polygon points="500.00,702.00 489.00,697.00 489.00,707.00" fill="#64748b"/>
+<rect x="500" y="90" width="440" height="112" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="720" y="120" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="28" font-weight="700" fill="#0f172a">审计材料</text>
+<text x="720" y="156" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">设计文档 · 源码 · 配置</text>
+<text x="720" y="183" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">MCP服务 · Skill包</text>
+<rect x="500" y="252" width="440" height="98" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="720" y="282" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="28" font-weight="700" fill="#1e3a8a">识别架构对象与实例</text>
+<text x="720" y="323" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">定位职责、连接关系与实际边界</text>
+<rect x="500" y="440" width="440" height="124" rx="14" fill="#1d4ed8" stroke="#1d4ed8" stroke-width="2"/>
+<text x="720" y="478" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="32" font-weight="700" fill="#ffffff">检查命题</text>
+<text x="720" y="528" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="23" font-weight="400" fill="#dbeafe">对象的失效方式与成立条件</text>
+<rect x="500" y="648" width="440" height="102" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="720" y="680" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="28" font-weight="700" fill="#1e3a8a">技术核查</text>
+<text x="720" y="721" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">技术要求 · 核查步骤 · 检测信号</text>
+<rect x="500" y="805" width="440" height="102" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="720" y="837" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="28" font-weight="700" fill="#1e3a8a">目标系统证据</text>
+<text x="720" y="878" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">配置 · 代码 · 日志 · 测试结果</text>
+<rect x="500" y="962" width="440" height="116" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="720" y="995" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="28" font-weight="700" fill="#1e3a8a">审计结论</text>
+<text x="720" y="1035" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">成立 · 不成立 · 证据不足 · 不适用</text>
+<text x="720" y="1061" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="18" font-weight="400" fill="#64748b">记录判断范围与证据缺口</text>
+<rect x="40" y="435" width="360" height="130" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="220" y="468" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="27" font-weight="700" fill="#0f172a">风险与攻击技术</text>
+<text x="220" y="509" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">OWASP · MITRE ATLAS</text>
+<text x="220" y="542" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="20" font-weight="400" fill="#64748b">用于分类与检索</text>
+<rect x="1040" y="232" width="360" height="166" rx="14" fill="#f0fdfa" stroke="#99d8cf" stroke-width="1.5"/>
+<text x="1220" y="264" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="27" font-weight="700" fill="#115e59">跨域安全对象</text>
+<text x="1220" y="302" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">身份权限 · 数据安全</text>
+<text x="1220" y="333" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">供应链 · 网络隔离</text>
+<text x="1220" y="371" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="20" font-weight="400" fill="#0f766e">约束多个对象的行为</text>
+<rect x="1040" y="462" width="360" height="124" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="1220" y="494" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="27" font-weight="700" fill="#0f172a">案例与来源证据</text>
+<text x="1220" y="534" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">提供失效机制参考</text>
+<text x="1220" y="565" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="20" font-weight="400" fill="#64748b">核对案例的前提和范围</text>
+<rect x="40" y="641" width="360" height="124" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="220" y="674" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="27" font-weight="700" fill="#0f172a">CIS · SAFE-AI</text>
+<text x="220" y="713" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="22" font-weight="400" fill="#334155">控制条款与评估参考</text>
+<text x="220" y="744" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="20" font-weight="400" fill="#64748b">提供核查依据</text>
+<text x="720" y="1123" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif" font-size="19" font-weight="400" fill="#64748b">实线：分析与约束关系      虚线：案例或控制参考</text>
+</svg>
