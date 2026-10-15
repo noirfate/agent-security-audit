@@ -49,19 +49,12 @@
  "data_version": "v1",
  "canonical_data": "data",
  "technical_scope_only": true,
- "canonical_security_object_count": 13,
+ "canonical_security_object_count": 15,
  "security_view_count": 1,
  "atlas_selection_policy": {
-  "initial_import": {
-   "crosswalk_ids": 51,
-   "agent_relevant_extensions": 34,
-   "total": 85
-  },
   "current_scope": "仅保留经过职责复核且至少关联一个规范对象或共享视图的ATLAS技术。",
-  "removed_unmapped": 21,
-  "not_imported_from_source_inventory": 123,
-  "exclusions_file": "data/risk-catalog-exclusions.json"
+  "selection_review_file": "data/atlas-selection-review.json"
  },
- "cross_domain_theme_count": 3,
+ "cross_domain_theme_count": 4,
  "source_pin_root": "package"
 }

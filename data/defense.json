@@ -5665,22 +5665,22 @@
    "cis_ids": "具体 CIS Safeguard 编号；关联为候选，需按目标配置和范围核查。",
    "reason": "本项选择这些条目的具体防御理由；项目分析，不是来源原文。",
    "scope": "防御方可检查范围、适用前提与不可由本目录推导的结论。",
-   "safeai_ids": "现有 safeai-notes.json 中补充评估条目的内部引用；不是新的 SAFE-AI 官方编号，展示应使用实际控制名称。"
+   "safeai_ids": "data/safeai.json的report.checks中补充评估条目的内部引用；不是新的 SAFE-AI 官方编号，展示应使用实际控制名称。"
   },
   "coverage": {
    "owasp_risks": 51,
-   "atlas_techniques": 64,
-   "total": 115
+   "atlas_techniques": 95,
+   "total": 146
   },
   "scope_boundary": "本 Agent Guide 不替代模型层专门指南、数据存储平台基线或物理安全规范。公开侦察、攻击者离线准备与外部协作只能映射防御方可控的暴露治理、遥测和授权验证，不声称能够直接阻止。",
   "source_sha256": "824ab8a2e829a11a66318339180366339088813be8b6ee0dc2a64391bb476c3b",
   "source_catalog_check": {
-   "catalog_file": "cis-defense-source.json",
+   "catalog_file": "sources/cis/cis-defense-source.json",
    "all_selected_ids_exist": true,
    "distinct_selected_safeguards": 51,
    "note": "逐项对照 source catalog 的 Agent 适用说明；技术专属 reason/scope 为项目分析，不是原文逐字摘录。"
   },
-  "active_catalog_exclusions": "data/risk-catalog-exclusions.json"
+  "atlas_selection_review": "data/atlas-selection-review.json"
  },
  "joint_checks": [
   {

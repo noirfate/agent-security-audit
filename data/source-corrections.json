@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "statement": "本项目自己的数据与参考源原件不一致之处，逐条登记。参考源在 sources/ 下按 sha256 冻结、永不改写；更正只写在 data/。构建时逐条核对：scope=value 的字段在参考源里仍是 from、在本项目数据里是 to；scope=substring 的字段在本项目数据里不含 from、含 to。本项目没有对应字段的参考源（如 _zh 译文）只核对本项目一侧。",
+  "statement": "本项目自己的数据与参考源原件不一致之处，逐条登记。参考源在 sources/ 下按 sha256 冻结、永不改写；更正只写在 data/。维护时逐条核对：scope=value 的字段在参考源里仍是 from、在本项目数据里是 to；scope=substring 的字段在本项目数据里不含 from、含 to。参考源没有对应字段（如 _zh 译文）时，只核对本项目一侧。当前发布版脚本校验文件指纹，不自动核对上述字段。",
   "corrections": [
     {
       "id": "INC-126-disclosure-date",
