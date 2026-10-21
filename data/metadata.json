@@ -1,60 +1,167 @@
 {
- "title": "AI Agent 安全审计图谱",
- "date": "2026-10-15",
- "owasp_count": 51,
- "atlas_selected": 95,
- "atlas_inventory_total": 208,
- "mapping_status": "对象职责逐项复核后的条件关联，按对象侧失效模式组织；排除仅为通用防护或活动背景的关系，仍须结合实例能力和证据判断",
- "role_vocabulary": {
-  "入口": "不可信内容或访问由此进入系统；核查来源鉴别、身份绑定与信任标记。",
-  "风险定位": "机制在此成立，或缺陷规则与配置本身位于此对象；核查其实现、规则与默认行为。",
-  "传播": "污染或影响经此跨对象、跨会话或跨Agent扩散；核查过滤、范围保持与来源标记。",
-  "执行外发": "动作在此实际生效或数据由此离开边界，是链路最后一跳；核查有效主体、参数、目的地与数据范围。",
-  "影响": "后果落在此对象承载的内容、状态或资产上；核查受影响范围、可恢复性与残留。"
- },
- "failure_mode_note": "对象侧的检查命题是审计单位；目录条目只是同一命题在各来源目录中的名称。",
- "source_hashes": {
-  "sources/framework/framework.json": "4167505a2ca894a22b3b23b6e896cd038118f269f0dc4dafed234bb303d8a3bb",
-  "sources/crosswalk/incidents.json": "63cef161a3be1b5a3f5c563ec29972eeb7a9e6bdc2126b24f92fc86c2d002c85",
-  "sources/safeai/SAFEAI_Full_Report.pdf": "85bc757eb5d4d3a3efd22f0a71ac3b617b365a9e38d3a3f830d67ca4a058a160",
-  "sources/mitre-atlas/ATLAS-2026.09.yaml": "935efa93e28294432d3e2f537eb94991ef8d1f8c58341cd360ea3321ddb66688",
-  "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf": "824ab8a2e829a11a66318339180366339088813be8b6ee0dc2a64391bb476c3b",
-  "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf": "af4d7a3e931c70691cc3529633171468848757dde80baa779746122241ab1aeb",
-  "sources/cis/cis-defense-source.json": "a30708e0f7a539f14a54e7246847c3e685682d4281f1dd9518a04cc512082ccc",
-  "sources/cis/cis-risk-mappings.json": "b02c5f951397e0f263bff1c941f948ed40f6e62c52efda8e4d5c33f034e09d82",
-  "sources/cis/mcp-defense-source.json": "0886a7919442a32264878fdaf2732e48e1202a8ee801aa20275ad1d849b07b6f",
-  "sources/owasp/OWASP-GenAI-Data-Security-Risks-and-Mitigations-2026-v1.0.pdf": "0ed25c0c086ab7da25abc76080ce5e579e17e683a838d4fc42b8557caaceaf31",
-  "sources/owasp/OWASP-GenAI-LLM-Top-10-2026-v1.0.pdf": "ef87993a4e50ae9d83b41ff7a3d3e6320a82dfa8d4ec6bf98d0ce264b2e6108e",
-  "sources/owasp/OWASP-Top-10-for-Agentic-Applications-2026-12.6-1.pdf": "a2db94cd00b08e0b3a5e5b619afe024bdbcd74503111085705e4f3dd886fcb5c",
-  "sources/lab/memory-poisoning-README.md": "e4baca82f68ab97c2714da5882c1b7150cd9fbd0d2f1e0af179c70ed6471a74e"
- },
- "license_text": "Copyright 2021-2026 MITRE\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for use, reproduction,\n      and distribution as defined by Sections 1 through 9 of this document.\n\n      \"Licensor\" shall mean the copyright owner or entity authorized by\n      the copyright owner that is granting the License.\n\n      \"Legal Entity\" shall mean the union of the acting entity and all\n      other entities that control, are controlled by, or are under common\n      control with that entity. For the purposes of this definition,\n      \"control\" means (i) the power, direct or indirect, to cause the\n      direction or management of such entity, whether by contract or\n      otherwise, or (ii) ownership of fifty percent (50%) or more of the\n      outstanding shares, or (iii) beneficial ownership of such entity.\n\n      \"You\" (or \"Your\") shall mean an individual or Legal Entity\n      exercising permissions granted by this License.\n\n      \"Source\" form shall mean the preferred form for making modifications,\n      including but not limited to software source code, documentation\n      source, and configuration files.\n\n      \"Object\" form shall mean any form resulting from mechanical\n      transformation or translation of a Source form, including but\n      not limited to compiled object code, generated documentation,\n      and conversions to other media types.\n\n      \"Work\" shall mean the work of authorship, whether in Source or\n      Object form, made available under the License, as indicated by a\n      copyright notice that is included in or attached to the work\n      (an example is provided in the Appendix below).\n\n      \"Derivative Works\" shall mean any work, whether in Source or Object\n      form, that is based on (or derived from) the Work and for which the\n      editorial revisions, annotations, elaborations, or other modifications\n      represent, as a whole, an original work of authorship. For the purposes\n      of this License, Derivative Works shall not include works that remain\n      separable from, or merely link (or bind by name) to the interfaces of,\n      the Work and Derivative Works thereof.\n\n      \"Contribution\" shall mean any work of authorship, including\n      the original version of the Work and any modifications or additions\n      to that Work or Derivative Works thereof, that is intentionally\n      submitted to Licensor for inclusion in the Work by the copyright owner\n      or by an individual or Legal Entity authorized to submit on behalf of\n      the copyright owner. For the purposes of this definition, \"submitted\"\n      means any form of electronic, verbal, or written communication sent\n      to the Licensor or its representatives, including but not limited to\n      communication on electronic mailing lists, source code control systems,\n      and issue tracking systems that are managed by, or on behalf of, the\n      Licensor for the purpose of discussing and improving the Work, but\n      excluding communication that is conspicuously marked or otherwise\n      designated in writing by the copyright owner as \"Not a Contribution.\"\n\n      \"Contributor\" shall mean Licensor and any individual or Legal Entity\n      on behalf of whom a Contribution has been received by Licensor and\n      subsequently incorporated within the Work.\n\n   2. Grant of Copyright License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      copyright license to reproduce, prepare Derivative Works of,\n      publicly display, publicly perform, sublicense, and distribute the\n      Work and such Derivative Works in Source or Object form.\n\n   3. Grant of Patent License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      (except as stated in this section) patent license to make, have made,\n      use, offer to sell, sell, import, and otherwise transfer the Work,\n      where such license applies only to those patent claims licensable\n      by such Contributor that are necessarily infringed by their\n      Contribution(s) alone or by combination of their Contribution(s)\n      with the Work to which such Contribution(s) was submitted. If You\n      institute patent litigation against any entity (including a\n      cross-claim or counterclaim in a lawsuit) alleging that the Work\n      or a Contribution incorporated within the Work constitutes direct\n      or contributory patent infringement, then any patent licenses\n      granted to You under this License for that Work shall terminate\n      as of the date such litigation is filed.\n\n   4. Redistribution. You may reproduce and distribute copies of the\n      Work or Derivative Works thereof in any medium, with or without\n      modifications, and in Source or Object form, provided that You\n      meet the following conditions:\n\n      (a) You must give any other recipients of the Work or\n          Derivative Works a copy of this License; and\n\n      (b) You must cause any modified files to carry prominent notices\n          stating that You changed the files; and\n\n      (c) You must retain, in the Source form of any Derivative Works\n          that You distribute, all copyright, patent, trademark, and\n          attribution notices from the Source form of the Work,\n          excluding those notices that do not pertain to any part of\n          the Derivative Works; and\n\n      (d) If the Work includes a \"NOTICE\" text file as part of its\n          distribution, then any Derivative Works that You distribute must\n          include a readable copy of the attribution notices contained\n          within such NOTICE file, excluding those notices that do not\n          pertain to any part of the Derivative Works, in at least one\n          of the following places: within a NOTICE text file distributed\n          as part of the Derivative Works; within the Source form or\n          documentation, if provided along with the Derivative Works; or,\n          within a display generated by the Derivative Works, if and\n          wherever such third-party notices normally appear. The contents\n          of the NOTICE file are for informational purposes only and\n          do not modify the License. You may add Your own attribution\n          notices within Derivative Works that You distribute, alongside\n          or as an addendum to the NOTICE text from the Work, provided\n          that such additional attribution notices cannot be construed\n          as modifying the License.\n\n      You may add Your own copyright statement to Your modifications and\n      may provide additional or different license terms and conditions\n      for use, reproduction, or distribution of Your modifications, or\n      for any such Derivative Works as a whole, provided Your use,\n      reproduction, and distribution of the Work otherwise complies with\n      the conditions stated in this License.\n\n   5. Submission of Contributions. Unless You explicitly state otherwise,\n      any Contribution intentionally submitted for inclusion in the Work\n      by You to the Licensor shall be under the terms and conditions of\n      this License, without any additional terms or conditions.\n      Notwithstanding the above, nothing herein shall supersede or modify\n      the terms of any separate license agreement you may have executed\n      with Licensor regarding such Contributions.\n\n   6. Trademarks. This License does not grant permission to use the trade\n      names, trademarks, service marks, or product names of the Licensor,\n      except as required for reasonable and customary use in describing the\n      origin of the Work and reproducing the content of the NOTICE file.\n\n   7. Disclaimer of Warranty. Unless required by applicable law or\n      agreed to in writing, Licensor provides the Work (and each\n      Contributor provides its Contributions) on an \"AS IS\" BASIS,\n      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or\n      implied, including, without limitation, any warranties or conditions\n      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A\n      PARTICULAR PURPOSE. You are solely responsible for determining the\n      appropriateness of using or redistributing the Work and assume any\n      risks associated with Your exercise of permissions under this License.\n\n   8. Limitation of Liability. In no event and under no legal theory,\n      whether in tort (including negligence), contract, or otherwise,\n      unless required by applicable law (such as deliberate and grossly\n      negligent acts) or agreed to in writing, shall any Contributor be\n      liable to You for damages, including any direct, indirect, special,\n      incidental, or consequential damages of any character arising as a\n      result of this License or out of the use or inability to use the\n      Work (including but not limited to damages for loss of goodwill,\n      work stoppage, computer failure or malfunction, or any and all\n      other commercial damages or losses), even if such Contributor\n      has been advised of the possibility of such damages.\n\n   9. Accepting Warranty or Additional Liability. While redistributing\n      the Work or Derivative Works thereof, You may choose to offer,\n      and charge a fee for, acceptance of support, warranty, indemnity,\n      or other liability obligations and/or rights consistent with this\n      License. However, in accepting such obligations, You may act only\n      on Your own behalf and on Your sole responsibility, not on behalf\n      of any other Contributor, and only if You agree to indemnify,\n      defend, and hold each Contributor harmless for any liability\n      incurred by, or claims asserted against, such Contributor by reason\n      of your accepting any such warranty or additional liability.\n\n   END OF TERMS AND CONDITIONS\n\n   APPENDIX: How to apply the Apache License to your work.\n\n      To apply the Apache License to your work, attach the following\n      boilerplate notice, with the fields enclosed by brackets \"[]\"\n      replaced with your own identifying information. (Don't include\n      the brackets!)  The text should be enclosed in the appropriate\n      comment syntax for the file format. We also recommend that a\n      file or class name and description of purpose be included on the\n      same \"printed page\" as the copyright notice for easier\n      identification within third-party archives.\n\n   Copyright [yyyy] [name of copyright owner]\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n",
- "licenses": [
-  {
-   "name": "Crosswalk",
-   "license": "CC BY-SA 4.0（内容）",
-   "url": "https://github.com/GenAI-Security-Project/crosswalk"
+  "title": "AI Agent 安全审计图谱",
+  "date": "2026-10-21",
+  "owasp_count": 61,
+  "atlas_selected": 95,
+  "atlas_inventory_total": 208,
+  "mapping_status": "对象职责逐项复核后的条件关联，按对象侧失效模式组织；排除仅为通用防护或活动背景的关系，仍须结合实例能力和证据判断",
+  "role_vocabulary": {
+    "入口": "不可信内容或访问由此进入系统；核查来源鉴别、身份绑定与信任标记。",
+    "风险定位": "机制在此成立，或缺陷规则与配置本身位于此对象；核查其实现、规则与默认行为。",
+    "传播": "污染或影响经此跨对象、跨会话或跨Agent扩散；核查过滤、范围保持与来源标记。",
+    "执行外发": "动作在此实际生效或数据由此离开边界，是链路最后一跳；核查有效主体、参数、目的地与数据范围。",
+    "影响": "后果落在此对象承载的内容、状态或资产上；核查受影响范围、可恢复性与残留。"
   },
-  {
-   "name": "CIS Controls AI Agents Companion Guide",
-   "license": "CC BY-NC-ND 4.0（原文）",
-   "url": "https://www.cisecurity.org/controls/"
+  "failure_mode_note": "对象侧命题分别记录适用前提与失效判据；目录条目用于分类，目标证据用于判定。",
+  "source_hashes": {
+    "sources/framework/framework.json": "4167505a2ca894a22b3b23b6e896cd038118f269f0dc4dafed234bb303d8a3bb",
+    "sources/crosswalk/incidents.json": "63cef161a3be1b5a3f5c563ec29972eeb7a9e6bdc2126b24f92fc86c2d002c85",
+    "sources/safeai/SAFEAI_Full_Report.pdf": "85bc757eb5d4d3a3efd22f0a71ac3b617b365a9e38d3a3f830d67ca4a058a160",
+    "sources/mitre-atlas/ATLAS-2026.09.yaml": "935efa93e28294432d3e2f537eb94991ef8d1f8c58341cd360ea3321ddb66688",
+    "sources/cis/CIS_Controls_v8.1_AI_Agents_Companion_Guide_April_2026.pdf": "824ab8a2e829a11a66318339180366339088813be8b6ee0dc2a64391bb476c3b",
+    "sources/cis/CIS_MCP_Server_Benchmark_v1.0.0.pdf": "af4d7a3e931c70691cc3529633171468848757dde80baa779746122241ab1aeb",
+    "sources/cis/cis-defense-source.json": "a30708e0f7a539f14a54e7246847c3e685682d4281f1dd9518a04cc512082ccc",
+    "sources/cis/cis-risk-mappings.json": "b02c5f951397e0f263bff1c941f948ed40f6e62c52efda8e4d5c33f034e09d82",
+    "sources/cis/mcp-defense-source.json": "0886a7919442a32264878fdaf2732e48e1202a8ee801aa20275ad1d849b07b6f",
+    "sources/owasp/OWASP-GenAI-Data-Security-Risks-and-Mitigations-2026-v1.0.pdf": "0ed25c0c086ab7da25abc76080ce5e579e17e683a838d4fc42b8557caaceaf31",
+    "sources/owasp/OWASP-GenAI-LLM-Top-10-2026-v1.0.pdf": "ef87993a4e50ae9d83b41ff7a3d3e6320a82dfa8d4ec6bf98d0ce264b2e6108e",
+    "sources/owasp/OWASP-Top-10-for-Agentic-Applications-2026-12.6-1.pdf": "a2db94cd00b08e0b3a5e5b619afe024bdbcd74503111085705e4f3dd886fcb5c",
+    "sources/lab/memory-poisoning-README.md": "e4baca82f68ab97c2714da5882c1b7150cd9fbd0d2f1e0af179c70ed6471a74e",
+    "sources/owasp/mcp-top10-2025/2025/MCP01-2025-Token-Mismanagement-and-Secret-Exposure.md": "75674495cd088c26bb39612c9c507bd6b9eee694b123b21e839a41c0ae639633",
+    "sources/owasp/mcp-top10-2025/2025/MCP02-2025–Privilege-Escalation-via-Scope-Creep.md": "1fe5150d9986202c4eb5fb2472982e1c840842c1cf7bb1902ff76986cb500f36",
+    "sources/owasp/mcp-top10-2025/2025/MCP03-2025–Tool-Poisoning.md": "d8373cfc1b3a947a2ebde47d255ddbdd6853eb2137a69c3de5f0df9c05a25746",
+    "sources/owasp/mcp-top10-2025/2025/MCP04-2025–Software-Supply-Chain-Attacks&Dependency-Tampering.md": "89c6921309eda354b795327a7668b2ac0b7851287706443502026f9bfb124b67",
+    "sources/owasp/mcp-top10-2025/2025/MCP05-2025–Command-Injection&Execution.md": "fad5d40c1ceaa49ce9baed93b6172fd8b11be2fa86611dab60c8270e46769218",
+    "sources/owasp/mcp-top10-2025/2025/MCP06-2025–Intent-Flow-Subversion.md": "b8af55de6ee7c3387a18e0c0538a2076a9151b1fcce109bb048d179f1be276c6",
+    "sources/owasp/mcp-top10-2025/2025/MCP07-2025–Insufficient-Authentication&Authorization.md": "f46951bcad33029fa21fc7ce78298162920bf758a833a94196a99d511fd69870",
+    "sources/owasp/mcp-top10-2025/2025/MCP08-2025–Lack-of-Audit-and-Telemetry.md": "c038c9e4c4f20d48967920ac5abb4da1221b5d3b9b95cd16ecf92af7395365fc",
+    "sources/owasp/mcp-top10-2025/2025/MCP09-2025–Shadow-MCP-Servers.md": "d367653ccb3b3488ea21b0d5e93902030995cb535184b30d354c0e7c3f5ddeb0",
+    "sources/owasp/mcp-top10-2025/2025/MCP10-2025–ContextInjection&OverSharing.md": "5566630e6513c428a710143bfa595be02125cd53132449d5041ce986ebd46de1",
+    "sources/owasp/mcp-top10-2025/README.md": "25b20dfeb4021d6241a608815fa829ba525333006efe791634b562199543a253",
+    "sources/owasp/mcp-top10-2025/index.md": "4d65ec4917c33b9196b2bc7d15c89935c2084509dbbadf2ec4debf9dcfac7ded",
+    "sources/owasp/mcp-top10-2025/tab_top10.md": "024c5c51a55a66a74bea928faf2212849dd5581a98040766149205bca9ad2f14",
+    "sources/owasp/mcp-top10-2025/LICENSE.md": "f9d5222c36c096ec0222ba65bbdde11891d47e20a3721e7f152d70c184fc3ba0",
+    "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/vuln_review.md": "0884fa25868c95e4ce05797abe165c77e709bf84956a9ac62944e2a8ca898b1c",
+    "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/code_audit.md": "a9936fc5d9c10dfb1550082707b1b0977ec4dad4020742de07f9bb8a8623c9e1",
+    "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/dynamic/malicious_behaviour_testing.md": "d766014ed387e905df3c0064efaf9e062dc61327cb18383f9f29958f50d84ce9",
+    "sources/ai-infra-guard/LICENSE": "e77b34bf79aede74ad23d3fe9b54bfd24e428fdf70e1359d2e846966cc08f138"
   },
-  {
-   "name": "MITRE ATLAS data ©2021–2026 MITRE",
-   "license": "Apache License 2.0",
-   "url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/LICENSE"
+  "license_text": "Copyright 2021-2026 MITRE\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n\n\n                                 Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/\n\n   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n   1. Definitions.\n\n      \"License\" shall mean the terms and conditions for use, reproduction,\n      and distribution as defined by Sections 1 through 9 of this document.\n\n      \"Licensor\" shall mean the copyright owner or entity authorized by\n      the copyright owner that is granting the License.\n\n      \"Legal Entity\" shall mean the union of the acting entity and all\n      other entities that control, are controlled by, or are under common\n      control with that entity. For the purposes of this definition,\n      \"control\" means (i) the power, direct or indirect, to cause the\n      direction or management of such entity, whether by contract or\n      otherwise, or (ii) ownership of fifty percent (50%) or more of the\n      outstanding shares, or (iii) beneficial ownership of such entity.\n\n      \"You\" (or \"Your\") shall mean an individual or Legal Entity\n      exercising permissions granted by this License.\n\n      \"Source\" form shall mean the preferred form for making modifications,\n      including but not limited to software source code, documentation\n      source, and configuration files.\n\n      \"Object\" form shall mean any form resulting from mechanical\n      transformation or translation of a Source form, including but\n      not limited to compiled object code, generated documentation,\n      and conversions to other media types.\n\n      \"Work\" shall mean the work of authorship, whether in Source or\n      Object form, made available under the License, as indicated by a\n      copyright notice that is included in or attached to the work\n      (an example is provided in the Appendix below).\n\n      \"Derivative Works\" shall mean any work, whether in Source or Object\n      form, that is based on (or derived from) the Work and for which the\n      editorial revisions, annotations, elaborations, or other modifications\n      represent, as a whole, an original work of authorship. For the purposes\n      of this License, Derivative Works shall not include works that remain\n      separable from, or merely link (or bind by name) to the interfaces of,\n      the Work and Derivative Works thereof.\n\n      \"Contribution\" shall mean any work of authorship, including\n      the original version of the Work and any modifications or additions\n      to that Work or Derivative Works thereof, that is intentionally\n      submitted to Licensor for inclusion in the Work by the copyright owner\n      or by an individual or Legal Entity authorized to submit on behalf of\n      the copyright owner. For the purposes of this definition, \"submitted\"\n      means any form of electronic, verbal, or written communication sent\n      to the Licensor or its representatives, including but not limited to\n      communication on electronic mailing lists, source code control systems,\n      and issue tracking systems that are managed by, or on behalf of, the\n      Licensor for the purpose of discussing and improving the Work, but\n      excluding communication that is conspicuously marked or otherwise\n      designated in writing by the copyright owner as \"Not a Contribution.\"\n\n      \"Contributor\" shall mean Licensor and any individual or Legal Entity\n      on behalf of whom a Contribution has been received by Licensor and\n      subsequently incorporated within the Work.\n\n   2. Grant of Copyright License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      copyright license to reproduce, prepare Derivative Works of,\n      publicly display, publicly perform, sublicense, and distribute the\n      Work and such Derivative Works in Source or Object form.\n\n   3. Grant of Patent License. Subject to the terms and conditions of\n      this License, each Contributor hereby grants to You a perpetual,\n      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n      (except as stated in this section) patent license to make, have made,\n      use, offer to sell, sell, import, and otherwise transfer the Work,\n      where such license applies only to those patent claims licensable\n      by such Contributor that are necessarily infringed by their\n      Contribution(s) alone or by combination of their Contribution(s)\n      with the Work to which such Contribution(s) was submitted. If You\n      institute patent litigation against any entity (including a\n      cross-claim or counterclaim in a lawsuit) alleging that the Work\n      or a Contribution incorporated within the Work constitutes direct\n      or contributory patent infringement, then any patent licenses\n      granted to You under this License for that Work shall terminate\n      as of the date such litigation is filed.\n\n   4. Redistribution. You may reproduce and distribute copies of the\n      Work or Derivative Works thereof in any medium, with or without\n      modifications, and in Source or Object form, provided that You\n      meet the following conditions:\n\n      (a) You must give any other recipients of the Work or\n          Derivative Works a copy of this License; and\n\n      (b) You must cause any modified files to carry prominent notices\n          stating that You changed the files; and\n\n      (c) You must retain, in the Source form of any Derivative Works\n          that You distribute, all copyright, patent, trademark, and\n          attribution notices from the Source form of the Work,\n          excluding those notices that do not pertain to any part of\n          the Derivative Works; and\n\n      (d) If the Work includes a \"NOTICE\" text file as part of its\n          distribution, then any Derivative Works that You distribute must\n          include a readable copy of the attribution notices contained\n          within such NOTICE file, excluding those notices that do not\n          pertain to any part of the Derivative Works, in at least one\n          of the following places: within a NOTICE text file distributed\n          as part of the Derivative Works; within the Source form or\n          documentation, if provided along with the Derivative Works; or,\n          within a display generated by the Derivative Works, if and\n          wherever such third-party notices normally appear. The contents\n          of the NOTICE file are for informational purposes only and\n          do not modify the License. You may add Your own attribution\n          notices within Derivative Works that You distribute, alongside\n          or as an addendum to the NOTICE text from the Work, provided\n          that such additional attribution notices cannot be construed\n          as modifying the License.\n\n      You may add Your own copyright statement to Your modifications and\n      may provide additional or different license terms and conditions\n      for use, reproduction, or distribution of Your modifications, or\n      for any such Derivative Works as a whole, provided Your use,\n      reproduction, and distribution of the Work otherwise complies with\n      the conditions stated in this License.\n\n   5. Submission of Contributions. Unless You explicitly state otherwise,\n      any Contribution intentionally submitted for inclusion in the Work\n      by You to the Licensor shall be under the terms and conditions of\n      this License, without any additional terms or conditions.\n      Notwithstanding the above, nothing herein shall supersede or modify\n      the terms of any separate license agreement you may have executed\n      with Licensor regarding such Contributions.\n\n   6. Trademarks. This License does not grant permission to use the trade\n      names, trademarks, service marks, or product names of the Licensor,\n      except as required for reasonable and customary use in describing the\n      origin of the Work and reproducing the content of the NOTICE file.\n\n   7. Disclaimer of Warranty. Unless required by applicable law or\n      agreed to in writing, Licensor provides the Work (and each\n      Contributor provides its Contributions) on an \"AS IS\" BASIS,\n      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or\n      implied, including, without limitation, any warranties or conditions\n      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A\n      PARTICULAR PURPOSE. You are solely responsible for determining the\n      appropriateness of using or redistributing the Work and assume any\n      risks associated with Your exercise of permissions under this License.\n\n   8. Limitation of Liability. In no event and under no legal theory,\n      whether in tort (including negligence), contract, or otherwise,\n      unless required by applicable law (such as deliberate and grossly\n      negligent acts) or agreed to in writing, shall any Contributor be\n      liable to You for damages, including any direct, indirect, special,\n      incidental, or consequential damages of any character arising as a\n      result of this License or out of the use or inability to use the\n      Work (including but not limited to damages for loss of goodwill,\n      work stoppage, computer failure or malfunction, or any and all\n      other commercial damages or losses), even if such Contributor\n      has been advised of the possibility of such damages.\n\n   9. Accepting Warranty or Additional Liability. While redistributing\n      the Work or Derivative Works thereof, You may choose to offer,\n      and charge a fee for, acceptance of support, warranty, indemnity,\n      or other liability obligations and/or rights consistent with this\n      License. However, in accepting such obligations, You may act only\n      on Your own behalf and on Your sole responsibility, not on behalf\n      of any other Contributor, and only if You agree to indemnify,\n      defend, and hold each Contributor harmless for any liability\n      incurred by, or claims asserted against, such Contributor by reason\n      of your accepting any such warranty or additional liability.\n\n   END OF TERMS AND CONDITIONS\n\n   APPENDIX: How to apply the Apache License to your work.\n\n      To apply the Apache License to your work, attach the following\n      boilerplate notice, with the fields enclosed by brackets \"[]\"\n      replaced with your own identifying information. (Don't include\n      the brackets!)  The text should be enclosed in the appropriate\n      comment syntax for the file format. We also recommend that a\n      file or class name and description of purpose be included on the\n      same \"printed page\" as the copyright notice for easier\n      identification within third-party archives.\n\n   Copyright [yyyy] [name of copyright owner]\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n",
+  "licenses": [
+    {
+      "name": "Crosswalk",
+      "license": "CC BY-SA 4.0（内容）",
+      "url": "https://github.com/GenAI-Security-Project/crosswalk"
+    },
+    {
+      "name": "CIS Controls AI Agents Companion Guide",
+      "license": "CC BY-NC-ND 4.0（原文）",
+      "url": "https://www.cisecurity.org/controls/"
+    },
+    {
+      "name": "MITRE ATLAS data ©2021–2026 MITRE",
+      "license": "Apache License 2.0",
+      "url": "https://github.com/mitre-atlas/atlas-data/blob/v2026.09/LICENSE"
+    },
+    {
+      "name": "OWASP MCP Top 10 2025 · OWASP及项目贡献者",
+      "license": "LICENSE.md：CC BY-SA 4.0；README/index：CC BY-NC-SA 4.0（上游声明不一致，均保留）",
+      "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/LICENSE.md",
+      "license_urls": [
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+        "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      ],
+      "notice_url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/index.md",
+      "adaptation_note": "本项目作中文整理及独立映射；两种上游许可声明均保留，未将NC限制省略或将整套图谱统一改为该许可。"
+    },
+    {
+      "name": "Tencent AI-Infra-Guard",
+      "license": "Apache License 2.0",
+      "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/LICENSE",
+      "adaptation_note": "所选提示文件原样保留；风险定义、FM及映射由本项目分析，不代表腾讯或OWASP审核。"
+    }
+  ],
+  "data_version": "v1",
+  "canonical_data": "data",
+  "technical_scope_only": true,
+  "canonical_security_object_count": 15,
+  "security_view_count": 1,
+  "atlas_selection_policy": {
+    "current_scope": "仅保留经过职责复核且至少关联一个规范对象或共享视图的ATLAS技术。",
+    "selection_review_file": "data/atlas-selection-review.json"
+  },
+  "cross_domain_theme_count": 4,
+  "source_pin_root": "package",
+  "contract_schema_version": "3.0",
+  "mcp_top10_source": {
+    "name": "OWASP MCP Top 10",
+    "edition": "2025",
+    "status": "beta / v0.1",
+    "repository": "https://github.com/owasp/www-project-mcp-top-10",
+    "project_url": "https://owasp.org/www-project-mcp-top-10/",
+    "commit": "165fe0f78ef104459237b4a8e0f6e78db9b02391",
+    "commit_date": "2026-07-29T16:00:25+02:00",
+    "imported_on": "2026-10-20",
+    "snapshot_note": "采用用户提供克隆的固定提交。2025是目录年版；正文在2026年仍有更新，不代表2025年末的历史快照。",
+    "status_note": "固定提交index.md标记Phase 3 Beta Release and Pilot Testing，tab_top10.md标记v0.1；不提升为正式版。",
+    "source_notes": [
+      "MCP06正文与index.md已改名Intent Flow Subversion；README.md及tab_top10.md仍使用旧标题和已不存在的文件路径，采用正文实际标题及路径。",
+      "MCP03正文主要说明schema poisoning，同时含工具描述文本检测线索；目录概述还包含响应投毒、rug pull和tool shadowing，整理时保留工具投毒的完整范围。",
+      "MCP05文末反馈链接误指MCP10；项目引用固定提交中的MCP05实际文件。"
+    ],
+    "license_note": "上游LICENSE.md声明CC BY-SA 4.0；README.md及index.md链接CC BY-NC-SA 4.0。两种声明并存，均原样保留，不擅自认定其中一份覆盖另一份。",
+    "adaptation_note": "风险定义为中文整理，FM、审计核查、对象/控制/案例关联和严重度为项目判断，未经OWASP审核。按内容与实际边界判断，不把上游示例、检测关键词或推荐产品作为必要条件。",
+    "source_refs": [
+      {
+        "title": "MCP目录与阶段说明",
+        "local_path": "sources/owasp/mcp-top10-2025/index.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/index.md"
+      },
+      {
+        "title": "MCP v0.1目录快照",
+        "local_path": "sources/owasp/mcp-top10-2025/tab_top10.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/tab_top10.md"
+      },
+      {
+        "title": "MCP项目README",
+        "local_path": "sources/owasp/mcp-top10-2025/README.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/README.md"
+      },
+      {
+        "title": "MCP LICENSE.md原文",
+        "local_path": "sources/owasp/mcp-top10-2025/LICENSE.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/LICENSE.md"
+      }
+    ]
+  },
+  "mcp_supplement_source": {
+    "name": "AI-Infra-Guard MCP补充机制",
+    "repository": "https://github.com/tencent/AI-Infra-Guard",
+    "commit": "c11a8527312b9468aadb76ad0df3572f6da40c47",
+    "imported_on": "2026-10-21",
+    "classification_names": [
+      "Name Confusion",
+      "Rug Pull Attack",
+      "Tool Shadowing Attack"
+    ],
+    "scope_note": "三项为该项目在MCP01–MCP10之外列出的补充名称，未赋予OWASP编号。本项目按实际机制关联现有风险，不新增MCP11–MCP13。",
+    "interpretation_note": "静态提示把Rug Pull偏重于终止服务，动态提示涵盖注册或会话中的行为改变；Tool Shadowing静态判据同时要求重定义、隐藏指令与功能替换。此处保留原件并独立判断机制，不继承这些限制，也不以恶意意图或名称相似作为必要或充分条件。",
+    "source_refs": [
+      {
+        "title": "AI-Infra-Guard · MCP补充风险分类（固定提交）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/vuln_review.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/vuln_review.md"
+      },
+      {
+        "title": "AI-Infra-Guard · 静态检测提示（判据范围需独立判断）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/code_audit.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/code_audit.md"
+      },
+      {
+        "title": "AI-Infra-Guard · 运行期Rug Pull定义（固定提交）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/dynamic/malicious_behaviour_testing.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/dynamic/malicious_behaviour_testing.md"
+      }
+    ]
   }
- ],
- "data_version": "v1",
- "canonical_data": "data",
- "technical_scope_only": true,
- "canonical_security_object_count": 15,
- "security_view_count": 1,
- "atlas_selection_policy": {
-  "current_scope": "仅保留经过职责复核且至少关联一个规范对象或共享视图的ATLAS技术。",
-  "selection_review_file": "data/atlas-selection-review.json"
- },
- "cross_domain_theme_count": 4,
- "source_pin_root": "package"
 }

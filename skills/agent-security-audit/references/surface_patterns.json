@@ -1,0 +1,506 @@
+{
+ "schema_version": "2.0",
+ "purpose": "Agent 域的可选文本检索模式族：供 surface.py 返回匹配位置与来源，帮助模型定位实现；命中不自动成为审计任务或覆盖分母。",
+ "rules": [
+  "sink 表示寻找具体构造的模式，topic 表示寻找主题词的模式；两者都只返回文本候选。模型结合原文判断相关性及是否认领为正式任务，无需为每条原始命中写结论。历史上一个 53 万行的 Rust 仓仅主题词就产生 46,554 条命中，不能据此要求同等数量的检查。",
+  "命中与零命中都不能证明覆盖。模式只识别已表达的文本形态，可能漏掉项目封装、授权、信任与逻辑缺陷；模型按声明范围阅读实现、记录证据与限制。",
+  "object_ids 是来源标签，不是适用性判定，也不能自动改变单元边界、对象归属或优先级。同一位置可保留多个模式族与对象标签，由模型判断含义。",
+  "regex 是检索种子；模型先明确问题、范围和结果用途，再决定是否执行。发现需要调查的项目封装后，模型决定在本单元认领或交接。",
+  "本文件不写失效命题编号：命题编号随框架基线变化，object_ids 稳定，运行时再由基线解析成命题。",
+  "检索形态受语言影响。模型发现具体形态缺口时可补模式或直接读实现；不要求每种语言至少一次命中，也不要求每个目标提交召回模式。",
+  "历史模式修正依据包括词内片段误匹配、正则分支限定遗漏，以及常见词的大量提及。这些案例帮助模型检查查询质量；匹配数、文件数或词形不能单独裁定 sink/topic、安全意义或是否值得调查。",
+  "裸词可能匹配定义、调用、注释、字符串及标识符片段；调用形态也不能证明真实调用关系。脚本保留位置与匹配式，模型阅读原文后判定。"
+ ],
+ "families": [
+  {
+   "id": "IF-01",
+   "name": "入口与会话",
+   "object_ids": [
+    "A1.1",
+    "A1.3"
+   ],
+   "sink": [
+    "@app\\.(?:route|get|post|put|delete)",
+    "@router\\.(?:get|post|put|delete)",
+    "app\\.(?:get|post|put|delete)\\s*\\(",
+    "http\\.HandleFunc",
+    "mux\\.Handle",
+    "\\.route\\s*\\(\\s*[\"'/]",
+    "Router::new",
+    "axum::",
+    "actix_web::",
+    "tonic::transport::Server",
+    "ServiceBuilder::new",
+    "listen\\s*\\(",
+    "bind\\s*\\(\\s*[\"&]",
+    "accept\\s*\\(\\s*\\)",
+    "upgrade\\s*\\(.*websocket"
+   ],
+   "topic": [
+    "websocket",
+    "webhook",
+    "session_id",
+    "conversation_id",
+    "generation",
+    "cron|schedule|CronTrigger"
+   ]
+  },
+  {
+   "id": "IF-02",
+   "name": "解析与渲染",
+   "object_ids": [
+    "A1.2"
+   ],
+   "sink": [
+    "innerHTML",
+    "dangerouslySetInnerHTML",
+    "securityLevel",
+    "render_template_string",
+    "yaml\\.load\\s*\\(",
+    "serde_yaml::from_",
+    "serde_json::from_slice",
+    "from_utf8_unchecked",
+    "quick_xml|xml\\.etree|lxml\\.etree",
+    "unescape|html_escape",
+    "ansi_to|strip_ansi"
+   ],
+   "topic": [
+    "markdown|Markdown",
+    "mermaid",
+    "DOMPurify|sanitize_html|bleach",
+    "pytesseract|ocr",
+    "terminal|pty|vt100"
+   ]
+  },
+  {
+   "id": "IF-03",
+   "name": "提示与上下文组装",
+   "object_ids": [
+    "A2.1",
+    "A2.2"
+   ],
+   "sink": [
+    "system_prompt|SYSTEM_PROMPT|systemPrompt",
+    "messages\\.push|messages\\.append",
+    "ChatPromptTemplate|PromptTemplate",
+    "format_messages",
+    "build_context|assemble_context",
+    "render_prompt|prompt_template"
+   ],
+   "topic": [
+    "scratchpad",
+    "\\bprompt\\b",
+    "instruction"
+   ]
+  },
+  {
+   "id": "IF-04",
+   "name": "编排与委派",
+   "object_ids": [
+    "A2.3",
+    "A2.7",
+    "A2.4"
+   ],
+   "sink": [
+    "spawn_agent|spawn_sub",
+    "handoff|hand_off",
+    "\\bdelegate\\s*\\(",
+    "broadcast\\s*\\(",
+    "AgentExecutor",
+    "plan_and_execute",
+    "a2a::|A2AClient"
+   ],
+   "topic": [
+    "orchestrat",
+    "\\bcrew\\b",
+    "sub_?agent",
+    "multi_?agent",
+    "supervisor"
+   ]
+  },
+  {
+   "id": "IF-05",
+   "name": "Skill 与规则文件加载",
+   "object_ids": [
+    "A2.5",
+    "A7.5"
+   ],
+   "sink": [
+    "SKILL\\.md",
+    "AGENTS\\.md",
+    "CLAUDE\\.md",
+    "\\.cursorrules",
+    "copilot-instructions",
+    "load_skill|discover_skills|skills_dir",
+    "front_?matter",
+    "allowed-tools|allowed_tools",
+    "read_to_string\\s*\\([^)]*(?:skill|agent|rule|prompt)",
+    "include_str!"
+   ],
+   "topic": [
+    "plugin_dir|extension_dir",
+    "manifest"
+   ]
+  },
+  {
+   "id": "IF-06",
+   "name": "审批与动作策略",
+   "object_ids": [
+    "A2.6"
+   ],
+   "sink": [
+    "auto_?approve|autoApprove",
+    "approve\\s*\\(|approval_required|require_approval",
+    "permission_mode|permissionMode",
+    "human_in_the_loop|require_human",
+    "is_allowed\\s*\\(|check_allowed|authorize\\s*\\(",
+    "Decision::(?:Allow|Deny)",
+    "Verdict|PolicyDecision",
+    "unwrap_or\\s*\\(\\s*true\\s*\\)"
+   ],
+   "topic": [
+    "\\bconfirm\\b",
+    "\\bpolicy\\b",
+    "\\breview\\b",
+    "\\bbypass\\b",
+    "\\bdangerously\\b",
+    "\\byolo\\b",
+    "allowlist|allow_list|whitelist"
+   ]
+  },
+  {
+   "id": "IF-07",
+   "name": "工具目录与描述",
+   "object_ids": [
+    "A4.1"
+   ],
+   "sink": [
+    "@tool\\b",
+    "Tool\\s*\\(\\s*name",
+    "FunctionTool|StructuredTool",
+    "inputSchema|input_schema",
+    "list_tools|listTools",
+    "function_declarations|tool_schema",
+    "ToolDefinition|tool_definition"
+   ],
+   "topic": [
+    "description\\s*[:=]",
+    "docstring|__doc__"
+   ]
+  },
+  {
+   "id": "IF-08",
+   "name": "工具调用与参数",
+   "object_ids": [
+    "A4.2"
+   ],
+   "sink": [
+    "call_tool|callTool",
+    "tool_call|toolCall",
+    "dispatch_tool|execute_tool",
+    "json\\.loads\\(\\s*(?:arguments|args)",
+    "serde_json::from_str::<[^>]*Args",
+    "\\.invoke\\s*\\(",
+    "handle_tool"
+   ],
+   "topic": [
+    "\\barguments\\b",
+    "tool_name|func_name"
+   ]
+  },
+  {
+   "id": "IF-09",
+   "name": "MCP 协议面",
+   "object_ids": [
+    "A4.3"
+   ],
+   "sink": [
+    "tools/list|tools/call",
+    "resources/(?:list|read)",
+    "prompts/(?:list|get)",
+    "stdio_(?:client|server)|StdioServer",
+    "streamable_http|SSEServer",
+    "initialize_request|InitializeResult",
+    "ClientSession|ServerSession",
+    "mcp\\.json|\\.mcp\\.json"
+   ],
+   "topic": [
+    "\\bjsonrpc\\b|json-rpc",
+    "\\bmcp\\b|\\bMCP\\b"
+   ]
+  },
+  {
+   "id": "IF-10",
+   "name": "连接器与出站",
+   "object_ids": [
+    "A4.4"
+   ],
+   "sink": [
+    "requests\\.(?:get|post|put|delete|request)",
+    "httpx\\.(?:get|post|AsyncClient|Client)",
+    "urllib\\.request|urlopen",
+    "axios\\.",
+    "fetch\\s*\\(\\s*[\"'`]",
+    "reqwest::(?:get|Client)",
+    "hyper::Client|hyper_util::client",
+    "TcpStream::connect|TcpListener::bind",
+    "http\\.(?:Get|Post|NewRequest)|http\\.Client",
+    "net\\.Dial|DialContext",
+    "boto3\\.client",
+    "to_socket_addrs|lookup_host|resolve\\s*\\("
+   ],
+   "topic": [
+    "\\bproxy\\b",
+    "\\begress\\b",
+    "\\bupstream\\b"
+   ]
+  },
+  {
+   "id": "IF-11",
+   "name": "浏览器与桌面工具",
+   "object_ids": [
+    "A4.5"
+   ],
+   "sink": [
+    "playwright|puppeteer",
+    "selenium|webdriver",
+    "BrowserWindow|webContents",
+    "pyautogui|xdotool",
+    "screenshot\\s*\\(|screencapture"
+   ],
+   "topic": [
+    "electron",
+    "webview|WebView",
+    "\\bcdp\\b|DevTools"
+   ]
+  },
+  {
+   "id": "IF-12",
+   "name": "执行器与沙箱",
+   "object_ids": [
+    "A4.6",
+    "A7.1",
+    "A7.2"
+   ],
+   "sink": [
+    "\\beval\\s*\\(",
+    "\\bexec\\s*\\(",
+    "__import__",
+    "subprocess\\.(?:run|Popen|call|check_output)",
+    "os\\.(?:system|popen|exec[lv])",
+    "child_process|execSync|spawnSync",
+    "shell\\s*=\\s*True",
+    "Command::new|process::Command|tokio::process",
+    "exec\\.Command|syscall\\.Exec",
+    "\\bunsafe\\s*\\{",
+    "libc::(?:fork|exec|setuid|setgid|chroot|mount)",
+    "prctl|seccomp|landlock|unshare|setns|pivot_root",
+    "CAP_[A-Z_]+|caps::|capabilities\\s*[:=]",
+    "no_new_privs|NoNewPrivs",
+    "OpenOptions|fs::(?:write|create|remove|rename|set_permissions)",
+    "set_permissions|chmod|(?<![0-9a-zA-Z_])0o?[0-7]{3,4}(?![0-9a-zA-Z_])",
+    "(?:symlink|hard_link|canonicalize)\\s*\\(",
+    "mkdtemp|tempfile::|TempDir"
+   ],
+   "topic": [
+    "\\bsandbox\\b",
+    "\\bdocker\\b|podman|containerd|runc",
+    "\\bisolation\\b",
+    "\\bcgroup"
+   ]
+  },
+  {
+   "id": "IF-13",
+   "name": "记忆读写与命名空间",
+   "object_ids": [
+    "A5.1",
+    "A5.2"
+   ],
+   "sink": [
+    "memory\\.(?:add|save|get|search|update)",
+    "\\bupsert\\b",
+    "save_context|load_memory_variables",
+    "chat_history|message_history",
+    "WHERE\\s+[a-z_]*(?:user|tenant|owner)",
+    "filter\\s*\\(\\s*[^)]*(?:user_id|tenant)"
+   ],
+   "topic": [
+    "namespace",
+    "user_id|tenant_id|org_id",
+    "\\bscope\\b"
+   ]
+  },
+  {
+   "id": "IF-14",
+   "name": "检索与摄取",
+   "object_ids": [
+    "A5.3",
+    "A5.4",
+    "A5.7"
+   ],
+   "sink": [
+    "as_retriever|retriever\\s*=",
+    "VectorStore|Chroma|FAISS|Qdrant|Pinecone|Milvus",
+    "add_texts|add_documents",
+    "similarity_search",
+    "TextLoader|DirectoryLoader",
+    "embed_(?:query|documents)"
+   ],
+   "topic": [
+    "\\bembedding",
+    "\\bchunk",
+    "\\bingest",
+    "\\bindex\\b"
+   ]
+  },
+  {
+   "id": "IF-15",
+   "name": "缓存与检查点",
+   "object_ids": [
+    "A5.5",
+    "A5.6"
+   ],
+   "sink": [
+    "pickle\\.(?:load|loads|dump)",
+    "marshal\\.|dill\\.",
+    "joblib\\.load",
+    "torch\\.load",
+    "yaml\\.unsafe_load",
+    "bincode::deserialize|rmp_serde::from",
+    "gob\\.NewDecoder|json\\.Unmarshal\\s*\\(",
+    "Checkpointer|save_checkpoint|restore\\s*\\("
+   ],
+   "topic": [
+    "\\bcheckpoint\\b",
+    "\\bsnapshot\\b",
+    "\\bcache\\b",
+    "\\bredis\\b"
+   ]
+  },
+  {
+   "id": "IF-16",
+   "name": "身份与凭据",
+   "object_ids": [
+    "A7.4"
+   ],
+   "sink": [
+    "os\\.environ|getenv|process\\.env|env::var",
+    "assume_role|\\bsts\\.",
+    "Authorization\\s*[\"':,]|header\\s*\\(\\s*[\"']Authorization",
+    "Bearer\\s|basic_auth",
+    "decode\\s*\\(\\s*&?(?:token|jwt)|jsonwebtoken::|jwt::",
+    "Validation\\s*\\{|validate_(?:token|jwt|claims)",
+    "verify_(?:signature|token|cert|peer)",
+    "danger_accept_invalid|InsecureSkipVerify|rejectUnauthorized\\s*:\\s*false",
+    "keyring|keychain",
+    "set_var\\s*\\(",
+    "Secret<|SecretString"
+   ],
+   "topic": [
+    "api_?key|API_KEY",
+    "\\btoken\\b",
+    "credential",
+    "\\bsecret\\b",
+    "\\bjwt\\b|JWT",
+    "\\binsecure\\b",
+    "\\bredact\\b|\\bzeroize\\b"
+   ]
+  },
+  {
+   "id": "IF-17",
+   "name": "模型网关与中转",
+   "object_ids": [
+    "A3.2",
+    "A3.3"
+   ],
+   "sink": [
+    "base_url|baseURL|base-url",
+    "OPENAI_BASE_URL|ANTHROPIC_BASE_URL|OPENAI_API_BASE",
+    "api_base",
+    "verify\\s*=\\s*False",
+    "https?_proxy|HTTPS?_PROXY",
+    "litellm|openrouter|one-?api",
+    "ClientBuilder::new|danger_"
+   ],
+   "topic": [
+    "\\binference\\b",
+    "\\bprovider\\b",
+    "\\bendpoint\\b",
+    "\\bmodel\\b"
+   ]
+  },
+  {
+   "id": "IF-18",
+   "name": "日志与护栏",
+   "object_ids": [
+    "A6.1",
+    "A6.2",
+    "A6.3"
+   ],
+   "sink": [
+    "guardrail|Guardrail",
+    "moderation|moderate\\s*\\(",
+    "content_filter|filter_output",
+    "detect_injection|prompt_?shield",
+    "\\bredact\\b|mask_|scrub",
+    "(?:info|warn|error)!\\s*\\([^)]{0,160}(?:token|secret|credential|password)"
+   ],
+   "topic": [
+    "logger|logging|tracing",
+    "\\bspan\\b|opentelemetry",
+    "\\baudit\\b",
+    "\\bmetric"
+   ]
+  },
+  {
+   "id": "IF-19",
+   "name": "供应链与安装",
+   "object_ids": [
+    "A7.5",
+    "A7.6"
+   ],
+   "sink": [
+    "postinstall|preinstall",
+    "entry_points|console_scripts",
+    "pip\\s+install|uv\\s+pip|poetry\\s+add",
+    "npm\\s+(?:i|install)|yarn\\s+add|pnpm\\s+add",
+    "cargo\\s+install",
+    "git\\s+clone",
+    "curl\\s+-[a-zA-Z]*s[a-zA-Z]*\\s",
+    "verify_signature|gpg\\s+--verify|cosign|sigstore",
+    "image\\s*[:=]\\s*[\"'][^\"']*:latest",
+    "digest\\s*[:=]|sha256:",
+    "from_reader|load_config|read_config"
+   ],
+   "topic": [
+    "requirements\\.txt|pyproject\\.toml|Cargo\\.toml|go\\.mod|package\\.json",
+    "lock(?:file)?\\b",
+    "\\bSBOM\\b|sbom"
+   ]
+  }
+ ],
+ "cross_domain_hint": {
+  "X1": [
+   "IF-06",
+   "IF-08",
+   "IF-16"
+  ],
+  "X2": [
+   "IF-02",
+   "IF-03",
+   "IF-13",
+   "IF-14"
+  ],
+  "X3": [
+   "IF-05",
+   "IF-07",
+   "IF-09",
+   "IF-19"
+  ],
+  "X4": [
+   "IF-10",
+   "IF-11",
+   "IF-17"
+  ]
+ }
+}

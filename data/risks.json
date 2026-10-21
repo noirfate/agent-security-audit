@@ -169,7 +169,7 @@
       "系统会安装、发现或动态加载外部能力。",
       "来源、内容和实际运行版本缺少完整约束。"
     ],
-    "mechanism": "工具定义、同伴身份或更新内容在审核后变化，Agent继承原信任继续调用；供应链从静态依赖延伸到运行中的连接。",
+    "mechanism": "外部工具的名称或发现条目仿冒可信来源，使不可信能力获得原工具身份或信任；工具定义、同伴身份或更新内容也可在审核后变化，Agent继承原信任继续调用。运行期远端变化不要求本地版本更新；工具遮蔽还可能借共享上下文影响其他服务的能力。",
     "impact": [
       "隐藏指令、恶意代码进入工作流。",
       "通过共享组件跨Agent传播。"
@@ -180,14 +180,23 @@
       "隔离第三方能力，分批验证更新并提供跨部署撤销机制。"
     ],
     "checks": [
-      "比对审核清单、发现结果和实际调用的端点与版本。",
-      "检查发布者、动态能力变更及紧急撤销能否覆盖现有会话。"
+      "比对审核清单、发现结果和实际调用的来源、端点、标识及实现，核对名称仿冒或同名覆盖能否借用其他工具的信任。",
+      "检查发布者、动态定义与行为变更及紧急撤销能否覆盖现有会话，包括版本不变的远端变化。"
     ],
     "source_refs": [
       {
         "title": "OWASP Top 10 for Agentic Applications 2026",
         "local_path": "sources/owasp/OWASP-Top-10-for-Agentic-Applications-2026-12.6-1.pdf",
         "pdf_page": 19
+      },
+      {
+        "title": "AI-Infra-Guard · MCP补充风险分类（固定提交）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/vuln_review.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/vuln_review.md"
+      },
+      {
+        "title": "Invariant Labs · MCP Rug Pull与跨服务Tool Shadowing研究",
+        "url": "https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks"
       }
     ],
     "content_origin": "source-grounded Chinese paraphrase",
@@ -13906,6 +13915,533 @@
     ],
     "tactics_origin": "由本地ATLAS 2026.09案例关系中该技术实际出现的战术归纳；该固定版本文件不含逐技术战术归属，空值或未列出的战术不表示不适用。",
     "subtechnique_case_ids": [],
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP01": {
+    "id": "MCP01",
+    "name_zh": "令牌管理不当与秘密暴露",
+    "name_en": "Token Mismanagement and Secret Exposure",
+    "definition": "MCP客户端、服务端或工具把有效令牌和秘密存入配置、提示、共享上下文或日志，或缺少生命周期约束，使无权主体能够取得并复用这些凭据。",
+    "preconditions": [
+      "MCP调用链持有凭据，并将其交付给工具、配置、上下文、缓存或观测系统。"
+    ],
+    "mechanism": "秘密随任务数据流入保护较弱或更广可见的载体；历史召回、上下文读取和日志导出可再次暴露凭据，长效或共享令牌扩大可利用范围。",
+    "impact": [
+      "未授权访问仓库、生产API和基础设施。",
+      "凭据被复用以篡改代码、横向移动或外传数据。"
+    ],
+    "defenses": [
+      "受管保存秘密，在需要的执行边界按需交付短期、窄范围凭据。",
+      "限制秘密进入模型上下文和观测载荷，落实访问隔离、脱敏、轮换与撤销。"
+    ],
+    "checks": [
+      "沿凭据从签发到使用的完整路径核对接收方、可见性、持久化副本与后续读取路径。",
+      "检查泄露后的可用范围、到期和撤销行为；不以必须获得真实生产秘密作为发现暴露路径的前提。"
+    ],
+    "control_ids": [
+      "C01",
+      "C07",
+      "C15"
+    ],
+    "method_ids": [
+      "M02",
+      "M03",
+      "M05"
+    ],
+    "mapping_reason": "定位凭据交付、上下文及日志存储、令牌转交与数据流向规则。",
+    "project_severity": "Critical",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP01:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP01-2025-Token-Mismanagement-and-Secret-Exposure.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP01-2025-Token-Mismanagement-and-Secret-Exposure.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP02": {
+    "id": "MCP02",
+    "name_zh": "权限范围膨胀导致提权",
+    "name_en": "Privilege Escalation via Scope Creep",
+    "definition": "MCP Agent或工具原本临时、有限的权限因便利性配置、授权累积或漂移而扩大，超出任务需要且未及时回收。",
+    "preconditions": [
+      "MCP Agent或工具具有可授予、继承、延续或变更的资源访问权限。"
+    ],
+    "mechanism": "测试授权被带入生产，临时提权长期有效，或多个系统的权限在同一主体上叠加，使自主调用获得额外能力。",
+    "impact": [
+      "未审查的代码、部署或基础设施变更。",
+      "权限扩大后可创建凭据、冒用服务身份或跨资源访问。"
+    ],
+    "defenses": [
+      "按任务限定动作、资源和时效，并对权限增加及长期任务重新授权。",
+      "记录授权变更，比较批准范围与实际有效权限，在结束、撤销和配置切换时回收。"
+    ],
+    "checks": [
+      "追踪初始化、临时提权、委派、更新及会话结束后的有效权限，识别范围扩张与残留。",
+      "对照任务所需权限与实际可调用能力，检查拒绝路径是否在执行关口生效。"
+    ],
+    "control_ids": [
+      "C02",
+      "C10",
+      "C15"
+    ],
+    "method_ids": [
+      "M03",
+      "M05",
+      "M07"
+    ],
+    "mapping_reason": "定位授权规则、凭据范围和调用关口对累计权限及有效期的约束。",
+    "project_severity": "High",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP02:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP02-2025–Privilege-Escalation-via-Scope-Creep.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP02-2025%E2%80%93Privilege-Escalation-via-Scope-Creep.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP03": {
+    "id": "MCP03",
+    "name_zh": "工具投毒",
+    "name_en": "Tool Poisoning",
+    "definition": "MCP工具名称、来源标识、描述、模式、清单或响应携带仿冒、误导性语义或恶意指令，使Agent误认工具身份或依据不可信的工具契约选择和执行动作。",
+    "preconditions": [
+      "Agent或宿主消费工具条目、定义或结果，用于身份与信任判断、工具选择、参数构造或后续执行。"
+    ],
+    "mechanism": "名称混淆（Name Confusion）使仿冒或冲突条目被误认为预期工具；Rug Pull利用已建立的信任，在后续更新或运行期改变定义、响应或行为，本地版本号可以不变。Tool Shadowing既可能通过同名或重复注册遮蔽调用目标，也可能由一个工具的指令改变其他服务工具的调用，后者不要求名称冲突或调用投毒工具。描述注入和模式投毒也可改变工具选择及参数语义。",
+    "impact": [
+      "数据外传、破坏性操作及权限滥用。",
+      "调用通过结构校验，实际语义却已被投毒，导致表面有效的记录掩盖行为偏差。"
+    ],
+    "defenses": [
+      "把工具名称、标识、提供方和实际实现可靠绑定，在发现、聚合、冲突处理、刷新及最终调用时保留来源。",
+      "核对完整定义、内容和运行行为的变化，按变化重新确认信任与授权；固定本地版本不能单独约束远端服务。",
+      "限制工具内容的指令地位和对其他工具的控制范围，在独立执行边界检查授权、资源及接收方。"
+    ],
+    "checks": [
+      "沿注册与发现、用户和模型可见条目、工具选择到实际调用，核对名称与来源及实现的绑定；相似名称或重复注册只是线索。",
+      "比较首次批准后不同阶段的定义、响应和行为；根据目标追踪更新、时间或调用条件导致的切换，不要求版本号发生变化。",
+      "检查某个工具的定义能否经共享上下文改变其他服务的工具参数或动作，即使该工具从未被调用。",
+      "按实际机制取证：身份混淆核对条目和解析绑定，指令注入核对文本及消费路径，实现或行为变更核对对应代码与状态；这些证据类型不要求同时满足。Tool Shadowing与MCP09未受管服务是不同问题。"
+    ],
+    "control_ids": [
+      "C03",
+      "C05",
+      "C09"
+    ],
+    "method_ids": [
+      "M02",
+      "M04",
+      "M06"
+    ],
+    "mapping_reason": "定位工具条目的身份与实现绑定、模型可见定义、MCP发现及运行期变化、返回处理和制品更新边界。",
+    "project_severity": "Critical",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP03:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP03-2025–Tool-Poisoning.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP03-2025%E2%80%93Tool-Poisoning.md"
+      },
+      {
+        "title": "OWASP MCP Top 10 · MCP03子机制概览（固定提交）",
+        "local_path": "sources/owasp/mcp-top10-2025/tab_top10.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/tab_top10.md"
+      },
+      {
+        "title": "AI-Infra-Guard · MCP补充风险分类（固定提交）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/vuln_review.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/vuln_review.md"
+      },
+      {
+        "title": "AI-Infra-Guard · 静态检测提示（判据范围需独立判断）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/code_audit.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/code_audit.md"
+      },
+      {
+        "title": "AI-Infra-Guard · 运行期Rug Pull定义（固定提交）",
+        "local_path": "sources/ai-infra-guard/mcp-scan/mcp_scan/prompt/agents/dynamic/malicious_behaviour_testing.md",
+        "url": "https://github.com/tencent/AI-Infra-Guard/blob/c11a8527312b9468aadb76ad0df3572f6da40c47/mcp-scan/mcp_scan/prompt/agents/dynamic/malicious_behaviour_testing.md"
+      },
+      {
+        "title": "Invariant Labs · MCP Rug Pull与跨服务Tool Shadowing研究",
+        "url": "https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks"
+      }
+    ],
+    "content_origin": "OWASP固定版本的中文整理；AI-Infra-Guard补充分类与原始研究提供机制线索；FM、核查与跨来源归并为项目判断，不把来源检测提示作为必要条件。",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP04": {
+    "id": "MCP04",
+    "name_zh": "软件供应链攻击与依赖篡改",
+    "name_en": "Software Supply Chain Attacks & Dependency Tampering",
+    "definition": "MCP SDK、服务端、连接器、插件或依赖经不可信发布、包解析、更新或构建环节进入受信执行路径，改变行为或引入后门。",
+    "preconditions": [
+      "目标采用MCP软件组件、依赖或其构建和更新产物。"
+    ],
+    "mechanism": "恶意发布、仿冒包、依赖混淆、仓库或构建链被入侵，使实际采用的组件执行未预期操作，且可继续污染模式、上下文和下游系统。",
+    "impact": [
+      "代码执行、凭据或上下文外传。",
+      "工具语义被改变，影响扩散到共享连接器的多个用户或租户。"
+    ],
+    "defenses": [
+      "维护实际组件及依赖清单，核对来源、版本、摘要和签名适用范围。",
+      "限制动态安装、更新权限和第三方组件的文件、网络及凭据能力，并支持撤销与回滚。"
+    ],
+    "checks": [
+      "追踪解析、安装、构建、更新到实际加载的组件，核对批准内容与运行内容。",
+      "阅读安装钩子、启动逻辑和依赖行为，检查隐藏通信、模式替换和运行期变更。"
+    ],
+    "control_ids": [
+      "C09",
+      "C06",
+      "C15"
+    ],
+    "method_ids": [
+      "M04",
+      "M02",
+      "M05"
+    ],
+    "mapping_reason": "定位MCP接入、可执行组件、构建部署和供应链来源、分发、完整性及更新规则。",
+    "project_severity": "Critical",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP04:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP04-2025–Software-Supply-Chain-Attacks&Dependency-Tampering.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP04-2025%E2%80%93Software-Supply-Chain-Attacks%26Dependency-Tampering.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP05": {
+    "id": "MCP05",
+    "name_zh": "命令注入与执行",
+    "name_en": "Command Injection & Execution",
+    "definition": "用户、模型、协议响应或第三方内容影响MCP执行链中的命令、代码、查询或参数，在缺少语义边界的情况下成为实际执行操作。",
+    "preconditions": [
+      "MCP客户端、服务端或关联工具将可控内容送入进程、解释器、数据库或可执行API。"
+    ],
+    "mechanism": "文本拼接、参数解析或解释器调用混淆数据与控制语义，或模型将上下文中的指令转为未经约束的命令；结构化argv也可能发生选项注入。",
+    "impact": [
+      "以工具或宿主身份执行非预期命令、访问文件或外传数据。",
+      "破坏、持久化、横向移动或资源耗尽。"
+    ],
+    "defenses": [
+      "在最终执行点约束命令、参数含义、路径和资源，使用参数化接口并验证选项边界。",
+      "以最小权限和执行隔离限制后果，对敏感操作校验真实动作及授权。"
+    ],
+    "checks": [
+      "沿可控输入到执行点追踪全部转换，区分Shell解释、argv选项注入、查询注入及模型驱动的执行。",
+      "用目标实际解析规则验证数据是否变成控制参数；不能仅凭禁用shell=True或过滤特殊字符判为安全。"
+    ],
+    "control_ids": [
+      "C04",
+      "C05",
+      "C06"
+    ],
+    "method_ids": [
+      "M02",
+      "M05",
+      "M06"
+    ],
+    "mapping_reason": "定位MCP协议处理缺陷、业务查询转换和实际命令执行器。",
+    "project_severity": "Critical",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP05:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP05-2025–Command-Injection&Execution.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP05-2025%E2%80%93Command-Injection%26Execution.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP06": {
+    "id": "MCP06",
+    "name_zh": "意图流劫持",
+    "name_en": "Intent Flow Subversion",
+    "definition": "Agent读取MCP资源、工具定义或工具返回后，把其中的恶意指令当作行动依据，将原始用户任务改向攻击者目标。",
+    "preconditions": [
+      "经MCP获得的外部上下文能够影响Agent规划或后续工具调用。"
+    ],
+    "mechanism": "低信任内容借安全提示、紧急处置或工作步骤等表述越过指令边界，改变计划和工具序列，同时维持看似仍在完成原任务的外观。",
+    "impact": [
+      "目标劫持、数据外传或非预期的自主动作。",
+      "注入内容留在持续上下文中影响后续任务。"
+    ],
+    "defenses": [
+      "保留用户目标和外部内容的来源边界，将动作授权与资源约束放在执行关口。",
+      "独立复核高影响动作及序列；上下文标签、模型自评或单次过滤不能单独保证意图保持。"
+    ],
+    "checks": [
+      "追踪资源、模式和返回文本进入上下文及规划的路径，判断哪些内容可取得指令地位。",
+      "检查偏离任务的工具序列能否实际执行，以及跨资源读取、写入和外发是否仍受独立约束。"
+    ],
+    "control_ids": [
+      "C03",
+      "C02",
+      "C05"
+    ],
+    "method_ids": [
+      "M02",
+      "M06",
+      "M07"
+    ],
+    "mapping_reason": "定位上下文拼装、编排、工具返回与指令信任边界。",
+    "project_severity": "High",
+    "source_notes": "固定提交的正文与index.md采用Intent Flow Subversion；README.md和tab_top10.md仍使用旧标题Prompt Injection via Contextual Payloads及旧文件链接。本条以实际存在的正文为准。",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP06:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP06-2025–Intent-Flow-Subversion.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP06-2025%E2%80%93Intent-Flow-Subversion.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP07": {
+    "id": "MCP07",
+    "name_zh": "认证与授权不足",
+    "name_en": "Insufficient Authentication & Authorization",
+    "definition": "MCP客户端、服务端或工具未可靠验证调用主体，或未在实际操作处落实主体、权限范围和资源条件，造成身份冒用或越权。",
+    "preconditions": [
+      "MCP调用链提供受保护的数据或动作，且需要区分主体或权限。"
+    ],
+    "mechanism": "服务端相信未验证的身份元数据、共享凭据或上游检查，令牌受众及委派范围在交接中丢失，客户端授权未在服务端执行。",
+    "impact": [
+      "未授权工具执行、敏感数据访问及跨Agent冒用。",
+      "凭据重放、跨租户访问及受信连接器被借用。"
+    ],
+    "defenses": [
+      "按传输和部署形态验证身份、凭据受众及有效期，每次调用在执行侧校验动作和资源权限。",
+      "绑定用户、Agent、会话与委派范围，并落实撤销；协议连续性句柄不作为认证凭据。"
+    ],
+    "checks": [
+      "枚举连接、管理、发现、读取和执行入口，核对认证与授权是否覆盖真实路径。",
+      "比较无凭据、错误受众、越权主体和授权主体的行为，区分认证失败、授权拒绝与协议错误。"
+    ],
+    "control_ids": [
+      "C01",
+      "C02",
+      "C15"
+    ],
+    "method_ids": [
+      "M02",
+      "M03",
+      "M05"
+    ],
+    "mapping_reason": "定位入口身份、会话与委派绑定、MCP连接、凭据服务及资源授权规则。",
+    "project_severity": "Critical",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP07:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP07-2025–Insufficient-Authentication&Authorization.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP07-2025%E2%80%93Insufficient-Authentication%26Authorization.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP08": {
+    "id": "MCP08",
+    "name_zh": "审计与遥测不足",
+    "name_en": "Lack of Audit and Telemetry",
+    "definition": "MCP运行缺少必要的审计事件、关联信息、保留或完整性保护，使关键动作不可可靠追溯，异常行为难以发现和调查。",
+    "preconditions": [
+      "MCP工作流执行需要追溯的数据访问、工具调用、配置变更或授权决定。"
+    ],
+    "mechanism": "事件未采集、上下游无法关联、记录丢失或可被改写，导致用户意图、实际执行身份、工具参数及结果之间缺少可信证据。",
+    "impact": [
+      "攻击或误操作长期未被发现，无法界定影响范围。",
+      "事件调查、归因、响应和安全控制验证失去依据。"
+    ],
+    "defenses": [
+      "在关键边界采集可关联的身份、任务、工具、版本、决定及结果信息，保护传输、存储和保留。",
+      "以必要字段和脱敏平衡可追溯性与隐私，验证采集故障、关闭和篡改能被发现。"
+    ],
+    "checks": [
+      "用同一次操作的执行结果与各层记录对照，检查事件遗漏、关联断点和保留失效。",
+      "核对日志写入、修改、删除和关闭采集的权限与告警；无权读取日志不等于目标没有日志。"
+    ],
+    "control_ids": [
+      "C12",
+      "C15"
+    ],
+    "method_ids": [
+      "M02",
+      "M03",
+      "M08"
+    ],
+    "mapping_reason": "直接定位观测组件的事件覆盖、关联、保留与防篡改缺口。",
+    "project_severity": "High",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP08:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP08-2025–Lack-of-Audit-and-Telemetry.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP08-2025%E2%80%93Lack-of-Audit-and-Telemetry.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP09": {
+    "id": "MCP09",
+    "name_zh": "未受管的MCP服务",
+    "name_en": "Shadow MCP Servers",
+    "definition": "MCP实例在组织或系统规定的登记、批准与监督范围外运行，仍能接触业务数据或提供工具能力，形成未纳入控制的实际服务入口。",
+    "preconditions": [
+      "目标能够部署、启动、注册或连接MCP服务，存在预期的服务准入与管理边界。"
+    ],
+    "mechanism": "个人配置、试验环境或旁路部署引入未登记服务，与生产数据和凭据相连；实际服务集合脱离配置基线、认证和监测覆盖。",
+    "impact": [
+      "隐藏的数据访问和执行入口扩大攻击面。",
+      "安全配置、补丁、凭据回收和事件响应遗漏实际运行的服务。"
+    ],
+    "defenses": [
+      "将部署、注册、连接和生命周期控制纳入实际服务清单，记录所有者、用途、版本、端点及批准状态。",
+      "对照实际进程、连接和服务能力识别旁路接入，并执行准入、隔离和撤销。"
+    ],
+    "checks": [
+      "从启动配置、子进程、网关注册和远程连接追踪实际MCP服务，与批准及可撤销范围比较。",
+      "判断未知端点是否确为MCP且能提供能力；端口、路径、证书形式或缺一份清单本身不足以坐实影子服务。"
+    ],
+    "control_ids": [
+      "C09",
+      "C10",
+      "C15"
+    ],
+    "method_ids": [
+      "M01",
+      "M03",
+      "M08"
+    ],
+    "mapping_reason": "定位实际部署配置的受管范围以及MCP服务准入边界。",
+    "project_severity": "High",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP09:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP09-2025–Shadow-MCP-Servers.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP09-2025%E2%80%93Shadow-MCP-Servers.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
+    "catalog_scope": "technical_object_mappable"
+  },
+  "MCP10": {
+    "id": "MCP10",
+    "name_zh": "上下文注入与过度共享",
+    "name_en": "Context Injection & Over-Sharing",
+    "definition": "MCP工作流复用共享或持久上下文时未保持用户、Agent、任务和用途边界，使敏感内容跨范围流转，或让污染内容持续影响其他交互。",
+    "preconditions": [
+      "MCP相关提示、检索结果、历史或中间输出被保存、复用或交给其他任务及主体。"
+    ],
+    "mechanism": "上下文、记忆、索引和缓存缺少必要的命名空间、权限、用途或保留约束，复用时同时传播敏感数据与不可信指令。",
+    "impact": [
+      "跨用户、跨Agent、跨租户或跨用途的数据暴露。",
+      "上下文污染持久化并影响后续任务。"
+    ],
+    "defenses": [
+      "按实际主体、任务和用途隔离上下文及检索范围，限制保留、恢复和跨Agent共享。",
+      "保持来源与数据分类，使用最小必要字段，阻止记忆中的内容获得高于其来源的指令地位。"
+    ],
+    "checks": [
+      "追踪写入、召回、共享、缓存和恢复路径，核对接收方及可见范围是否保持。",
+      "检查污染或已删除内容是否经持久副本再次采用；共享存储本身并不等于隔离失败。"
+    ],
+    "control_ids": [
+      "C07",
+      "C08",
+      "C03"
+    ],
+    "method_ids": [
+      "M02",
+      "M05",
+      "M07"
+    ],
+    "mapping_reason": "定位上下文及记忆、检索缓存、数据访问、用途和保留规则。",
+    "project_severity": "High",
+    "family": "MCP",
+    "kind": "risk",
+    "version": "2025",
+    "source_status": "beta / v0.1",
+    "source_refs": [
+      {
+        "title": "OWASP MCP Top 10 · MCP10:2025（固定提交正文）",
+        "local_path": "sources/owasp/mcp-top10-2025/2025/MCP10-2025–ContextInjection&OverSharing.md",
+        "url": "https://github.com/owasp/www-project-mcp-top-10/blob/165fe0f78ef104459237b4a8e0f6e78db9b02391/2025/MCP10-2025%E2%80%93ContextInjection%26OverSharing.md"
+      }
+    ],
+    "content_origin": "source-grounded Chinese paraphrase; project-authored audit checks",
+    "related_case_ids": [],
+    "crosswalk_atlas_ids": [],
+    "severity_origin": "本项目按机制影响面给出的分级；OWASP来源未逐项定级，审计时以目标的暴露、权限和资产影响重新判断。",
     "catalog_scope": "technical_object_mappable"
   }
 }

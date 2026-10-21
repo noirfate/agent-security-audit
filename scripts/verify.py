@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
-"""校验发布包：清单指纹、参考源指纹、声明计数，以及页面能否由 data/ 逐字节重建。"""
+"""校验发布包：参考源指纹、声明计数，以及索引、页面与知识包能否逐字节重建。"""
 import hashlib, json, pathlib, shutil, sys, tempfile
 
 PKG = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PKG / 'scripts'))
 import agent_audit_versioning as av
+import package_skill
 
 HTML = 'AI-Agent安全审计图谱.html'
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 fail = []
-
-for line in (PKG / 'MANIFEST.sha256').read_text(encoding='utf-8').splitlines():
-    digest, rel = line.split('  ', 1)
-    if not (PKG / rel).is_file() or sha(PKG / rel) != digest:
-        fail.append('清单不符: ' + rel)
 
 meta = json.loads((PKG / 'data/metadata.json').read_text())
 for rel, digest in meta['source_hashes'].items():
@@ -22,12 +18,20 @@ for rel, digest in meta['source_hashes'].items():
 
 with tempfile.TemporaryDirectory() as tmp:
     stage = pathlib.Path(tmp) / PKG.name
-    shutil.copytree(PKG, stage, ignore=shutil.ignore_patterns('.git', '__pycache__', 'MANIFEST.sha256'))
-    (stage / HTML).unlink()
+    shutil.copytree(PKG, stage, ignore=shutil.ignore_patterns('.git', '__pycache__', 'agent_audit'))
+    for name in ('explorer-data.json', HTML):
+        (stage / name).unlink(missing_ok=True)
     av.ROOT = stage
     data, _ = av.build()
-    if sha(stage / HTML) != sha(PKG / HTML):
-        fail.append('页面无法由 data/ 逐字节重建')
+    exported = package_skill.export(stage, data)
+    for name in ('explorer-data.json', HTML):
+        current = PKG / name
+        if not current.is_file() or sha(stage / name) != sha(current):
+            fail.append('产物无法由 data/ 与 ui/ 逐字节重建: ' + name)
+    for name in ('framework.json', 'manifest.json'):
+        current = PKG / 'skills/agent-security-audit/knowledge' / name
+        if not current.is_file() or sha(exported / name) != sha(current):
+            fail.append('独立知识包无法由规范数据重建: ' + name)
 
 want = json.loads((PKG / 'expectations.json').read_text())['expectations']
 cases = data['cases']

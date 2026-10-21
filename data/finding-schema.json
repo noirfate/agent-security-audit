@@ -1,29 +1,50 @@
 {
-  "schema_version": "1.0",
-  "purpose": "约束审计产出的记录形态，使结论可回溯到具体命题与证据。",
-  "record": {
-    "finding_id": "本次审计内唯一标识",
-    "failure_mode_id": "对应的命题编号，必填；无对应命题的发现需先补命题再记录",
-    "object_id": "命题所属对象",
-    "risk_ids": "该命题覆盖的目录条目，用于对外说明，不作为判定依据",
+  "schema_version": "2.0",
+  "purpose": "描述目标审计的检查记录与发现；运行时结构由skill的目标知识库校验工具约束。本文件不包含目标结果。",
+  "check_record": {
+    "id": "目标知识库内稳定且唯一的检查编号",
+    "instance_ids": "被核查的实际实例；实例与框架对象分类分开编号",
+    "failure_mode_id": "可选的框架命题引用；无对应时为null，不修改框架",
+    "baseline_id": "此次检查引用的只读框架快照指纹",
+    "local_definition": "未映射的本地检查命题，含statement与requirement；可补参考条件",
+    "applicability": "unknown / applicable / not_applicable；由模型结合目标职责与机制判断",
+    "prerequisites": "可选的目标分析笔记，可省略或为空；每行含condition、state（unknown / met / not_met）、evidence_ids，不要求匹配知识库",
+    "criteria": "可选的目标分析笔记，可省略或为空；每行含criterion、state（unknown / met / not_met）、evidence_ids，不要求匹配知识库，也不自动决定verdict",
+    "status": "not_started / in_progress / complete / needs_review；与结论分开",
     "verdict": {
-      "成立": "已取得证据表明该命题在目标上成立",
-      "不成立": "已取得证据表明要求得到满足",
-      "证据不足": "核查已执行但证据不足以判定，须写明缺什么",
-      "不适用": "画像或命题conditions不成立，须写明依据"
+      "confirmed": "成立：模型确认命题适用且目标证据支持所述失效机制与可达性",
+      "not_established": "不成立：在明确证据范围内有反证否定目标失效机制，不代表系统整体安全",
+      "insufficient_evidence": "证据不足：执行了核查但必要材料或可达性等尚未确定",
+      "not_applicable": "不适用：目标证据支持该命题在所述范围不适用"
     },
-    "conditions_met": "命题conditions逐条的实际情况",
-    "evidence": "对应evidence_requirements逐项的实际材料与获取方式",
-    "reproduction": "可复现步骤；无法复现时说明原因",
-    "detectability_observed": "实际观察到的可检测程度，与命题的detectability对照",
-    "responsibility": "自建侧 / 提供商侧 / 共担，与technical_requirements的visibility_boundary对应",
-    "residual_risk": "已有缓解后仍然成立的部分",
-    "severity_assessed": "按目标的自治度、工具权限、数据范围与人工闸门评定，不取目录的project_severity"
+    "evidence_ids": "支持结论的目标证据引用",
+    "counterevidence_ids": "排除候选或限制影响范围的证据引用",
+    "missing_evidence": "尚缺材料与受限的判断",
+    "scope": "design / code / configuration / observed_records，可多选",
+    "explanation": "说明前提、机制、控制和证据如何支持结论"
+  },
+  "record": {
+    "id": "目标知识库内唯一的发现编号",
+    "check_ids": "支持发现的目标检查项编号，可包含本地检查项",
+    "title": "概括机制与影响",
+    "mechanism": "描述不可信输入、权限或信任假设如何导致失效；设计缺陷不强套Source到Sink",
+    "evidence_ids": "目标材料与位置引用",
+    "impact": "受影响资产、主体及边界",
+    "severity": "按目标影响评定的critical / high / medium / low / informational",
+    "severity_reason": "实际前提、权限与影响依据；目录等级不直接继承",
+    "remediation": "针对失效机制和责任方的修复建议",
+    "responsibility": "自建侧 / 提供商侧 / 共担，附可见性限制",
+    "validation": "静态走查步骤与未执行的动态验证要求；不得把预期结果写成实测结果",
+    "residual_risk": "已有控制仍未覆盖的部分",
+    "status": "current / needs_review；材料变化后保留旧结论并标记复核"
   },
   "rules": [
-    "\"证据不足\"与\"不适用\"是一等结论，不得记为\"不成立\"。",
-    "每条发现必须指向一条命题；命题不存在时先在failure-modes中补充并记录来源。",
-    "严重度按目标重新评定，目录中的project_severity只作参考。",
-    "提供商侧无法直接验证的项记录为缺口，不得据其文档直接判定\"不成立\"。"
+    "框架知识库、skill和随包快照在审计期间只读；目标事实与新增检查仅写目标审计知识库。",
+    "FM的statement确定审计问题；知识库前提、判据与取证要求均为非穷尽参考。模型决定目标中的检查方法、必要证据和结论，脚本核对命题覆盖与记录一致性，不要求条件列表一致或逐条满足。",
+    "尚未检查不能写成不成立或证据不足；不适用必须有否定适用前提的事实依据。",
+    "确认发现必须有成立的目标检查项与可回溯证据；框架命题映射为空不阻止记录已证实发现。",
+    "文档描述只能支持设计范围结论。未描述控制、搜索零命中和缺少运行材料都不能单独证明实现缺陷。",
+    "动态核查方法和案例属于参考；首版skill仅静态分析，不执行目标或主动测试。",
+    "材料及引用知识版本变化时，相关结论标为待复核，历史快照保留；不能只修行号就沿用旧结论。"
   ]
 }

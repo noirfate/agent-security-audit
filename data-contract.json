@@ -1,12 +1,12 @@
 {
- "schema_version": "2.0",
- "purpose": "HTML与未来Agent安全分析skill共享同一版本的JSON源数据。本目录是独立维护的发布项目，当前发布版本为v1，不依赖原研究项目的版本索引与过程文件。schema_version表示契约结构版本，与发布版本分别管理。",
+ "schema_version": "3.0",
+ "purpose": "HTML与直接审计skill共享规范框架数据。框架知识维护和目标审计是独立管线；skill读取发布快照，只修改目标审计知识库。schema_version与data_version分别管理。",
  "active_version_source": "以data/metadata.json的data_version识别当前发布版本；data/为规范数据，sources/为参考源原件，ui/为页面源码，scripts/build.py生成展示数据与页面。",
  "canonical_parts": {
   "data/metadata.json": "发布版本、来源指纹及范围；source_hashes描述导入来源。对象与主题计数应与architecture.json及expectations.json一致，风险计数应与risks.json及ATLAS选集结论一致。case_count由编译器按cases.json派生，不手工维护。",
   "data/architecture.json": "七层、架构对象、跨域主题、规范安全对象、对象成员与共享场景视图。当前发布版不提供历史编号到当前对象的别名表。",
-  "data/risks.json": "活动风险/技术的定义、成立前提、机制和场景防御，包括OWASP LLM、ASI、DSGAI、AST及MITRE ATLAS选集。当前规模见expectations.json，ATLAS收录状态见data/atlas-selection-review.json。对象与案例反向索引由活动关联生成，不维护第二份映射。",
-  "data/failure-modes.json": "对象侧失效模式（检查命题）的唯一定义入口。每条命题说明该对象自身会怎样失效、成立条件、取证要求、角色，以及技术要求、核查与检测信号。关联表只引用命题编号，不再各存一份文字；编译时回填到关联上。",
+  "data/risks.json": "活动风险/技术的定义、成立前提、机制和场景防御，包括OWASP LLM、ASI、DSGAI、AST、MCP及MITRE ATLAS选集。MCP采用2025年版固定提交，阶段、来源差异及许可声明见metadata.mcp_top10_source。当前规模见expectations.json，ATLAS收录状态见data/atlas-selection-review.json。对象与案例反向索引由活动关联生成，不维护第二份映射。",
+  "data/failure-modes.json": "对象侧失效命题的唯一定义；statement确定审计问题，applicability_conditions、failure_criteria与取证要求等提供非穷尽参考，模型结合目标决定检查方法和结论。保留技术要求、证据、核查、信号与角色；关联表只引用编号。",
   "data/risk-object-links.json": "风险到对象的唯一关联源；每行保存risk_id、object_id、fm_id以及随风险变化的source_refs与basis_refs.risk，对象侧文字在failure-modes.json。共享视图的关联在规范对象关联的view_reviews中显式登记。",
   "data/cases.json": "案例事实与对象挂载的唯一维护入口，记录数见expectations.json。risk_ids只索引活动目录；source_technique_ids与attack_steps保留官方关系与步骤，允许引用选集外技术。object_mappings逐条写明该案例的哪个环节落到哪个架构对象，含reason、basis与fm_id；object_mapping_exclusions记录经核对排除的对象及理由；object_ids由编译器按object_mappings派生。description/attack_vector/impact/mitigations与attack_steps[].description的中文译文写在同名的_zh字段；事实更正同步修改项目中的双语字段，并登记source-corrections，参考源原件保持不动。记录数不等于独立事件数。",
   "data/defense.json": "来源条款、对象技术要求集合、对象/风险关联和验证/取证说明。technical_requirements为项目细化，未执行。",
@@ -15,8 +15,8 @@
   "data/source-techniques.json": "ATLAS来源目录的名称及入口，用于呈现案例中的选集外步骤；来源目录规模与版本见data/atlas-selection-review.json的source。",
   "data/presentation.json": "展示排序偏好；不能用于新增风险关联。",
   "data/atlas-selection-review.json": "对来源目录每项技术记录显式结论：active／archived／attacker_side／pending_review。entries是逐项结论，counts是相应统计，使族内不一致成为可检查的缺口。",
-  "data/audit-profile.json": "审计开始前要确定的目标形态（部署、自治度、工具能力、数据范围、身份模型、外部来源、协作形态、扩展来源），用于裁剪适用命题。模板不含目标信息。",
-  "data/finding-schema.json": "审计发现的记录形态：每条发现指向一条命题，\"证据不足\"与\"不适用\"是一等结论。",
+  "data/audit-profile.json": "审计开始前要确定的目标形态（部署、自治度、工具能力、数据范围、身份模型、外部来源、协作形态、扩展来源），用于裁剪适用命题。维度可带affects_ids，按选项登记该选项决定哪些对象在不在，供审计期机械裁剪本轮计划；只登记组件在不在的关系，取证责任与隔离要求类的差异不做机械裁剪。模板不含目标信息。",
+  "data/finding-schema.json": "目标检查与发现的记录契约；框架命题引用可空，未映射机制保存在目标本地检查，不能在审计时回写框架。",
   "data-contract.json": "本版本的数据契约，随版本包一起存放；描述该包内各文件职责与规则。",
   "expectations.json": "当前发布版声明的计数，scripts/verify.py据此核对。新增或删除记录时同步更新已有统计项。",
   "sources/": "本版本全部导入来源的原件副本（OWASP Crosswalk案例、MITRE ATLAS原始YAML、CIS与OWASP条款PDF、SAFE-AI报告、原始框架JSON与本地实验材料）。data里的local_path与引用一律指向这里，metadata.source_hashes逐文件锁定其sha256，版本包不依赖包外任何文件。",
@@ -26,14 +26,14 @@
  "generated_outputs": [
   "explorer-data.json",
   "AI-Agent安全审计图谱.html",
-  "manifest.json",
-  "MANIFEST.sha256"
+  "skills/agent-security-audit/knowledge/framework.json",
+  "skills/agent-security-audit/knowledge/manifest.json"
  ],
  "build_rules": [
-  "在本目录修改data/或ui/源文件，执行python3 scripts/build.py重建；不手改HTML、生成索引或文件清单。",
+  "在本目录修改data/或ui/源文件，执行python3 scripts/build.py重建；不手改HTML、生成索引或skill知识包。",
   "构建读取本目录data/与ui/，参考源指纹来自包内sources/，无需访问原研究目录或外部仓库。",
-  "当前发布版v1的manifest.frozen为false，允许在本项目继续维护并重建。",
-  "修改契约、README或其他发布文件后也应重建，以同步manifest.json与MANIFEST.sha256，然后执行python3 scripts/verify.py。"
+  "修改契约后也应重建，以同步skill只读知识包，然后执行python3 scripts/verify.py。",
+  "scripts/build.py同时导出skill只读知识包；审计运行时不调用构建或打包脚本。"
  ],
  "identity_rules": [
   "对象分类标识与实际部署实例标识是不同概念；同一实例可在多个视图出现。",
@@ -41,7 +41,7 @@
   "评估器与判定规则是A6.3的成员A6.3.evaluator；A6.4仅作为成员的former_id和搜索别名保留，不是活动对象编号。",
   "X2.3是X1.3授权策略的数据访问视图；不维护第二份授权规则。",
   "当前发布版的视图关联由规范关联中明确列出的view_reviews投影，并使用该视图单独复核的命题与条件。",
-  "映射仅是项目候选；读取命题conditions、applicability和对象责任边界后再分析具体目标。",
+  "映射仅是项目候选；读取命题applicability_conditions、failure_criteria和对象责任边界后再分析具体目标。",
   "previous_locations、former_id及previous_architecture_edition是历史来源信息；当前对象标识以architecture.json中的id为准，不按历史编号自动解析。",
   "跨域主题为X1身份权限安全、X2数据安全、X3供应链安全、X4网络隔离安全。X4.1网络可达策略与X4.2出口与目标约束描述规则；A7.3网络与出口代理描述执行这些规则的设施。"
  ],
@@ -49,7 +49,7 @@
   "读取data/metadata.json确认发布版本与来源范围，读取expectations.json了解规模",
   "按data/audit-profile.json确定目标形态，据此裁剪适用命题",
   "读取data/architecture.json识别对象、成员与视图",
-  "读取data/failure-modes.json取得该对象要查的命题、条件、核查与检测信号",
+  "读取data/failure-modes.json取得对象的适用前提、失效判据、技术要求和取证说明",
   "按data/risk-object-links.json筛选对象及视图关联",
   "从data/risks.json提取风险定义与条件",
   "从data/defense.json取得对应技术要求、核查和证据",
@@ -58,7 +58,7 @@
  ],
  "limitations": [
   "这是资料与候选映射的数据模型，不是已经执行的目标安全审计结果。",
-  "当前发布包不包含审计skill；技术核查仍需结合目标与证据细化。",
+  "首版skill只做静态分析；动态核查说明是参考，不代表执行过目标测试。",
   "命题的requirement、checks与detection_signals为项目细化，未在任何目标系统执行；detectability是判断，需按目标实际遥测核对。"
  ],
  "definition_rules": {
@@ -73,14 +73,14 @@
   "object_level_role": "风险位置语义由编译后每条关联的role承担，词表见role_vocabulary；不以对象级role字段推导风险关联。"
  },
  "risk_mapping_rules": [
-  "risk-object-links是活动映射唯一来源；每行引用同一对象的有效命题，并保留风险定义与来源引用。reason、conditions和evidence_requirements由命题在编译时展开。",
+  "risk-object-links是活动映射唯一来源；每行引用同一对象的有效命题，并保留风险定义与来源引用。reason、applicability_conditions、failure_criteria和evidence_requirements由命题在编译时展开。",
   "对象侧的失效模式写在failure-modes.json；同一命题被多个目录条目引用时只写一次，不得为某个条目另抄一份措辞。",
   "原始控制覆盖不等于对象自身风险；活动标签只使用逐项复核保留或新增的关系。",
   "活动标签读取当前关联；对象的risk_ids以及风险的object_ids、security_object_ids为编译派生。",
   "X2.3的关联应在规范X1.3关系内明确列出view_reviews，并引用该视图的命题。",
-  "修改活动关联时，在命题中同步维护成立理由、条件、取证要求与对象依据，在关联中同步维护风险依据；变更通过本项目Git历史追溯。",
+  "修改活动关联时，在命题中同步维护失效描述、适用前提、失效判据、取证要求与对象依据，在关联中同步维护风险依据；变更通过本项目Git历史追溯。",
   "AML活动目录仅保留至少一个活动对象关系的技术；所有来源技术的收录结论维护在data/atlas-selection-review.json。案例source_technique_ids和attack_steps不随活动目录裁剪。",
-  "一个对象对同一目录条目只建立一条关联。若两条命题都指向同一条目，说明其中一条不是独立命题，应并入另一条的核查。",
+  "以risk_id、object_id、fm_id三元组唯一标识一条关联。同一对象对同一目录条目可以有多个独立命题，各自保留机制、证据和角色；不得因风险标签相同而合并独立失效。对象与风险标签索引去重，命题关联完整保留。",
   "补齐来源目录时，被收入条目的父项与同族子项必须在atlas-selection-review中各有显式结论。"
  ],
  "role_vocabulary": {
@@ -174,8 +174,10 @@
  "verification_scope": {
   "automatic": [
    "scripts/build.py展开风险关联时校验命题存在且属于该对象，并要求每条命题有目录关联。",
-   "scripts/verify.py校验MANIFEST.sha256中的文件指纹、metadata.source_hashes中的参考源指纹和expectations.json声明的计数。",
-   "scripts/verify.py在临时副本中重新生成页面，校验HTML可逐字节重建。"
+   "scripts/verify.py校验metadata.source_hashes中的参考源指纹和expectations.json声明的计数。",
+   "scripts/verify.py在临时副本中重新生成索引和页面，校验explorer-data.json与HTML可逐字节重建。",
+   "构建拒绝混合条件字段，检查适用前提与失效判据非空。",
+   "verify.py核对独立知识包与规范数据重建结果一致；目标记录通过skill的audit.py校验引用、证据状态及结论一致性。"
   ],
   "maintenance_review": "本契约中的建模、案例引用、来源更正、中文字段和复核结论一致性规则均是维护要求；当前脚本未完整自动校验这些规则，不能将PASS视为全部语义约束已经通过。"
  },
@@ -186,5 +188,12 @@
   "duplicate-of必须给出of，指向同一事件的另一条案例；该条自身不挂载，对象结论以of所指为准，且of不得再是duplicate-of。",
   "对象侧出现\"零直接案例\"时，要能从本表的结论集合解释原因，而不是由沉默解释。",
   "判定out-of-scope的依据是\"命题层里没有一条描述这次失效\"，不是\"目标产品不叫Agent\"。对象的定义是组件类别：承担检测或识别判定的模型就是A3.1，施加模型安全策略的服务就是A3.2，无论它外面是否包着一个Agent。写理由时要指出是哪条命题的成立条件不满足。"
- ]
+ ],
+ "knowledge_pipelines": {
+  "framework_maintenance": "维护data与ui，构建HTML和随包知识快照；发布时生成知识包指纹。此流程独立于审计。",
+  "audit_runtime": "只读skill与知识快照；目标画像、实例关系、证据、检查、发现和报告写入目标知识库，并保留历史快照。",
+  "unmapped_mechanisms": "建立目标本地检查编号和定义，可关联框架对象；映射缺口不是发现成立的障碍，不自动补充通用框架。",
+  "distribution": "scripts/build.py在发布时生成知识包；复制整个skill目录即可独立使用。知识包保留来源身份、链接与许可说明，不携带原始PDF，sources引用须回框架发布包查阅。",
+  "condition_semantics": "FM命题确定审计问题；知识库前提、判据与取证要求是非穷尽参考，不构成固定条件合取或审计范围上限。模型决定目标中的检查方法、必要证据、适用性与结论；脚本核对范围内命题覆盖、显式状态与记录一致性，不比较条件列表或要求参考条件全部满足。未知能力不当作不存在；控制有效不能据此判为不适用。"
+ }
 }

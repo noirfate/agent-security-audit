@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared, versioned JSON sources for the offline explorer and future audits."""
+"""Shared, versioned JSON sources for the offline explorer and audit skill."""
 import copy
 import hashlib
 import json
@@ -49,17 +49,20 @@ def resolve_failure_modes(package, links):
         assert mode['object_id'] == row['object_id'], ('Proposition belongs to another object', row['fm_id'])
         return {'risk_id': row['risk_id'], 'object_id': row['object_id'],
                 'role': mode['role'], 'reason': mode['statement'],
-                'conditions': mode['conditions'],
+                'applicability_conditions': mode['applicability_conditions'],
+                'failure_criteria': mode['failure_criteria'],
                 'evidence_requirements': mode['evidence_requirements'],
-                'applicability': mode['applicability'],
                 'mapping_status': mode['mapping_status'], 'origin': mode['origin'],
                 'review_id': mode['review_id'],
                 'basis_refs': {**mode['basis_refs'], **row['basis_refs']},
                 'source_refs': row['source_refs'], 'failure_mode_id': row['fm_id'],
                 **({'revised_by': mode['revised_by']} if mode.get('revised_by') else {})}
 
-    resolved = []
+    resolved, seen = [], set()
     for row in links:
+        key = (row['risk_id'], row['object_id'], row['fm_id'])
+        assert key not in seen, ('Duplicate risk/object/proposition mapping', key)
+        seen.add(key)
         link = expand(row)
         if row.get('contexts'):
             link['contexts'] = row['contexts']
@@ -111,7 +114,8 @@ def mapping_review(package, links, views):
         key = (link['object_id'], link['risk_id'])
         assert key not in accepted, ('Duplicate review decision', key)
         assert link['review_id'] == review['review_id']
-        assert link['conditions'] and link['evidence_requirements'] and link['basis_refs']
+        assert link['applicability_conditions'] and link['failure_criteria']
+        assert link['evidence_requirements'] and link['basis_refs']
         accepted[key] = link
     active = {}
     for link in links:
@@ -164,6 +168,13 @@ def compile_data(version=None):
             if 'object_mappings' in case else case.get('object_ids', [])
     failure_modes = copy.deepcopy(read(package / 'data/failure-modes.json')) \
         if (package / 'data/failure-modes.json').exists() else {}
+    for fid, mode in failure_modes.items():
+        assert mode['id'] == fid, ('Mismatched proposition id', fid)
+        assert mode['object_id'] in {**objects, **security, **views}, ('Unknown object', fid)
+        assert 'conditions' not in mode and 'applicability' not in mode, ('Legacy mixed conditions', fid)
+        for field in ('applicability_conditions', 'failure_criteria', 'evidence_requirements'):
+            values = mode.get(field)
+            assert isinstance(values, list) and values and all(isinstance(s, str) and s.strip() for s in values), (fid, field)
     links = resolve_failure_modes(package, p['risk-object-links'])
     review = mapping_review(package, links, views)
     for link in links:
@@ -258,19 +269,9 @@ def compile_data(version=None):
 
 def build(version=None, publish_current=False):
     package = version_dir(version)
-    manifest_path = package / 'manifest.json'
-    manifest = read(manifest_path) if manifest_path.exists() else {}
-    data_version = read(package / 'data/metadata.json')['data_version']
-    frozen = manifest.get('frozen', False) and manifest.get('version') == data_version
-    if frozen:
-        if not all(sha(package / path) == digest for path, digest in manifest['files'].items()):
-            raise RuntimeError('Frozen version changed; refusing to overwrite its baseline')
     data = compile_data()
     export_text = json.dumps(data, ensure_ascii=False, indent=2) + '\n'
-    if frozen:
-        assert export_text == (package / 'explorer-data.json').read_text(), 'Compiler would change the frozen data'
-    else:
-        (package / 'explorer-data.json').write_text(export_text)
+    (package / 'explorer-data.json').write_text(export_text)
     css = (package / 'ui/app.css').read_text()
     js = (package / 'ui/app.js').read_text()
     template = (package / 'ui/app.html').read_text()
@@ -287,23 +288,5 @@ def build(version=None, publish_current=False):
         marker = '<meta name="agent-project-root" content="' + href_to(ROOT) + '">' \
                  '\n  <meta name="agent-package-root" content="' + href_to(package) + '">'
         rendered = base.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  ' + marker, 1)
-        if frozen and target.parent == package:
-            assert rendered == target.read_text(), 'Compiler would change the frozen HTML'
-        else:
-            target.write_text(rendered)
-    if not frozen:
-        source_manifest(package, frozen=False)
+        target.write_text(rendered)
     return data, targets
-
-
-def source_manifest(package, frozen=False):
-    paths = sorted((package / 'data').glob('*.json')) + sorted((package / 'ui').glob('*'))
-    # A self-contained package fingerprints its own contract, declared counts and import sources.
-    paths += [package / name for name in ('data-contract.json', 'expectations.json') if (package / name).is_file()]
-    paths += sorted(p for p in (package / 'sources').rglob('*') if p.is_file())
-    paths += [package / 'explorer-data.json', package / HTML_NAME]
-    result = {'version': read(package / 'data/metadata.json')['data_version'], 'frozen': frozen,
-              'canonical_sources': 'data/*.json为维护入口；ui为页面源码；sources为导入来源原件；explorer-data.json和HTML由脚本生成。',
-              'files': {str(p.relative_to(package)): sha(p) for p in paths if p.is_file()}}
-    write(package / 'manifest.json', result)
-    return result

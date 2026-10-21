@@ -1,0 +1,29 @@
+{
+  "bundle_schema": "1.0",
+  "framework_version": "v1",
+  "contract_schema": "3.0",
+  "source_files_bundled": false,
+  "source_note": "sources/引用指向框架发布包的原件，不在独立skill内。外部链接与许可保留在meta中。",
+  "source_hashes": {
+    "data/architecture.json": "09fa999dd0437f79c76b0e6b3338a5fd85bc950c102b1a37b64f0ebddc7753ad",
+    "data/atlas-selection-review.json": "2b1eaf40ddabc9dd85095a8b1a8889b500e899bc45710826fab6f116aa4e5435",
+    "data/audit-profile.json": "6317d4780a90678185d5700f7ef992aaa2b9c7f7df1c55aa30a4ecbd1d8fd2f1",
+    "data/case-object-review.json": "4b367095317f49cedcdf254c38bd053d9e107c58709fb70acee1bcd26da026ea",
+    "data/cases.json": "746b7c30ea33c5aa05b6365c7d534ef63bc654589b7fb88348740faf3a73a7c1",
+    "data/defense.json": "03d213081dbb2ddc5a2ba0b18351227f856c5454a87fbb2d677a0d7241e24fa4",
+    "data/failure-modes.json": "bd3b0426818583a75a7846d8ed776dd6229ea462d58a6a9078d1cc22bb3cf94c",
+    "data/finding-schema.json": "fc126fb9e265d7e3b598cecf563731c4036177da41a041367541b77d5518482f",
+    "data/metadata.json": "02c1350b423a4a0327aaa351136c491f6c28ad4e22ffd6dafed2d3ecc8826ca0",
+    "data/presentation.json": "b46165c0d1419d12a839fb05f2a4854092bc98e440c2b48bc308f8e82ec0ee5f",
+    "data/reference-catalogs.json": "0e07862e71ce1b6b57cfc5ec6432d04e1ff2e88d8219e942a868adb495b9c3d9",
+    "data/risk-object-links.json": "18a0fdc208f7de1d0bd4a72ef82d3f167013a43be331bd1ab58d363edac10ce2",
+    "data/risks.json": "644ffcfe51ccd512942e41a1ce23f8d7102a930b15d1c1e894f310b1b01daf78",
+    "data/safeai.json": "d7c1c89dee9cf81cf9116c799429d57a5b9214f82a076aa9e49db98de91f35c5",
+    "data/source-corrections.json": "e3a4e646fb7fffc8604c99a0de457d3ce4217a868c6a5a6e817734bf9c5d0f89",
+    "data/source-techniques.json": "171906113e9d956665d398a988a9f6b21ac9e47db8875df73681dea5c413b960",
+    "data-contract.json": "c1b6121229dd4d6be211159ce877d7e1147f1f8b64d1f67e3969773669d79e05"
+  },
+  "files": {
+    "framework.json": "fd397c995c8f127fd3d3af4b8c753c25e8231479e12752cea7f5e973235b0e88"
+  }
+}
