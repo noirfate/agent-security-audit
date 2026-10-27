@@ -57,6 +57,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" plan --workspace "$WS" --freeze --ph
 | `object_scope` | 未被声明的框架对象是否涉及；不涉及须记录依据，涉及须有承担单元 |
 | `cross_cutting_objects` | 多单元声明的对象是否需 joint 整体核查；分布不能证明覆盖不全 |
 | `cross_scope` | 三阶段每类明确答 `needed` / `not_needed` 和理由 |
+| `cluster_scope` | 制品单元 ≥3 个时，要不要先建簇用代表审一遍；答 `needed` / `not_needed` 和理由，答 `needed` 就跑 `cluster` 并逐条处置差异 |
 
 一阶段冻结要求分区、对象映射和显式裁决完成，不要求运行检索、召回或逐命中处置。`surface` 重建不应改变已确认的职责边界。
 
@@ -86,9 +87,15 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
 ```
 一阶段   init / refresh → plan → 模型确认 / --apply → freeze（surface / recall 按需）
 二阶段   一轮对应一个类型段（repo_shard/artifact、residual；三阶段为 joint / chain / goal / xartifact）。
-         按环境并发容量派单；已交付单元即可进入复核，其他单元继续执行。
-  1  audit.py dispatch --unit … --round N 生成 brief，spawn worker（契约 roles/worker.md，给绝对路径）
+         按 dispatch 核过的容量分波派单；已交付单元即可进入复核，其他单元继续执行。
+  1  audit.py dispatch --unit … --round N --wave W 生成 brief，spawn worker（契约 roles/worker.md，给绝对路径）
+     超出容量时 dispatch 直接拒绝并说还能派几个——拆波再派，不要先派出去等宿主拒绝
+     spawn 被宿主拒（「Concurrent subagent limit reached」）：不重试、也不自己接着审，
+     把该单元回滚成 planned 并清掉 wave，下一波优先派；拒绝信息里报的数字就是生效上限，
+     据此把 queue.dispatch_capacity 改记 source: refusal_observed
   2  收 return 行，确认该 worker 已停止写入；不读候选正文
+     每波收口读一次 audit.py dispatch --status（按轮次与波次给 dispatched / returned /
+     outstanding / deferred），对不上就按上一行处理——不要靠记忆对账，上下文一压缩就没了
   3  audit.py review --prepare --unit …；机械项不过就交回修正，再交付
   4  为已交付且预检通过的单元启动或复用 reviewer（契约 roles/reviewer.md）
      给本批单元清单、已有判定摘要和未完成范围，主代理只读更新后的判定摘要
@@ -108,7 +115,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
   9  写入者落盘并暂停后 snapshot；保存已交付、已核与未完成清单，再释放上下文
 闸门     gate（阶段适用的 G1、G2 与正式任务状态必过；G3 为参考信息）
 三阶段   模型决定 cross_scope → queue_critic 质问 → freeze --phase 3 → 执行 needed 类型
-收口     gate --prepare → report_writer 写终报并闭合 report_todos → gate（不带 --prepare）
+收口     段级 reviewer 跑 rootcause 读候选、rootcause --apply 落裁决（强候选逐条答，
+         判 distinct 也要带理由；合并呈现类的报告待办在这里落地，不留给报告措辞）
+         → gate --prepare → report_writer 写终报并闭合 report_todos → gate（不带 --prepare）
          → 一名复核终报 → validate / report / sarif / snapshot
 ```
 
@@ -180,7 +189,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 
 退出码分两个方向：**0 全过；1 读得了但内容没收口（去修记录）；2 读不到或读不懂（去修路径或格式）**。**原样跑，不要接管道**——接了管道退出码是末端命令的，闸门会无声放行。
 
-八条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将尚未呈现的报告待办留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
+十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 根因强候选逐条裁决、归并逐成员留路径（成员全属旧契约单元的候选豁免；全部豁免时整行 skip，并在 detail 里写明这一行没核到东西）；G10 四张机械清单在 `report.md` 里的行数合计 ≤20%（量的是交付出来的那个文件，没生成报告时整行 skip）。G9 只在收口前有意义——候选要等全部单元合入才稳定，二阶段中途它照常报「还没裁决」，按行读即可，不必为它停下。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将尚未呈现的报告待办留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
 
 两条容易读错的：**G4 读的是单元的 `exposure`**（实例上没人填——契约要求填在发现上，单元的由裁决环节填；若按实例判，闸门会永远输出「EXT 实例 0 个」而通过）。**G7 接受带 `needs_evidence` 复核的 `needs_review` 发现**：那是正当判定，它的闭合形式就是「记录了缺什么」；只有毫无复核记录的发现才算悬空。G7 同时核订正条目是否带改前／改后／理由，以及 `report_todos` 是否全部闭合。
 
@@ -188,6 +197,27 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 
 六个分析维度在记录里的字段名：`bidirectional`（双向追踪）、`control_efficacy`（防护有效性）、`trust_model`（信任模型与平台承诺）、`lateral`（同类操作横向核查）、`capability_combo`（能力组合）、`asset_goal`（资产目标反查）。每个单元每个维度取 `pending` / `done` / `na`，判 `na` 要写理由。
 
-## 9 并行能力不可用时
+## 9 容量与三档并行
+
+同时能跑多少个子代理由宿主定，不由本skill假定。`dispatch` 按**记录里已有的值 → 环境变量
+`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` → 宿主默认**的顺序解析，把结果连来源写进
+`queue.dispatch_capacity`，并在派单前核**本波待派数 + 仍在 `dispatched` 的单元数 ≤ limit − reserve**。
+这个计数是会话级全局的：worker、reviewer 以及 reviewer 自己派的 verify 子代理共用同一个额度，
+所以 `reserve` 要留得住复核侧的 fan-out——没有它，第一个被拒的会是 reviewer 派出的 verify，
+而那份契约里一个字都没提预算。
+
+每波多少个有实测分档（来自一次 48 单元的运行，是经验值不是闸门，超了 `dispatch` 只提示）：
+
+| 派什么 | 一波 | 为什么 |
+|---|---:|---|
+| `repo_shard` / `artifact` / `residual` worker | 6 | 要读大量源码、各写独立产物，200+ 文件的单元尤其 |
+| `cross` 单元 | 10–13 | 同构、独立，主要读共享记录与已有产物 |
+| reviewer | 1–5 个单元/批 | 同一根因或同一信任边界的单元放同一批，便于跨单元一致性核查 |
+
+任何时刻保持「worker 写、reviewer 读」的产物级互斥：不要为了提高并发让两个角色同时写同一份
+`partial.json`。
+
+三档并行的记录、闸门与报告完全相同，只是波数或轮数变多：**全并发**（容量够，按分档一波派完）、
+**受限并发**（有上限，按 `dispatch` 的准入核算分波）、**单执行者**（并行能力不可用或用户未授权）。
 
 降级为单执行者按同一份单元清单顺序跑完：`plan` → 模型确认 / `--apply` → `freeze --phase 1` → `freeze --phase 2` → 逐单元 `dispatch` 并按 brief 审 → 预检与回源复核 → `merge` → 登记复核账本。继续完成需要的跨域核查，再按准备闸门、报告待办、最终闸门与快照的顺序交付。顺序执行保留相同记录与复核要求。

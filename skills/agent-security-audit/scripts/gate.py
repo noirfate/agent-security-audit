@@ -29,7 +29,8 @@ from units import census, partition_errors
 
 ROWS = ('G1 单元划分是分区', 'G2 单元内文件与维度处置完整', 'G3 原始索引仅供参考',
         'G4 EXT 入口全覆盖', 'G5 跨边界连接有归属', 'G6 队列冻结未被破坏',
-        'G7 发现与记录去向完整', 'G8 覆盖声明与分母一致')
+        'G7 发现与记录去向完整', 'G8 覆盖声明与分母一致',
+        'G9 根因候选已裁决，归并不丢路径', 'G10 机械清单不挤占正文')
 
 
 def _row(rid, title, ok, detail, skipped=False):
@@ -251,6 +252,70 @@ def evaluate(workspace, state, prepare_report=False):
     rows.append(_row('G8', ROWS[7], not coverage_problems,
                      '覆盖声明与材料、对象两个分母都一致' if not coverage_problems
                      else '；'.join(coverage_problems[:3])))
+
+    # Judges that the adjudication happened, not that the grouping is right. Both
+    # signals misfire — the same proposition can be one defect repeated twelve times or
+    # twelve modules each missing a check — so the denominator is only the strong slice
+    # (a proposition family spanning three units, or one member set
+    # sharing three identical evidence locations): 47 groups on a 227-finding audit.
+    # Answering `distinct` with a reason closes one. A candidate whose every member sits
+    # in a unit merged under an older contract is exempt — per unit, not per workspace,
+    # for the reason `closure` gives.
+    cause_problems, settled = [], None
+    try:
+        from rootcause import closure
+        settled = closure(state)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        cause_problems.append('读不到根因候选：%s' % exc)
+    mandatory = (settled or {}).get('mandatory') or []
+    exempt = (settled or {}).get('grandfathered') or []
+    if settled is not None:
+        if settled['open_mandatory']:
+            cause_problems.append('%d 组强候选还没有裁决（merge 或 distinct 都算，带理由）：%s'
+                                  % (len(settled['open_mandatory']),
+                                     '、'.join(settled['open_mandatory'][:4])))
+        for item in settled['incomplete']:
+            cause_problems.append('%s 的裁决漏下成员 %s'
+                                  % (item['candidate'], '、'.join(item['unanswered'][:4])))
+    if cause_problems:
+        detail = '；'.join(cause_problems[:3])
+    elif not mandatory and exempt:
+        # Said out loud: a row that checked nothing and a row that passed otherwise read
+        # the same, and the reviewer contract tells its reader this row backs them up.
+        detail = ('%d 组强候选的成员全属旧契约单元，本行这次什么都没核：根因归并的落点是'
+                  '本契约新增的，不回溯要求' % len(exempt))
+    else:
+        detail = ('强候选 %d 组已逐条裁决，归并逐成员留路径' % len(mandatory)
+                  + ('（另有 %d 组成员全属旧契约单元，豁免）' % len(exempt) if exempt else ''))
+    # Skipped as a row, not as an early return: a `return` here would silently take the
+    # next gate row with it the day one is added below. And the detail never
+    # dereferences a missing closure — a gate that raises exits 2, which reads as
+    # 「读不到工作区」 and sends the next round to fix the path instead of the record.
+    rows.append(_row('G9', ROWS[8], not cause_problems, detail,
+                     skipped=not cause_problems and not mandatory and bool(exempt)))
+
+    # Measured on the delivered file. The requirement this replaces was scoped to one
+    # section's name (「覆盖声明整节 ≤15%」), so moving that section out satisfied it
+    # while four mechanical inventories kept 36% of the report — form met, purpose lost.
+    volume, shape = [], None
+    report_file = workspace / 'report.md'
+    if report_file.exists():
+        try:
+            from records import report_shape
+            shape = report_shape(report_file.read_text(encoding='utf-8'))
+        except (OSError, ValueError) as exc:
+            volume.append('读不到 report.md：%s' % exc)
+        if shape and shape['mechanical_share'] > shape['limit']:
+            volume.append('机械清单占正文 %.0f%%（%d / %d 行），超过 %.0f%%：默认就该外置到'
+                          ' coverage-details.md，正文只留合计与指针'
+                          % (shape['mechanical_share'] * 100, shape['mechanical_lines'],
+                             shape['lines'], shape['limit'] * 100))
+    rows.append(_row('G10', ROWS[9], not volume,
+                     '；'.join(volume[:2]) if volume else
+                     ('机械清单占正文 %.0f%%（上限 %.0f%%）'
+                      % (shape['mechanical_share'] * 100, shape['limit'] * 100) if shape
+                       else '还没生成 report.md，本行等报告生成后再核'),
+                     skipped=shape is None and not volume))
     return rows
 
 

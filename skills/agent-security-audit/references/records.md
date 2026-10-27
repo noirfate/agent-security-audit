@@ -4,7 +4,7 @@
 
 工作区包含`audit.json`（目标分析记录）、`report.md`、`coverage-details.md`和`report.sarif.json`（由同一记录生成）、`baselines/<指纹>/`（只读引用知识）和`snapshots/`（只追加历史）。可选动态验证另外生成`dynamic/`固定会话配置与`observations/`观测文件。分单元执行时另有`units/<单元>/`（brief、断点、单元产物与跨范围观察）和可选`surface/`（检索位置与摘要）。合入被拒时原产物留在原路径，错误输出给出原因。初始化和续审都不向框架或安装的skill写入。
 
-目标记录版本为`1.6`，与框架契约版本独立。更早的工作区先执行`refresh`：归档旧记录，新增空集合，不改写历史快照。`1.0`迁移会把发现标为待复核；`1.2`与`1.3`只增加调度集合，`1.4`把两阶段改成三阶段（单元的`stage`上移为`phase`，队列键改名），`1.5`移除读取回执集合`reads`（有界读取那条通路已撤，覆盖记录改为无条件写明`analysis_method`与`limitations`），迁移会丢弃旧回执并报出条数。这几步都保留原有发现状态。`1.6` 新增 `dismissed_candidates`、模型分片确认及 `cross_scope`。迁移保留旧事实、未知字段与冻结值，用 `legacy_schema_version` / `legacy_freeze_contract` 标记旧契约；不把历史 fp 补造成反证关联，不把旧冻结宣称为新验证。只有指纹未变的旧合入产物可沿用旧计数口径；新写产物必须满足新契约。真正让检查待复核的是材料变化与知识基线变化——**技能指纹只作记录，不参与判定**。
+目标记录版本为`1.7`，与框架契约版本独立。更早的工作区先执行`refresh`：归档旧记录，新增空集合，不改写历史快照。`1.0`迁移会把发现标为待复核；`1.2`与`1.3`只增加调度集合，`1.4`把两阶段改成三阶段（单元的`stage`上移为`phase`，队列键改名），`1.5`移除读取回执集合`reads`（有界读取那条通路已撤，覆盖记录改为无条件写明`analysis_method`与`limitations`），迁移会丢弃旧回执并报出条数。这几步都保留原有发现状态。`1.6` 新增 `dismissed_candidates`、模型分片确认及 `cross_scope`。`1.7` 只增字段：`root_causes` 与发现上的 `root_cause_id`、覆盖条目的 `no_check_reason`、单元的 `wave`、队列的 `dispatch_capacity`；迁移不改历史判定，旧发现的 `root_cause_id` 为空，不自动归并，旧覆盖条目不因缺 `no_check_reason` 变成未完成。迁移保留旧事实、未知字段与冻结值，用 `legacy_schema_version` / `legacy_freeze_contract` 标记旧契约；不把历史 fp 补造成反证关联，不把旧冻结宣称为新验证。只有指纹未变的旧合入产物可沿用旧计数口径；新写产物必须满足新契约。真正让检查待复核的是材料变化与知识基线变化——**技能指纹只作记录，不参与判定**。
 
 工具只依赖Python 3标准库。完整查询用法可运行`scripts/knowledge.py --help`；状态工具用`scripts/audit.py --help`。所有路径参数加引号，名称或文档内容不得拼接成Shell代码。
 
@@ -20,7 +20,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/knowledge.py" --workspace "$AUDIT_WORKSPACE" -
 
 ## 编辑目标记录
 
-`init`自动创建材料索引、画像维度和空集合。根据事实补充以下记录，及时保存：
+`init`自动创建材料索引、画像维度和空集合。根据事实补充以下记录，及时保存。
+
+**叙述字段用交付语言写**（默认中文）：`title`、`mechanism`、`impact`、`severity_reason`、`remediation`、`residual_risk`、`observation`、`explanation`、`reason`、`limitations` 这些给人读的字段，和它们汇成的报告保持同一种语言；代码、标识符、路径、配置键、报错与协议原文照原样引用，不翻译。记录是报告的唯一来源，某个单元用另一种语言写，交付物就会半中半英——实测出现过一次，一个扩展目录的执行者跟着所读代码的语言走，那一整片的发现与机理都是英文。
 
 | 集合 | 必要信息 |
 |---|---|
@@ -28,12 +30,13 @@ python3 "$AUDIT_SKILL_DIR/scripts/knowledge.py" --workspace "$AUDIT_WORKSPACE" -
 | `connections` | `id`、`from_instance`、`to_instance`、`description`、`evidence_ids`；在描述中说明数据、身份、控制和边界 |
 | `assets`、`attackers`、`controls`、`hypotheses` | `id`、`description`、`instance_ids`、`evidence_ids`；控制描述含保证与限制，假设注明尚缺什么 |
 | `profile` | 保留工具生成的维度，每项填写`value`、`evidence_ids`；未知保持`null`并填写`unknown_reason` |
-| `coverage` | `id`、`material_ids`、`check_ids`、`status`、`reason`、`analysis_method`、`limitations`；状态为`not_started/in_progress/reviewed/excluded/needs_review` |
+| `coverage` | `id`、`material_ids`、`check_ids`、`status`、`reason`、`analysis_method`、`limitations`；状态为`not_started/in_progress/reviewed/excluded/needs_review`。`no_check_reason` 写「读过这些材料却不产生任何命题结论」的理由（例如纯二进制资源、只作预期参考的测试源码）；它与 `check_ids` 是这条覆盖的两种去向，不是 `limitations` 的同义改写。**判 `reviewed` 必须二者有一**，「逐行读过」本身不构成覆盖；1.7 之前写的条目按所属单元的 `legacy_schema_version` 保留原契约，不追溯 |
 | `method_notes` | 方法、检索范围与证据限制的字符串列表 |
 | `materials` | 工具生成的材料索引：目标别名、相对路径、大小、指纹、visibility 与 status。用于核对文件分区，不能证明覆盖语义 |
 | `reviews` | 工具生成的发现复核账本；保留处置、理由、反证与被复核内容的指纹 |
+| `root_causes` | 跨单元根因的裁决账本：`id`（`RC-` 开头，不带单元 token——根因按构造跨单元，不经单元产物合入）、`verdict`（`merge` 同源 / `distinct` 看着同源实为不同）、`finding_ids`（至少两条）、`candidates`（这条裁决答的候选 key，可以为空：没有候选提过的簇照样可以归并）、`by`、`reason`。`merge` 另有 `statement`（缺陷机制一句话）、`fix_point`（同一处修复点或同一条契约）与 `member_paths`——**每个成员恰好一条**，只写 `finding_id`、`location`、`difference` 三个键，少一条成员就是丢了一条受影响路径，多一个键会被 `--apply` 拒收；`distinct` 这三项都不写，判断写在 `reason`。只由 `rootcause --apply` 写入，它同时维护发现上的 `root_cause_id`；归并不改发现的主张、机理与定级，因此不触发复核撤回 |
 | `observations`、`dynamic_sessions` | 独立动态工具生成的观测索引和固定会话配置引用；不手工伪造请求结果 |
-| `units` | 候选目录分组经模型确认或 plan --apply 提交的划分；object_ids / exposure / depth 由模型决定，附理由；phase 为 2 或 3 |
+| `units` | 候选目录分组经模型确认或 plan --apply 提交的划分；object_ids / exposure / depth 由模型决定，附理由；phase 为 2 或 3。`round` 记哪一轮派的，`wave` 记该轮的第几波（正整数或 null，由 `dispatch --wave` 写入）：波次是派单容量的记账单位，不改变单元边界与冻结。被宿主拒掉的派单把单元回滚成 `planned` 并清掉 `wave`，下一波优先派；`dispatch --status` 按轮次与波次对账 |
 | `clusters` | 制品单元的相似性建议；`diff_files`逐条处置，`representative_unit_id`由裁决填写。制品边界以模型确认的 `units[kind=artifact]` 为准，能力和联系回查归属实例、材料及证据。旧 `artifacts` 仅作兼容数据，不再作为制品清单或覆盖分母 |
 | `dismissed_candidates` | 撤下的候选：稳定 F-token ID、reason、非空 check_ids；检查须 complete / not_established 并带 counterevidence_ids。一候选可多检查，候选 ID 不得同时在 findings |
 | `rounds` | 每轮派了哪些单元、各自的 return 行 |
@@ -43,7 +46,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/knowledge.py" --workspace "$AUDIT_WORKSPACE" -
 | `scope_notes` | 残余前沿清单：观察 / 为什么不属于任何已有单元 / 建议下次怎么覆盖 |
 | `crossleads`、`stale_notes` | 落在别单元的观察，以及被读到的过期事实 |
 | `route_excluded` | 按画像裁剪出本轮计划的对象，连同维度与证据。它不是不适用判定 |
-| `queue` | phase1_frozen、phase2_rows_frozen、phase3_rows_frozen、phase3_critic、census；partition_confirmed / partition_reason 记录采纳；cross_scope 按 joint / chain / goal / xartifact 保存 decision: needed|not_needed 及 reason |
+| `queue` | phase1_frozen、phase2_rows_frozen、phase3_rows_frozen、phase3_critic、census；partition_confirmed / partition_reason 记录采纳；cross_scope 按 joint / chain / goal / xartifact 保存 decision: needed|not_needed 及 reason。`dispatch_capacity` 记本次派单容量：`limit`（同时能跑的子代理上限）、`reserve`（留给复核侧再派子代理与单发角色的额度）、`wave_size`（按单元 kind 的分档）、`source` 取 `env` / `host_default` / `user` / `refusal_observed`。`limit` 的解析顺序是**记录里已有的值 → 环境变量 `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` → 宿主默认 20**；上限属于宿主、会随其版本变化，撞到上限时宿主的拒绝信息里会报出生效值，据此改记 `refusal_observed` 与实际数字。`dispatch` 把解析到的容量写回记录，报告因此能说明本次在哪个上限下跑 |
 | `object_scope` | **目标级**对象裁决：框架全集里每个没被任何单元声明的对象，逐个记 `decision`（`involved` / `not_involved`）与必填 `reason`。闸门 G8 核「已声明 ∪ 判过不涉及 = 框架全集」——纳入本来就有记录，而不涉及原先没有落点，于是「没人提」与「判过不涉及」无法区分 |
 | `reconciliations` | 显式模型对账记录：failure_mode_id、check_ids、by；status=open 要 reason，status=complete 要 explanation。同一命题、检查集合、by 的最新状态生效，差异本身不构成任务 |
 | `corrections` | 复核者当场改产物留下的变更日志：`target`、`field`、`before`、`after`、`reason`、`by`。before/after 保留原 JSON 类型，允许空数组、空对象、空串、0、false、null；缺键才算缺值。其余元数据须为非空文本；改前与改后相同也判错。条目数是变更日志数，不代表独立缺陷数 |
@@ -114,7 +117,7 @@ ID 一律是`<前缀>-<单元token>-<序号>`，单元`U-SH03`的 token 是`SH03
 
 ## 发现与报告
 
-`findings`每项包含`id`、`check_ids`、`title`、`mechanism`、`evidence_ids`、`impact`、`severity`、`severity_reason`、`remediation`、`responsibility`、`validation`、`residual_risk`、`status`。
+`findings`每项包含`id`、`check_ids`、`title`、`mechanism`、`evidence_ids`、`impact`、`severity`、`severity_reason`、`remediation`、`responsibility`、`validation`、`residual_risk`、`status`，可选`root_cause_id`指向`root_causes`中的一条；为空表示尚未归并，不表示独有根因。
 
 `severity`取`critical/high/medium/low/informational`，按实际影响和前提解释；`status`取`current/needs_review/withdrawn`。候选从`needs_review`开始。当前发现由已完成且`confirmed`的检查和有效复核支持，可引用本地检查。数据流问题说明链路，设计问题说明违反的假设与要求。`validation`区分静态走查、真实观测和仍缺的验证。
 

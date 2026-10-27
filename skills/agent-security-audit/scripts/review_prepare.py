@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from knowledge import read
+from knowledge import SKILL, read
 
 RETURN_RE = re.compile(r'候选\s*(\d+)\s*\(confirmed=(\d+),\s*fp=(\d+),\s*unclosed=(\d+)\)')
 
@@ -56,6 +56,48 @@ def _mechanical(workspace, state, unit, payload, *, replace=False):
     return problems
 
 
+def evidence_leads(state, payload):
+    """Evidence whose observation carries a mechanism the check that took it never asks about.
+
+    Measured: an observation stating that `env.PATH` was spliced unescaped into
+    `export PATH` and handed to the container's `sh -lc` was cited by exactly one check,
+    whose proposition is resource quota, so the injection it describes reached no
+    proposition at all and the report concluded denial of service. Nothing in the flow
+    asked「这条证据还证明了别的什么」, because every denominator is a check and this was
+    written into an observation.
+
+    The word pairs are a sampling floor, not a verdict: one group names a dangerous
+    construction, the other an interpreter or a boundary, and only their co-occurrence
+    puts an item on the list. A lead closes three ways, all of them already recorded —
+    a second check citing the same evidence, or the evidence id named in `method_notes`
+    or in a `crosslead`.
+    """
+    spec = read(SKILL / 'references' / 'evidence_semantics.json')
+    construction = [re.compile(pattern, re.I) for pattern in spec['construction']]
+    boundary = [re.compile(pattern, re.I) for pattern in spec['boundary']]
+    checks = {c['id']: c for c in (state.get('checks') or [])}
+    checks.update({c['id']: c for c in (payload.get('checks') or [])})
+    cited = {}
+    for check in checks.values():
+        for eid in (check.get('evidence_ids') or []) + (check.get('counterevidence_ids') or []):
+            cited.setdefault(eid, set()).add(check['id'])
+    answered = json.dumps({'notes': payload.get('method_notes') or [],
+                           'crossleads': payload.get('crossleads') or []}, ensure_ascii=False)
+    leads = []
+    for row in payload.get('evidence') or []:
+        if row.get('kind') != 'code' or len(cited.get(row['id'], ())) != 1:
+            continue
+        text = row.get('observation') or ''
+        made = next((p.pattern for p in construction if p.search(text)), None)
+        crossed = next((p.pattern for p in boundary if p.search(text)), None)
+        if not (made and crossed):
+            continue
+        leads.append({'evidence_id': row['id'], 'cited_by': sorted(cited[row['id']]),
+                      'matched': [made, crossed], 'observation': text,
+                      'open': row['id'] not in answered})
+    return leads
+
+
 def _worklist(workspace, state, unit, payload):
     """Render full semantic context without prose or evidence truncation."""
     from merge import legacy_product
@@ -91,6 +133,20 @@ def _worklist(workspace, state, unit, payload):
         material = state['materials'].get(row.get('material_id')) or {}
         lines += ['### 证据 %s · %s' % (eid, material.get('path', '动态观察')), '',
                   '```json', json.dumps(row, ensure_ascii=False, indent=2), '```', '']
+    leads = evidence_leads(state, payload)
+    if leads:
+        lines += ['## 证据语义剩余项', '',
+                  '这些观察里同时出现了「危险构造」与「解释器／边界」，而只有一条检查引用它——'
+                  '那条检查的命题未必问到观察里已经写出来的机制。逐条回答一个问题：'
+                  '**这段观察是否还支持本检查之外的失效机制？**',
+                  '三种答案都算闭合：立本地检查（`CHK-…-09xx` 引用同一条证据）、'
+                  '在 `method_notes` 里写明为何不适用（句中带上证据号）、'
+                  '或转 `crosslead`（同样带上证据号）。',
+                  '词表（`references/evidence_semantics.json`）是兜底取样，不是判定：'
+                  '共现不代表漏洞，零命中也不代表没有。', '']
+        for lead in leads:
+            lines += ['### %s%s' % (lead['evidence_id'], '' if lead['open'] else '（已闭合）'), '',
+                      '```json', json.dumps(lead, ensure_ascii=False, indent=2), '```', '']
     lines += ['## 发现的机理、影响范围与定级', '']
     for row in payload.get('findings') or []:
         lines += ['```json', json.dumps(row, ensure_ascii=False, indent=2), '```', '']
@@ -131,6 +187,12 @@ def prepare(workspace, state, unit_id, *, replace=False):
         'unfinished_checks': sum(c.get('status') != 'complete' for c in payload.get('checks') or []),
         'dismissed_candidates': len(payload.get('dismissed_candidates') or []),
     }
+    leads = evidence_leads(state, payload)
+    semantic['evidence_leads'] = {'flagged': len(leads),
+                                  'open': sum(1 for lead in leads if lead['open']),
+                                  'ids': [lead['evidence_id'] for lead in leads if lead['open']]}
     return {'unit': unit_id, 'mechanical': 'PASS', 'problems': [],
             'worklist': str(out), 'semantic_items': semantic, 'merge_mode': 'replace' if replace else 'merge',
-            'note': 'checks_total 是检查分母，verdicts 是裁决分项；counterevidence 是撤下候选号数，不是反证检查数。清单保留全部检查与原证据，复核仍需回源。'}
+            'note': 'checks_total 是检查分母，verdicts 是裁决分项；counterevidence 是撤下候选号数，不是反证检查数。'
+                    'evidence_leads.open 大于 0 表示还有证据没人回答「它是否还支持别的失效机制」，'
+                    '清单里逐条列着；取样词表是兜底，判断仍由模型做。清单保留全部检查与原证据，复核仍需回源。'}

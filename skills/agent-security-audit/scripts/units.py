@@ -26,9 +26,10 @@ DIMENSIONS = ('bidirectional', 'control_efficacy', 'trust_model',
 DIMENSION_STATES = ('pending', 'done', 'na')
 PRIMITIVES = ('INJECT', 'PERSIST', 'EXFIL', 'EXEC', 'READ',
               'IMPERSONATE', 'APPROVE_BYPASS', 'ESCAPE', 'DOWNGRADE')
+CLUSTER_SCOPE_MIN = 3
 DECISION_KINDS = ('out_of_scope_candidate', 'cluster_representative', 'depth',
                   'cross_cutting_objects', 'partition', 'cross_scope',
-                  'exposure', 'object_mapping', 'unassigned_material', 'oversized_unit',
+                  'exposure', 'object_mapping', 'unassigned_material', 'cluster_scope',
                   'object_scope')
 
 # Collection -> record id prefix. A unit's products must use these prefixes plus the
@@ -102,7 +103,8 @@ def new_unit(uid, kind, title, **extra):
         'exposure': 'unknown', 'exposure_reason': '',
         'depth': None, 'depth_reason': '',
         'cluster_id': None,
-        'phase': 2, 'cross_type': None, 'seed': {}, 'round': None, 'status': 'planned',
+        'phase': 2, 'cross_type': None, 'seed': {}, 'round': None, 'wave': None,
+        'status': 'planned',
         'file_count': 0, 'byte_count': 0, 'text_count': 0, 'opaque_count': 0,
         'surface_hits': None, 'surface_matches': None, 'blind_languages': {},
         'split_from': None, 'merged_from': [],
@@ -534,6 +536,20 @@ def pending_decisions(workspace, state, rows=None):
             decision = (queue.get('cross_scope') or {}).get(cross_type) or {}
             if decision.get('decision') not in ('needed', 'not_needed') or not decision.get('reason'):
                 add('cross_scope', cross_type, '此类跨单元工作是否需要？答 needed 或 not_needed，并依据当前证据说明理由。')
+    # 建簇与否要有人答。`cluster_representative` 只对**已经存在的**簇提问，而簇只有跑过
+    # `cluster` 才存在 —— 于是没人跑就没人问，而这档裁决本来就是为「制品成堆」设计的。
+    # 实测：5 个 artifact 单元（两个是扩展通道插件集合），clusters 为 0，同族缺陷在二阶段
+    # 按单元各自立案，重复发现有一部分正出在这里。
+    artifacts = [u['id'] for u in state.get('units') or [] if u['kind'] == 'artifact']
+    if (queue.get('phase1_frozen') is not None and queue.get('phase2_rows_frozen') is None
+            and len(artifacts) >= CLUSTER_SCOPE_MIN):
+        chosen = queue.get('cluster_scope') or {}
+        if (chosen.get('decision') not in ('needed', 'not_needed')
+                or not str(chosen.get('reason') or '').strip()):
+            add('cluster_scope', 'queue',
+                '%d 个制品单元（%s）：要不要先按相似度建簇、用代表单元审一遍再推广？'
+                '答 needed 就跑 cluster 并逐条处置 diff_files；答 not_needed 要说明它们'
+                '为什么不算同类。' % (len(artifacts), '、'.join(artifacts[:6])))
 
     directories = {}
     for row in rows.values():
@@ -639,6 +655,20 @@ def freeze(workspace, state, phase=1):
         raise ValueError('Phase %d queue is already frozen at %d rows' % (phase, queue[key]))
     if queue.get('phase1_frozen') is None:
         raise ValueError('Freeze phase 1 before phase %d' % phase)
+    if phase == 2:
+        # Structural, like the phase-3 cross_scope check above it: the question in
+        # `pending_decisions` can go stale (it is recomputed, not stored as work), so the
+        # freeze is where 「有人答过吗」 gets judged rather than merely asked.
+        artifacts = [u['id'] for u in state['units'] if u['kind'] == 'artifact']
+        if len(artifacts) >= CLUSTER_SCOPE_MIN:
+            chosen = queue.get('cluster_scope') or {}
+            if (chosen.get('decision') not in ('needed', 'not_needed')
+                    or not str(chosen.get('reason') or '').strip()):
+                raise ValueError('Phase 2 needs an explicit cluster_scope decision for %d '
+                                 'artifact units' % len(artifacts))
+            if chosen['decision'] == 'needed' and not state.get('clusters'):
+                raise ValueError('cluster_scope marks needed but no cluster exists: run '
+                                 'cluster and settle each diff before freezing')
     if phase == 3 and queue.get('phase2_rows_frozen') is None:
         raise ValueError('Freeze phase 2 before phase 3')
     if phase == 3:

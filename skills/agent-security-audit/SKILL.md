@@ -47,12 +47,13 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" plan --workspace /output/agent_audit
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" decide --workspace /output/agent_audit/example --decision partition:queue --resolution accept --reason "模型已核对并采用此划分"
 # 逐项确认对象映射、暴露与深度等 pending_decisions 后冻结
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" plan --workspace /output/agent_audit/example --freeze --phase 1
-python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_audit/example --unit U-SH01 --round 1
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_audit/example --unit U-SH01 --round 1 --wave 1
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_audit/example --status
 ```
 
 主代理只做调度与门控：不读候选正文，不亲自建索引，不亲自写终报，每轮末`snapshot`后即可丢弃上下文。各角色的契约在`references/roles/`，worker、reviewer、merger、queue_critic、report_writer 各读属于自己的那一份，不读本文件。轮次、冻结与闸门见[调度规程](references/orchestration.md)。
 
-并行能力不可用或用户未授权时，降级为单执行者按同一份单元清单顺序跑完；记录、闸门与报告完全相同，只是轮数变多。规程不绑定任何特定客户端的子代理工具。
+并行分三档，记录、闸门与报告完全相同，只是波数或轮数变多：**全并发**（容量够，按单元类型的分档一波派完）、**受限并发**（有上限，`dispatch` 按已记录的容量核算准入，分波派）、**单执行者**（并行能力不可用或用户未授权，按同一份单元清单顺序跑完）。同时能跑多少个子代理由宿主决定、不由本skill假定，`dispatch` 读环境变量，读不到用宿主默认并把来源记进记录。规程不绑定任何特定客户端的子代理工具。
 
 ## 执行流程
 
@@ -109,9 +110,11 @@ FM 的 `risk_ids` 提供关联风险索引；单元 brief 展示风险编号、�
 
 ### 4. 复核与交付
 
-复核每条发现的实际可达性、权限边界、防护反证和影响；按共同根因去重，但保留受影响路径。只有有证据支持的成立检查才能支撑当前发现。未知机制可形成发现，未知可达性不能冒充已证实利用。
+复核每条发现的实际可达性、权限边界、防护反证和影响；按共同根因去重，但保留受影响路径——根因是记录层的一等对象（`rootcause` 给候选、`rootcause --apply` 落裁决、报告按根因汇总），不是报告里的一句交叉引用。只有有证据支持的成立检查才能支撑当前发现。未知机制可形成发现，未知可达性不能冒充已证实利用。
 
 候选发现先记为`needs_review`。重新读取原材料，按[记录与复审](references/records.md)准备复核 JSON；分单元产物先 `merge --unit` 合入，再用 `audit.py review --workspace ... --finding F-... --review-file ...` 登记保留、撤销或证据不足的理由。复核记录绑定实际合入的发现、检查与证据内容；内容改变后不能沿用旧复核。使用同一模型复核时如实标注，不宣称独立验证。
+
+全部单元合入并复核完成后，由段级复核者裁决跨单元根因：`audit.py rootcause --workspace ...` 给候选（命题共享与证据位置重合两个信号，各自会误配也会漏，强候选是必须逐条答的下限，不是可以归并的上限），`--apply` 落 `merge` / `distinct` 与理由。归并只写 `root_causes` 与发现上的 `root_cause_id`，不改已复核的主张、机理与定级。
 
 控制确实阻断失效时，关联`not_established`检查中的反证，记录控制有效范围、局限和复测方法。部分有效、未知和待复核分别记录；不适用不代表控制有效。对 Skill 的恶意行为判断与漏洞严重度分开，不按严重度推断作者意图。
 

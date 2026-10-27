@@ -20,7 +20,7 @@ import uuid
 
 sys.dont_write_bytecode = True
 from knowledge import SKILL, baseline_dir, digest, load_bundle, objects, read
-SCHEMA_VERSION = '1.6'
+SCHEMA_VERSION = '1.7'
 # Collections added by 1.2. They carry the scheduling layer: how the target was cut
 # into units, which round did what, and what the files alone cannot decide.
 SCHEDULING_COLLECTIONS = ('units', 'clusters', 'artifacts', 'rounds', 'chains', 'primitives',
@@ -31,13 +31,30 @@ SCHEDULING_COLLECTIONS = ('units', 'clusters', 'artifacts', 'rounds', 'chains', 
 EMPTY_QUEUE = {'phase1_frozen': None, 'phase2_rows_frozen': None,
                'phase3_rows_frozen': None, 'phase3_critic': None,
                'census': None, 'partition_confirmed': False,
-               'partition_reason': '', 'cross_scope': {}}
+               'partition_reason': '', 'cross_scope': {},
+               'dispatch_capacity': None}
 # Older target records this release still knows how to migrate. Anything outside this
 # set plus SCHEMA_VERSION is refused rather than guessed at.
 # Every version this tool will still open. Bumping SCHEMA_VERSION without adding the
 # previous one here turns every existing record into an unrecognized one, refused even
 # by refresh — the migration path cannot run because the guard rejects the record first.
-MIGRATABLE = ('1.0', '1.1', '1.2', '1.3', '1.4', '1.5')
+MIGRATABLE = ('1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6')
+# The host's ceiling on subagents running at once, used when the environment sets none.
+# The count is session-global, so the workers, the reviewers and the verify agents a
+# reviewer spawns all draw on the same ceiling, and a launch above it is refused rather
+# than queued. The ceiling belongs to the host and moves with its version, so `source`
+# on the record always says which number applied; when a refusal is hit, the host states
+# the effective value and that observation replaces this default.
+HOST_SUBAGENT_LIMIT = 20
+HOST_SUBAGENT_LIMIT_ENV = 'CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS'
+# Held back under the limit for the reviewer's verify fan-out and the single-shot roles
+# (merger, queue_critic, report_writer). A 48-unit run peaked at 15-16 with no verify
+# agent in flight; with no reserve the first fan-out is what gets refused, inside a role
+# whose contract never mentions a budget.
+DEFAULT_DISPATCH_RESERVE = 4
+# Units per wave by kind, measured on that run: shards, artifacts and residual read a lot
+# of source and write their own products, cross units mostly read shared records.
+DEFAULT_WAVE_SIZE = {'repo_shard': 6, 'artifact': 6, 'residual': 6, 'cross': 13}
 
 
 def now():
@@ -336,7 +353,7 @@ def initialize(workspace, name, target_specs, excludes):
         'instances': [], 'connections': [], 'assets': [], 'controls': [], 'attackers': [],
         'hypotheses': [], 'coverage': [], 'evidence': [], 'checks': [], 'findings': [],
         'method_notes': [], 'pending_framework': None,
-        'reviews': [], 'observations': [], 'dynamic_sessions': [],
+        'reviews': [], 'observations': [], 'dynamic_sessions': [], 'root_causes': [],
         **{key: [] for key in SCHEDULING_COLLECTIONS}, 'queue': {**EMPTY_QUEUE, 'cross_scope': {}},
     }
     save(workspace, state)
@@ -390,10 +407,11 @@ def refresh(workspace, state, adopt=False):
     if migrated:
         archive(workspace, state, 'before-schema-migration')
         state['schema_version'] = SCHEMA_VERSION
-        for key in ('reviews', 'observations', 'dynamic_sessions') + SCHEDULING_COLLECTIONS:
+        for key in ('reviews', 'observations', 'dynamic_sessions',
+                    'root_causes') + SCHEDULING_COLLECTIONS:
             state.setdefault(key, [])
         state.setdefault('queue', dict(EMPTY_QUEUE))
-        # Keep old facts and freeze states without pretending they passed 1.6.
+        # Keep old facts and freeze states without pretending they passed 1.7.
         state.setdefault('contract_history', []).append({
             'from': previous, 'to': SCHEMA_VERSION, 'at': now(),
             'note': 'Legacy conclusions/fp counts retained; no candidate associations or semantic decisions inferred'})
@@ -401,8 +419,13 @@ def refresh(workspace, state, adopt=False):
         queue['legacy_freeze_contract'] = previous
         queue.setdefault('partition_confirmed', False)
         queue.setdefault('cross_scope', {})
+        # 1.7 adds fields only. An unrecorded dispatch capacity stays None rather than
+        # defaulting to a number: the ceiling belongs to the host and moves with its
+        # version and environment, so a guessed one would read as a measured one.
+        queue.setdefault('dispatch_capacity', None)
         for unit in state.get('units', []):
             unit.setdefault('legacy_schema_version', previous)
+            unit.setdefault('wave', None)
         # Obsolete hit-count obligations do not survive as work. Other answers remain.
         state['pending_decisions'] = [d for d in state.get('pending_decisions', [])
                                       if d.get('kind') != 'oversized_unit']
@@ -646,7 +669,87 @@ def seed_partial(workspace, state, partial, route=False):
             'route_excluded_objects': sorted({row['object_id'] for row in skipped})}
 
 
-def dispatch(workspace, state, unit_ids, round_number=None):
+def dispatch_capacity(state):
+    """How many subagents may be in flight, and where the number came from.
+
+    Resolution order: what the record already carries, then the environment, then the
+    host default. Nothing is guessed silently — `source` names which one applied, and
+    `dispatch` writes the resolved values back so the report can state the ceiling the
+    audit actually ran under.
+    """
+    recorded = (state.get('queue') or {}).get('dispatch_capacity')
+    if recorded:
+        return dict(recorded)
+    configured = (os.environ.get(HOST_SUBAGENT_LIMIT_ENV) or '').strip()
+    limit, source = HOST_SUBAGENT_LIMIT, 'host_default'
+    if configured.isdigit() and int(configured) > 0:
+        limit, source = int(configured), 'env'
+    return {'limit': limit, 'reserve': DEFAULT_DISPATCH_RESERVE,
+            'wave_size': dict(DEFAULT_WAVE_SIZE), 'source': source}
+
+
+def wave_overflow(state, unit_ids, capacity=None):
+    """Why this wave does not fit the capacity, or None when it does.
+
+    Counted against the units still out, not against this wave alone: the ceiling is on
+    what runs at once, and the previous wave is still holding its slots.
+    """
+    capacity = capacity or dispatch_capacity(state)
+    budget = capacity['limit'] - capacity['reserve']
+    wave = set(unit_ids)
+    outstanding = sorted(unit['id'] for unit in state.get('units', [])
+                         if unit.get('status') == 'dispatched' and unit['id'] not in wave)
+    if len(outstanding) + len(wave) <= budget:
+        return None
+    return ('本波 %d 个 + 仍在跑 %d 个 > 可派 %d 个（limit %d − reserve %d，来源 %s）：'
+            '拆波后再派，不要先派出去等宿主拒绝。仍在跑的是 %s'
+            % (len(wave), len(outstanding), budget, capacity['limit'], capacity['reserve'],
+               capacity['source'], '、'.join(outstanding) or '无'))
+
+
+def dispatch_status(state):
+    """Per round and wave: how many went out, how many came back, which are still out.
+
+    The orchestrator closes a wave by reading this, not from memory. A launch the host
+    refused leaves its unit looking exactly like one still running, and after a context
+    reset the record is the only thing left to read it off.
+    """
+    capacity = dispatch_capacity(state)
+    units = {unit['id']: unit for unit in state.get('units', [])}
+    where = {'merged': 'returned', 'reviewed': 'returned', 'dispatched': 'outstanding',
+             'planned': 'deferred', 'returned': 'awaiting_merge'}
+    rows = []
+    for row in state.get('rounds', []):
+        waves, moved = {}, []
+        for uid in row['unit_ids']:
+            unit = units.get(uid) or {}
+            # A unit stays in the old round's `unit_ids` after being re-dispatched, so its
+            # current status has to be attributed to the round it is in now. Counted in
+            # both, one unit shows as outstanding twice and the capacity arithmetic
+            # charges its slot twice.
+            if unit.get('round') is not None and unit['round'] != row['n']:
+                moved.append(uid)
+                continue
+            tally = waves.setdefault(unit.get('wave'),
+                                     {'wave': unit.get('wave'), 'returned': [],
+                                      'outstanding': [], 'deferred': [], 'awaiting_merge': []})
+            bucket = where.get(unit.get('status'))
+            if bucket:
+                tally[bucket].append(uid)
+        rows.append({'round': row['n'], 'phase': row.get('phase'),
+                     'dispatched': len(row['unit_ids']) - len(moved),
+                     'redispatched_later': sorted(moved),
+                     'waves': [waves[key] for key in
+                               sorted(waves, key=lambda value: (value is None, value))]})
+    live = sorted(uid for uid, unit in units.items() if unit.get('status') == 'dispatched')
+    return {'capacity': capacity, 'in_flight': len(live), 'in_flight_units': live,
+            'dispatchable_now': capacity['limit'] - capacity['reserve'] - len(live),
+            'rounds': rows,
+            'note': '仍在 dispatched 的单元要么还在跑、要么派单被宿主拒了；对不上就把它回滚成 '
+                    'planned 并清掉 wave，下一波优先派，不要重试同一次 spawn'}
+
+
+def dispatch(workspace, state, unit_ids, round_number=None, wave=None):
     """Write each unit's brief. That file is the worker's whole input: cold-started
     subagents inherit nothing, so the knowledge is pre-cut here rather than queried
     by the worker."""
@@ -657,6 +760,20 @@ def dispatch(workspace, state, unit_ids, round_number=None):
         raise ValueError('dispatch requires at least one --unit')
     if (state.get('queue') or {}).get('phase2_rows_frozen') is None:
         raise ValueError('Freeze the phase 2 queue before dispatching')
+    capacity = dispatch_capacity(state)
+    overflow = wave_overflow(state, unit_ids, capacity)
+    if overflow:
+        raise ValueError(overflow)
+    # What was enforced goes on the record: the schedule has to be readable back after a
+    # context reset, and the report has to be able to say which ceiling it ran under.
+    state.setdefault('queue', {})['dispatch_capacity'] = capacity
+    sizes = capacity.get('wave_size') or {}
+    advice = []
+    for kind in sorted({units[u]['kind'] for u in unit_ids if u in units}):
+        batch = [u for u in unit_ids if u in units and units[u]['kind'] == kind]
+        if kind in sizes and len(batch) > sizes[kind]:
+            advice.append('%s 这一波 %d 个，实测稳定值是 %d'
+                          % (kind, len(batch), sizes[kind]))
     written = []
     for uid in unit_ids:
         unit = units.get(uid)
@@ -670,6 +787,8 @@ def dispatch(workspace, state, unit_ids, round_number=None):
         unit['status'] = 'dispatched'
         if round_number is not None:
             unit['round'] = round_number
+        if wave is not None:
+            unit['wave'] = wave
         written.append({'unit': uid, **result})
     if round_number is not None:
         rounds = state.setdefault('rounds', [])
@@ -680,8 +799,10 @@ def dispatch(workspace, state, unit_ids, round_number=None):
         else:
             row['unit_ids'] = sorted(set(row['unit_ids']) | set(unit_ids))
     save(workspace, state)
-    return {'dispatched': written, 'round': round_number,
-            'note': '派单时给绝对路径；brief 之外不要再让 worker 全量查询框架知识'}
+    return {'dispatched': written, 'round': round_number, 'wave': wave,
+            'capacity': capacity, 'wave_size_advice': advice,
+            'note': '派单时给绝对路径；brief 之外不要再让 worker 全量查询框架知识。'
+                    'wave_size_advice 是实测经验值不是闸门，超了由模型决定；准入核算已过'}
 
 
 def propositions_main_argv(entry, workspace):
@@ -704,7 +825,7 @@ def build_parser():
                                             'surface', 'dispatch', 'seed', 'merge', 'gate',
                                             'validate', 'report', 'snapshot', 'review',
                                             'sarif', 'propositions', 'recall', 'decide',
-                                            'note'])
+                                            'note', 'rootcause'])
     parser.add_argument('--workspace', required=True, type=Path)
     parser.add_argument('--name', default='target')
     parser.add_argument('--target', action='append', default=[])
@@ -730,14 +851,17 @@ def build_parser():
     parser.add_argument('--reason', help='decide: why. Required — an answer without one '
                                          'is refused')
     parser.add_argument('--apply', type=Path,
-                        help='plan: explicit partition JSON; recall: optional target patterns JSON')
+                        help='plan: explicit partition JSON; recall: optional target patterns '
+                             'JSON; rootcause: the adjudications JSON')
     parser.add_argument('--matches', metavar='SYMBOL', help='recall: locate textual matching lines; not call counts')
     parser.add_argument('--call-form', metavar='REGEX', help='recall --matches: explicit search expression')
     parser.add_argument('--brief', action='store_true',
                         help="recall: cut the recall agent's input to units/_recall/brief.md")
     parser.add_argument('--status', action='store_true',
                         help="recall: compare the kept knowledge base against the target's "
-                             'current revision and list what must be re-recalled')
+                             'current revision and list what must be re-recalled; '
+                             'dispatch: reconcile what went out against what came back, '
+                             'by round and wave')
     parser.add_argument('--prepare', action='store_true',
                         help='review: emit a verification worklist; gate: check report readiness '
                              'while leaving presentation todos open')
@@ -750,6 +874,12 @@ def build_parser():
     parser.add_argument('--unit', action='append', default=[])
     parser.add_argument('--partial', type=Path)
     parser.add_argument('--round', type=int)
+    parser.add_argument('--wave', type=int,
+                        help='dispatch: which wave of this round these units are, recorded '
+                             'on each unit so the schedule survives a context reset')
+    parser.add_argument('--full', action='store_true',
+                        help='report / snapshot: inline the mechanical inventories in '
+                             'report.md instead of pointing at coverage-details.md')
     parser.add_argument('--route', action='store_true')
     parser.add_argument('--freeze', action='store_true')
     parser.add_argument('--phase', type=int, choices=[1, 2, 3], default=1)
@@ -784,6 +914,8 @@ def main():
             raise ValueError('Split the unit first, then freeze')
         if args.route and args.command != 'seed':
             raise ValueError('--route is only valid with seed')
+        if args.full and args.command not in {'report', 'snapshot'}:
+            raise ValueError('--full is only valid with report and snapshot')
         if args.partial and args.command not in {'seed', 'merge'}:
             raise ValueError('--partial is only valid with seed and merge')
         if args.prepare and args.command not in {'review', 'gate'}:
@@ -816,6 +948,15 @@ def main():
             save(workspace, state)
             print(json.dumps({'method_notes': len(notes), 'added': text not in notes[:-1]},
                              ensure_ascii=False, indent=2))
+            return 0
+        if args.command == 'rootcause':
+            # Candidates out, adjudications in. It writes the shared record, so the main
+            # agent confirms a single writer first, exactly as it does for a review.
+            from rootcause import apply_adjudication, survey
+            state = read(workspace / 'audit.json')
+            result = (apply_adjudication(workspace, state, read(args.apply)) if args.apply
+                      else survey(state))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         if args.command == 'decide':
             from decide import decide as record_decision
@@ -896,7 +1037,8 @@ def main():
                 from surface import build
                 result = build(workspace, state, args.unit or None)
             elif args.command == 'dispatch':
-                result = dispatch(workspace, state, args.unit, args.round)
+                result = (dispatch_status(state) if args.status
+                          else dispatch(workspace, state, args.unit, args.round, args.wave))
             elif args.command == 'merge':
                 from merge import merge_unit
                 if len(args.unit) != 1:
@@ -938,9 +1080,10 @@ def main():
                     write_json(workspace / 'report.sarif.json', export_sarif(state, workspace))
                     result['sarif'] = str(workspace / 'report.sarif.json')
                 if args.command in {'report', 'snapshot'}:
-                    report = render_report(state, workspace)
-                    from records import render_coverage
+                    report = render_report(state, workspace, full=args.full)
+                    from records import render_coverage, report_shape
                     appendix = render_coverage(state, workspace)
+                    result['report_shape'] = report_shape(report)
                     for name in ('report.md', 'coverage-details.md'):
                         if (workspace / name).is_symlink():
                             raise ValueError('Report path is a symlink: ' + name)

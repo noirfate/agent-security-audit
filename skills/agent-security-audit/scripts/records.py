@@ -12,6 +12,15 @@ LABELS = {'confirmed': '成立', 'not_established': '不成立（限已检查范
           'insufficient_evidence': '证据不足', 'not_applicable': '不适用',
           'not_started': '尚未检查', 'in_progress': '检查中', 'needs_review': '待复核',
           'complete': '已检查'}
+# The inventories that are generated row-for-row from the record. They belong in the
+# appendix: a reader needs their totals and a pointer, not 4452 lines of them in the
+# body. Named here because two readers need the same list — the renderer, to decide
+# what to externalize, and the gate, to measure what share of the delivered report
+# they take. 「覆盖声明整节 ≤15%」 was scoped to one section's name, so externalizing
+# that one section satisfied it while these four kept 36% of the report.
+MECHANICAL_SECTIONS = ('检查结论与缺口', '按命题对账', '复核订正日志', '证据索引')
+MECHANICAL_SHARE = 0.20
+APPENDIX = 'coverage-details.md'
 
 
 def summary(state, workspace):
@@ -199,8 +208,44 @@ def _validate(workspace, state):
                     uid + ': invalid dimension state for ' + str(name))
             require(dimension.get('state') != 'na' or bool(dimension.get('reason')),
                     uid + ': an n.a. dimension needs its reason for ' + str(name))
+        wave = row.get('wave')
+        require(wave is None or (isinstance(wave, int) and not isinstance(wave, bool)
+                                 and wave >= 1),
+                uid + ': a dispatch wave is a positive integer or null')
         require(row['progress']['files_done'] <= row['file_count'],
                 uid + ': more files processed than the unit owns')
+    capacity = (state.get('queue') or {}).get('dispatch_capacity')
+    if capacity is not None:
+        require(isinstance(capacity, dict), 'queue.dispatch_capacity is an object or null')
+        limit, reserve = capacity.get('limit'), capacity.get('reserve', 0)
+        for name, value, floor in (('limit', limit, 1), ('reserve', reserve, 0)):
+            require(isinstance(value, int) and not isinstance(value, bool) and value >= floor,
+                    'queue.dispatch_capacity.%s is an integer >= %d' % (name, floor))
+        # A reserve that swallows the whole limit leaves no dispatchable slot, and the
+        # subtraction that sizes a wave would reach zero with nothing saying why. Guarded
+        # on the two type checks above: `require` collects rather than stops, so comparing
+        # a string limit raises, and that exception is caught as one unreadable-record
+        # error which replaces every named message collected so far.
+        require(not (isinstance(limit, int) and isinstance(reserve, int)) or reserve < limit,
+                'queue.dispatch_capacity reserves every slot it has')
+        # Where the ceiling came from, because it belongs to the host: a number without
+        # its provenance cannot be told apart from a guessed one.
+        require(bool(capacity.get('source')),
+                'queue.dispatch_capacity needs its source')
+        sizes = capacity.get('wave_size') or {}
+        require(isinstance(sizes, dict), 'queue.dispatch_capacity.wave_size is an object')
+        for kind, size in sizes.items():
+            require(isinstance(size, int) and not isinstance(size, bool) and size >= 1,
+                    'queue.dispatch_capacity.wave_size[%s] is a positive integer' % kind)
+    clustering = (state.get('queue') or {}).get('cluster_scope')
+    if clustering is not None:
+        require(isinstance(clustering, dict), 'queue.cluster_scope is an object or null')
+        require(isinstance(clustering, dict)
+                and clustering.get('decision') in ('needed', 'not_needed'),
+                'queue.cluster_scope.decision is needed or not_needed')
+        require(isinstance(clustering, dict)
+                and bool(str(clustering.get('reason') or '').strip()),
+                'queue.cluster_scope needs its reason')
     for message in (partition_errors(state) if state.get('units') else []):
         require(False, 'Unit partition: ' + message)
     for row in state.get('primitives', []):
@@ -325,11 +370,17 @@ def _validate(workspace, state):
             token = id_owner(row['id'])
             require(not token or not unit_index or ('U-' + token) in unit_index,
                     row['id'] + ': id carries an unknown unit token')
+    legacy_units = {unit['id'] for unit in state.get('units', [])
+                    if unit.get('legacy_schema_version')}
+    legacy_contract = bool((state.get('queue') or {}).get('legacy_freeze_contract'))
     for unit in state['coverage']:
         require(unit['status'] in {'not_started', 'in_progress', 'reviewed', 'excluded', 'needs_review'}, unit['id'] + ': invalid coverage status')
         require(bool(unit['material_ids']), unit['id'] + ': empty coverage unit')
         refs(unit['material_ids'], materials, unit['id'])
         refs(unit.get('check_ids', []), checks, unit['id'])
+        require(isinstance(unit.get('no_check_reason', ''), str),
+                unit['id'] + ': no_check_reason is prose about why reading these '
+                             'materials produced no check at all')
         if unit['status'] in {'reviewed', 'excluded'}:
             require(bool(unit.get('reason')), unit['id'] + ': completed coverage needs its scope and reason')
         if unit['status'] == 'reviewed':
@@ -342,6 +393,22 @@ def _validate(workspace, state):
             # this keeps apart.
             require(bool(unit.get('analysis_method')) and bool(unit.get('limitations')),
                     unit['id'] + ': reviewed coverage needs analysis_method and limitations')
+            # Read is not covered. A row claiming its materials were reviewed has to say
+            # where that reading went: the checks it produced, or why it produced none.
+            # Measured: 506 of 795 reviewed rows carried neither, and four units linked no
+            # check at all, so「逐行阅读了 15 个文件」counted toward the coverage
+            # denominator with nothing to trace it to — including the file a missed
+            # command injection was sitting in.
+            # Grandfathered per unit, not per row: the 1.7 migration promised not to touch
+            # historical verdicts, and tagging the rows themselves would make `merge`
+            # refuse a replay, since it compares whole-row content digests.
+            owner = id_owner(unit['id'])
+            older = (('U-' + owner) in legacy_units if owner else legacy_contract)
+            require(older or bool(unit.get('check_ids'))
+                    or bool(str(unit.get('no_check_reason') or '').strip()),
+                    unit['id'] + ': reviewed coverage needs a proposition destination — '
+                                 'the checks it produced, or no_check_reason for why '
+                                 'reading it produced none')
     for row in state['controls']:
         # `scope` means two different things: on a check it is the array of evidence
         # kinds, on a control it is prose about where the guarantee holds. Two of the
@@ -454,6 +521,56 @@ def _validate(workspace, state):
             elif verdict == 'insufficient_evidence':
                 require(bool(check['missing_evidence']), cid + ': identify missing evidence')
                 require(check['applicability'] != 'not_applicable', cid + ': known non-applicability has its own verdict')
+    # Shared, not unit-contributed: a root cause spans units by construction, so it
+    # carries no unit token and never arrives through a partial.
+    root_causes = {}
+    for row in state.get('root_causes') or []:
+        rid = str(row.get('id'))
+        require(rid not in root_causes, rid + ': duplicate root cause id')
+        root_causes[rid] = row
+        verdict = row.get('verdict')
+        require(verdict in {'merge', 'distinct'}, rid + ': verdict is merge or distinct')
+        for key in ('by', 'reason'):
+            require(bool(row.get(key)), rid + ': missing ' + key)
+        members = row.get('finding_ids') or []
+        paths = row.get('member_paths') or []
+        # Typed before anything iterates or counts them: `require` collects, so a scalar
+        # here would raise further down and that exception replaces every named message.
+        require(isinstance(members, list), rid + ': finding_ids is a list of finding ids')
+        require(isinstance(paths, list), rid + ': member_paths is a list of affected paths')
+        if isinstance(members, list):
+            require(len(members) >= 2, rid + ': a root cause groups at least two findings')
+            refs(members, findings, rid)
+        for entry in paths if isinstance(paths, list) else []:
+            require(isinstance(entry, dict) and entry.get('finding_id') in members,
+                    rid + ': every affected path belongs to a member finding')
+        if verdict == 'merge':
+            for key in ('statement', 'fix_point'):
+                require(bool(row.get(key)), rid + ': missing ' + key)
+            # 归并不丢路径: one path per member, counted both ways. A cluster of five
+            # carrying one path reads in the report as one defect in one place, which is
+            # the thing the grouping exists to stop.
+            owned = [entry.get('finding_id') for entry in paths if isinstance(entry, dict)]
+            require(sorted(owned) == sorted(members if isinstance(members, list) else []),
+                    rid + ': one affected path per member finding, no more and no fewer')
+            for entry in paths if isinstance(paths, list) else []:
+                for key in ('location', 'difference') if isinstance(entry, dict) else ():
+                    require(bool(str(entry.get(key) or '').strip()),
+                            '%s / %s: affected path needs %s'
+                            % (rid, entry.get('finding_id'), key))
+            # The back link, not just the forward one. A merge that writes the cluster
+            # and leaves the members unlinked renders a summary that claims findings
+            # whose own section never mentions it.
+            for member in members if isinstance(members, list) else []:
+                if member in findings:
+                    require(findings[member].get('root_cause_id') == rid,
+                            '%s: %s does not link back (its root_cause_id is %s)'
+                            % (rid, member, findings[member].get('root_cause_id') or 'null'))
+        else:
+            for key in ('statement', 'fix_point'):
+                require(not row.get(key), rid + ': a distinct adjudication carries no '
+                                          + key + '; its judgement lives in reason')
+            require(not paths, rid + ': a distinct adjudication carries no member_paths')
     for fid, finding in findings.items():
         refs(finding['check_ids'], checks, fid)
         refs(finding['evidence_ids'], evidence, fid)
@@ -468,6 +585,11 @@ def _validate(workspace, state):
         for key in ('title', 'mechanism', 'impact', 'severity_reason', 'remediation', 'responsibility', 'validation'):
             require(bool(finding.get(key)), fid + ': missing ' + key)
         require(bool(finding['check_ids']) and bool(finding['evidence_ids']), fid + ': missing supporting records')
+        cause = finding.get('root_cause_id')
+        require(cause is None or isinstance(cause, str),
+                fid + ': root_cause_id is a root cause id or null')
+        require(not isinstance(cause, str) or not cause or cause in root_causes,
+                fid + ': root_cause_id points at no recorded root cause')
         if finding['status'] == 'current':
             require(all(checks[c]['status'] == 'complete' and checks[c]['verdict'] == 'confirmed' for c in finding['check_ids'] if c in checks), fid + ': current finding requires confirmed checks')
             require(all(evidence[e]['status'] == 'current' for e in finding['evidence_ids'] if e in evidence), fid + ': current finding uses stale evidence')
@@ -503,6 +625,90 @@ def _report_text(value):
     return ''.join(parts).replace('|', '\\|')
 
 
+def _pointer(title):
+    return '逐条明细见[完整覆盖明细](%s)的「%s」一节。' % (APPENDIX, title)
+
+
+def _checks_table(state):
+    """Every check with its verdict and gap, as the appendix keeps it."""
+    text = _report_text
+    if not state['checks']:
+        return ['尚无检查记录。', '']
+    lines = ['| 检查 | 命题 | 状态/结论 | 证据范围 | 解释与缺口 |', '|---|---|---|---|---|']
+    for row in state['checks']:
+        verdict = LABELS.get(row['verdict'] if row['status'] == 'complete' else row['status'], '尚未检查')
+        lines.append('| ' + text(row['id']) + ' | ' + text(row.get('failure_mode_id') or '目标本地命题') + ' | ' + verdict + ' | ' + text(', '.join(row['scope'])) + ' | ' + text(row['explanation'] + ' ' + '; '.join(row['missing_evidence'])) + ' |')
+    return lines + ['']
+
+
+def _checks_total(state):
+    tally = Counter(LABELS.get(row['verdict'] if row['status'] == 'complete' else row['status'],
+                               '尚未检查') for row in state['checks'])
+    return '检查 %d 条：%s。%s' % (len(state['checks']),
+                                  '、'.join('%s %d' % (k, tally[k]) for k in sorted(tally))
+                                  or '无', _pointer('检查结论与缺口'))
+
+
+def _corrections_table(state):
+    """The reviewers' in-place corrections. Nothing is cut here — that is what an
+    appendix is for; the body carries the count."""
+    text = _report_text
+    rows = state.get('corrections', [])
+    if not rows:
+        return ['本轮没有登记订正。', '']
+    lines = ['| 记录 | 字段 | 改前 | 改后 | 理由 | 由谁 |', '|---|---|---|---|---|---|']
+    for row in rows:
+        lines.append('| %s | %s | %s | %s | %s | %s |'
+                     % (text(str(row.get('target'))), text(str(row.get('field'))),
+                        text(str(row.get('before'))), text(str(row.get('after'))),
+                        text(str(row.get('reason'))), text(str(row.get('by')))))
+    return lines + ['']
+
+
+def _corrections_total(state):
+    return ('订正 %d 条，逐条带改前／改后／理由——这条结论经过了复核者之手，读者应当看得出来。%s'
+            % (len(state.get('corrections', [])), _pointer('复核订正日志')))
+
+
+def _evidence_index(state):
+    text = _report_text
+    if not state['evidence']:
+        return ['尚无证据记录。', '']
+    lines = []
+    for row in state['evidence']:
+        mat = state['materials'].get(row.get('material_id'))
+        source = mat['target_id'] + '/' + mat['path'] if mat else row.get('observation_id', '未知来源')
+        lines.append('- ' + text(row['id']) + '：' + text(source) + ' ' + text(row['locator']) + '；' + text(row['kind'] + ' / ' + row['status']) + '。' + text(row['observation']))
+    return lines + ['']
+
+
+def _evidence_total(state):
+    kinds = Counter(row['kind'] for row in state['evidence'])
+    return '证据 %d 条（%s）。%s' % (len(state['evidence']),
+                                    '、'.join('%s %d' % (k, kinds[k]) for k in sorted(kinds))
+                                    or '无', _pointer('证据索引'))
+
+
+def report_shape(text):
+    """Per-section line counts of a rendered report, and the inventories' share of it.
+
+    Measured on the delivered file, not on a field the report wrote about itself: a
+    recorded count goes stale the moment someone regenerates with different options, and
+    the fact a reader cares about is the file in their hands. Only `## ` starts a
+    section, so a finding's `### ` subsections count toward 发现.
+    """
+    sections, title = {}, '（报告头）'
+    for line in text.splitlines():
+        if line.startswith('## '):
+            title = line[3:].strip()
+        sections[title] = sections.get(title, 0) + 1
+    total = sum(sections.values())
+    mechanical = sum(count for name, count in sections.items() if name in MECHANICAL_SECTIONS)
+    return {'lines': total, 'mechanical_lines': mechanical,
+            'mechanical_share': round(mechanical / total, 4) if total else 0.0,
+            'limit': MECHANICAL_SHARE, 'sections': sections}
+
+
 def render_coverage(state, workspace):
     """Lossless coverage appendix from the same records; no inferred analysis."""
     import json
@@ -527,10 +733,19 @@ def render_coverage(state, workspace):
         body = json.dumps(rows, ensure_ascii=False, indent=2)
         fence = '`' * max(3, 1 + max((len(m.group()) for m in re.finditer(r'`+', body)), default=0))
         out += ['## ' + title, '', fence + 'json', body, fence, '']
+    # The mechanical inventories, in full and uncut. The report body keeps their totals
+    # and points here, so this file is the only place they exist completely.
+    from propositions import render as render_propositions
+    out += ['## 检查结论与缺口', ''] + _checks_table(state)
+    out += [render_propositions(state)]
+    out += ['## 复核订正日志', ''] + _corrections_table(state)
+    out += ['## 证据索引', ''] + _evidence_index(state)
     return '\n'.join(out) + '\n'
 
 
-def render_report(state, workspace):
+def render_report(state, workspace, full=False):
+    """The report body. `full=True` inlines the mechanical inventories instead of
+    pointing at the appendix — kept for the case where one file has to stand alone."""
     text = _report_text
     counts = summary(state, workspace)
     out = ['# ' + text(state['target_id']) + ' 安全审计', '',
@@ -554,6 +769,33 @@ def render_report(state, workspace):
         out += ['', '## ' + title, '']
         for row in state[key]:
             out.append('- ' + text(row['id']) + '：' + text(row['description']))
+    # 根因在发现之前: a reader who meets five members one at a time has already formed
+    # five impressions of five defects. The grouping only reorders the reading — it
+    # changes no claim, mechanism or rating, which is why it needs no fresh review.
+    merged = [c for c in state.get('root_causes') or [] if c.get('verdict') == 'merge']
+    causes = {str(c['id']): c for c in merged}
+    known = {f['id']: f for f in state['findings']}
+    grouped = {fid for c in merged for fid in c.get('finding_ids') or []}
+    out += ['', '## 按根因汇总', '']
+    if not merged:
+        out.append('本次没有记录跨单元根因归并（`root_causes` 为空），下方发现逐条独立呈现。')
+    else:
+        out.append('%d 个根因覆盖 %d 条发现，其余 %d 条未归并。每个根因保留每条成员自己的'
+                   '受影响路径与差异；归并只改呈现次序，不改任何已复核的主张、机理与定级。'
+                   % (len(merged), len(grouped), len(state['findings']) - len(grouped)))
+        for cause in merged:
+            out += ['', '### ' + text(str(cause['id']) + ' ' + str(cause.get('statement'))), '',
+                    '统一修复点：' + text(cause.get('fix_point')), '',
+                    '裁决：' + text(cause.get('by')) + '；依据：' + text(cause.get('reason')), '',
+                    '| 发现 | 受影响路径 | 暴露层级 | 严重度 | 与其他成员的差异 |',
+                    '|---|---|---|---|---|']
+            for entry in cause.get('member_paths') or []:
+                member = known.get(entry.get('finding_id'), {})
+                out.append('| ' + text(entry.get('finding_id')) + ' | '
+                           + text(entry.get('location')) + ' | '
+                           + text(member.get('exposure') or '未记录') + ' | '
+                           + text(member.get('severity') or '未记录') + ' | '
+                           + text(entry.get('difference')) + ' |')
     out += ['', '## 发现（按暴露层级排序，外部可直达在前）', '']
     if not state['findings']:
         out.append('尚无已记录发现。请结合下方覆盖状态与证据缺口阅读。')
@@ -571,8 +813,12 @@ def render_report(state, workspace):
                 risk_ids.update(data['failure_modes'][check['failure_mode_id']]['risk_ids'])
         out += ['### ' + text(finding['id'] + ' ' + finding['title']), '',
                 '严重度：' + text(finding['severity']) + '；暴露层级：'
-                + text(finding.get('exposure') or '未记录') + '；记录状态：' + text(finding['status']) + '。', '',
-                text(finding['mechanism']), '', '影响：' + text(finding['impact']), '',
+                + text(finding.get('exposure') or '未记录') + '；记录状态：' + text(finding['status']) + '。', '']
+        if str(finding.get('root_cause_id') or '') in causes:
+            out += ['根因：' + text(str(finding['root_cause_id']) + ' '
+                                    + str(causes[finding['root_cause_id']].get('statement')))
+                    + '（同族成员与各自的受影响路径见 §按根因汇总）', '']
+        out += [text(finding['mechanism']), '', '影响：' + text(finding['impact']), '',
                 '定级依据：' + text(finding['severity_reason']), '',
                 '检查项：' + text(', '.join(finding['check_ids'])) + '；证据：' + text(', '.join(finding['evidence_ids'])) + '。', '',
                 '框架对象：' + text(', '.join(sorted(object_ids)) or '目标本地职责') + '；目录标签（分类参考）：' + text(', '.join(sorted(risk_ids)) or '未映射，本地检查独立判定') + '。', '',
@@ -612,10 +858,8 @@ def render_report(state, workspace):
                 '  范围：' + text(c.get('scope', '')) + '；依据：' + text(c.get('rationale', '')),
                 '  局限：' + text(c.get('limitations', '')) + '；复测：' + text(c.get('retest', '')),
                 '  检查：' + text(c.get('check_ids', [])) + '；证据：' + text(c.get('evidence_ids', [])), '']
-    out += ['## 检查结论与缺口', '', '| 检查 | 命题 | 状态/结论 | 证据范围 | 解释与缺口 |', '|---|---|---|---|---|']
-    for row in state['checks']:
-        verdict = LABELS.get(row['verdict'] if row['status'] == 'complete' else row['status'], '尚未检查')
-        out.append('| ' + text(row['id']) + ' | ' + text(row.get('failure_mode_id') or '目标本地命题') + ' | ' + verdict + ' | ' + text(', '.join(row['scope'])) + ' | ' + text(row['explanation'] + ' ' + '; '.join(row['missing_evidence'])) + ' |')
+    out += ['## 检查结论与缺口', ''] + (_checks_table(state) if full
+                                       else [_checks_total(state), ''])
     ruled_out = [row for row in state.get('object_scope', [])
                  if row.get('decision') == 'not_involved']
     declared = {oid for unit in state.get('units', []) for oid in unit.get('object_ids') or []}
@@ -625,19 +869,10 @@ def render_report(state, workspace):
                counts['framework_checks_not_planned'], len(declared), len(ruled_out)),
             '单元、方法、局限、可见性及旧契约来源见[完整覆盖明细](coverage-details.md)。', '']
     from propositions import render as render_propositions
-    out += ['', render_propositions(state)]
-    corrections = state.get('corrections', [])
-    if corrections:
-        out += ['', '## 复核订正日志', '',
-                '复核者当场改掉的记录，逐条带改前／改后／理由——这条结论经过了复核者之手，'
-                '读者应当看得出来。', '',
-                '| 记录 | 字段 | 改前 | 改后 | 理由 | 由谁 |', '|---|---|---|---|---|---|']
-        for row in corrections:
-            out.append('| %s | %s | %s | %s | %s | %s |'
-                       % (text(str(row.get('target'))), text(str(row.get('field'))),
-                          text(str(row.get('before')))[:80], text(str(row.get('after')))[:80],
-                          text(str(row.get('reason')))[:80], text(str(row.get('by')))))
-        out.append('')
+    out += ['', render_propositions(state, detail=full)]
+    if state.get('corrections'):
+        out += ['', '## 复核订正日志', ''] + (_corrections_table(state) if full
+                                            else [_corrections_total(state), ''])
     recalled = state.get('target_patterns', [])
     if recalled:
         out += ['', '## 目标专属模式（本次召回）', '',
@@ -664,11 +899,8 @@ def render_report(state, workspace):
                           text(reach),
                           text(str(len(row['call_sites'])) if 'call_sites' in row else '未提供（旧 callers 未核实）')))
         out.append('')
-    out += ['', '## 证据索引', '']
-    for row in state['evidence']:
-        mat = state['materials'].get(row.get('material_id'))
-        source = mat['target_id'] + '/' + mat['path'] if mat else row.get('observation_id', '未知来源')
-        out += ['- ' + text(row['id']) + '：' + text(source) + ' ' + text(row['locator']) + '；' + text(row['kind'] + ' / ' + row['status']) + '。' + text(row['observation'])]
+    out += ['', '## 证据索引', ''] + (_evidence_index(state) if full
+                                      else [_evidence_total(state)])
     out += ['', '## 动态观测', '', '统计：' + text(counts['dynamic_outcomes']), '',
             'Canary 命中仅为观测信号；HTTP 回复不能单独证明工具执行或外部副作用。模拟结果不能支持运行时成立结论。', '']
     for obs in state.get('observations', []):

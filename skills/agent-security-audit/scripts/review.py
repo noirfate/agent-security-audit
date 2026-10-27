@@ -11,7 +11,14 @@ def subject_digest(state, finding):
     ids = set(finding['evidence_ids'])
     for c in checks:
         ids.update(check_evidence_ids(c))
-    subject = {'finding': {k: v for k, v in finding.items() if k not in {'status', 'review_ids'}},
+    # `root_cause_id` joins the bookkeeping keys: a reviewer judged the claim, the
+    # mechanism, the rating and the evidence, not which cross-unit group the finding
+    # was later filed under. Keeping it in the subject would stale every review the
+    # grouping touches — measured on a real 227-finding record — and 227 withdrawals
+    # to record a pointer is a cost nobody gets anything for. Existing digests do not
+    # move: a finding without the key hashes exactly as before.
+    subject = {'finding': {k: v for k, v in finding.items()
+                           if k not in {'status', 'review_ids', 'root_cause_id'}},
                'checks': checks, 'evidence': [e for e in state['evidence'] if e['id'] in ids]}
     return hashlib.sha256(json.dumps(subject, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 

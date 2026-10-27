@@ -127,8 +127,13 @@ def _objects_by_mode(workspace, state):
     return out
 
 
-def render(state):
-    """The per-proposition section the report writer includes."""
+def render(state, detail=True):
+    """The per-proposition section the report writer includes.
+
+    `detail=False` keeps the counts and points at the appendix: the divergence table was
+    106 rows in the body and every one of them said 「未请求对账」, which is a column of
+    the same sentence repeated — the totals carry the same information.
+    """
     rows = survey(state)
     divergent = [r for r in rows if r['divergent']]
     lines = ['## 按命题对账', '',
@@ -142,14 +147,27 @@ def render(state):
     if not divergent:
         lines += ['本轮没有分歧裁决。', '']
         return '\n'.join(lines)
-    lines += ['| 命题 | 裁决 | 判定处 | 说明 |', '|---|---|---|---|']
+    if not detail:
+        lines += ['逐条差异（%d 行）见[完整覆盖明细](coverage-details.md)的「按命题对账」一节。'
+                  % len(divergent), '']
+        return '\n'.join(lines)
+    # The 说明 column only exists when something was written into `reconciliations`.
+    # With none, it printed the same placeholder on every row — a column that carries
+    # one sentence is not a column. Dropped, with the fact stated once above the table.
+    accounted = any(row['account'] for row in divergent)
+    if not accounted:
+        lines += ['本轮没有登记任何对账任务，所以下表不带「说明」列；差异按原样展示。', '']
+    lines += (['| 命题 | 裁决 | 判定处 | 说明 |', '|---|---|---|---|'] if accounted
+              else ['| 命题 | 裁决 | 判定处 |', '|---|---|---|'])
     for row in divergent:
         where = '、'.join('%s@%s' % (c['check_id'], '/'.join(c['units']) or '?')
                           for c in row['checks'])
-        account = (row['account'] or {}).get('explanation') or '未请求对账或尚未完成；见 reconciliations 原记录'
-        lines.append('| %s | %s | %s | %s |'
-                     % (row['failure_mode_id'], ' / '.join(row['verdicts']),
-                        where, account.replace('\n', ' ')[:200]))
+        cells = [row['failure_mode_id'], ' / '.join(row['verdicts']), where]
+        if accounted:
+            account = ((row['account'] or {}).get('explanation')
+                       or '未请求对账或尚未完成；见 reconciliations 原记录')
+            cells.append(account.replace('\n', ' '))
+        lines.append('| %s |' % ' | '.join(cells))
     lines.append('')
     return '\n'.join(lines)
 

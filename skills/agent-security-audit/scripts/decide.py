@@ -53,6 +53,12 @@ def _apply(workspace, state, decision, resolution, reason):
         state.setdefault('queue', {}).setdefault('cross_scope', {})[subject] = {
             'decision': resolution, 'reason': reason}
         return 'queue.cross_scope.' + subject
+    if kind == 'cluster_scope':
+        if subject != 'queue' or resolution not in ('needed', 'not_needed'):
+            raise ValueError('cluster_scope takes queue and needed|not_needed')
+        state.setdefault('queue', {})['cluster_scope'] = {'decision': resolution,
+                                                          'reason': reason}
+        return 'queue.cluster_scope'
     if kind == 'object_scope':
         if resolution not in {'involved', 'not_involved'}:
             raise ValueError('object_scope takes involved or not_involved, not ' + resolution)
@@ -144,8 +150,6 @@ def _apply(workspace, state, decision, resolution, reason):
             queue['joint_objects'] = ','.join(named)
         queue['joint_objects_reason'] = reason
         return 'queue.joint_objects'
-    if kind == 'oversized_unit':
-        raise ValueError('Legacy hit threshold is no longer a decision; refresh pending decisions')
     # `unassigned_material` changes the partition itself, which is what `plan --split`
     # and the unit's material list are for. Recording the answer without moving the
     # materials would leave the decision answered and the work undone.

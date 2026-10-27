@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "purpose": "筛出「观察里写出的机制可能超过取它的那条命题」的证据，交给模型逐条回答。两组词必须共现才算命中：单独一个「拼接」或一个「exec」都太常见。这是兜底的取样判据，不是漏洞判定——命中不代表漏洞，零命中也不代表没有。",
+  "note": "不要用 surface_patterns.json 的代码正则扫这里：那些模式按代码形态写，拿去扫散文观察会给出大量相邻对象的噪声，而且漏掉实测要抓的那条（env.PATH 未转义拼进 export PATH 后交 sh -lc）。",
+  "construction": [
+    "未转义", "未校验", "未过滤", "未编码", "未净化", "未做转义", "未做校验",
+    "原样", "直接拼", "拼接", "拼进", "拼入", "插值", "格式化字符串", "字符串拼",
+    "unescap", "unsanit", "unvalidat", "interpolat", "concat", "verbatim",
+    "without escaping", "raw(?:ly)? (?:pass|insert)"
+  ],
+  "boundary": [
+    "sh -lc", "/bin/sh", "bash -c", "shell", "eval\\(", "exec", "spawn", "execSync",
+    "system\\(", "命令行", "argv", "参数注入",
+    "SQL", "查询语句", "反序列化", "deserializ", "pickle", "yaml\\.load",
+    "模板", "template", "路径拼", "path\\.join", "resolve\\(", "正则", "regex",
+    "dig ", "curl ", "ffmpeg"
+  ]
+}
