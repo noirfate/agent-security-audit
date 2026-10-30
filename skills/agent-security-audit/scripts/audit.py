@@ -1079,7 +1079,7 @@ def main():
                     from sarif import export_sarif
                     write_json(workspace / 'report.sarif.json', export_sarif(state, workspace))
                     result['sarif'] = str(workspace / 'report.sarif.json')
-                if args.command in {'report', 'snapshot'}:
+                if args.command == 'report':
                     report = render_report(state, workspace, full=args.full)
                     from records import render_coverage, report_shape
                     appendix = render_coverage(state, workspace)
@@ -1091,8 +1091,8 @@ def main():
                     (workspace / 'report.md').write_text(report, encoding='utf-8')
                     result['report'] = str(workspace / 'report.md')
                     result['coverage_details'] = str(workspace / 'coverage-details.md')
-                    if args.command == 'snapshot':
-                        result['snapshot'] = str(archive(workspace, state, 'audit', report))
+                if args.command == 'snapshot':
+                    result['snapshot'] = str(archive(workspace, state, 'audit'))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (OSError, ValueError, KeyError, TypeError, RuntimeError) as exc:
