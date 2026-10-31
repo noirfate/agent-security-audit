@@ -77,4 +77,4 @@ python3 "$AUDIT_SKILL_DIR/scripts/dynamic.py" import --workspace /output/agent_a
 
 工具脱敏已知凭据环境变量、敏感JSON字段、Bearer token和私钥片段；可通过配置`redact_env`列出其他需屏蔽的环境变量名称。这不是通用敏感数据检测，导入前及交付前仍核对自由文本中的真实秘密与个人数据。观测文件固定后不直接编辑；需要补充或纠正时导入新记录并将旧证据标为待复核。
 
-完成后复核发现、登记有效控制，再运行主流程的`validate/report/snapshot`。报告分别显示动态观测状态、模拟来源和证据局限，框架知识不回写。
+完成后复核发现、登记有效控制，再按[两段式报告](report-format.md)导出材料、由 report_writer 成文，并执行 `report --check`、最终 `gate`、`validate` 与 `snapshot`。报告分别显示动态观测状态、模拟来源和证据局限，框架知识不回写。

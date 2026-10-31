@@ -315,6 +315,68 @@ def vocabulary_documented():
     return problems
 
 
+@check('attack-entry-routing')
+def attack_entry_routing():
+    """Entry-type definitions reach every classifier and the generated unit brief.
+
+    Check the enum/table and link targets, not the meaning of the prose. The latter
+    remains the reviewer's job. Exercise both generated consumers so checking the
+    static role files cannot hide a stale decision prompt or a lost rationale.
+    """
+    import tempfile
+    from units import EXPOSURES, pending_decisions, write_brief
+
+    problems = []
+    definition = SKILL / 'references' / 'method.md'
+    fragment = 'attack-entry-types'
+    source = read_text(definition)
+    anchor = '<a id="%s"></a>' % fragment
+    if source.count(anchor) != 1:
+        return ['entry-type definition needs one unambiguous anchor: ' + fragment]
+    section = re.split(r'^## ', source.split(anchor, 1)[1], flags=re.M)
+    body = section[1] if len(section) > 1 else ''
+    values = re.findall(r'^\|\s*`([A-Za-z_]+)`\s*\|', body, re.M)
+    expected = [v for v in EXPOSURES if v != 'unknown']
+    if sorted(values) != sorted(expected):
+        problems.append('entry-type table differs from the classified values: ' + repr(values))
+
+    def has_definition_link(text, base):
+        for destination in re.findall(r'\[[^\]\n]+\]\(([^)\n]+)\)', text):
+            path, _, anchor_id = destination.strip('<>').partition('#')
+            if anchor_id == fragment and (base / path).resolve() == definition.resolve():
+                return True
+        return False
+
+    for rel in ('SKILL.md', 'references/orchestration.md', 'references/records.md',
+                'references/report-format.md', 'references/roles/worker.md',
+                'references/roles/reviewer.md', 'references/roles/queue_critic.md',
+                'references/roles/report_writer.md'):
+        path = SKILL / rel
+        if not has_definition_link(read_text(path), path.parent):
+            problems.append(rel + ': no working link to the common entry-type definition')
+
+    with tempfile.TemporaryDirectory(prefix='audit-entry-routing-') as tmp:
+        workspace, state = root_cause_fixture(tmp)
+        unit = state['units'][0]
+        unit['exposure'] = 'unknown'
+        questions = [d for d in pending_decisions(workspace, state)
+                     if d['kind'] == 'exposure' and d['subject'] == unit['id']]
+        if len(questions) != 1 or not has_definition_link(questions[0]['question'], SKILL):
+            problems.append('generated exposure question does not reach the definition')
+        unit['exposure'] = 'ADJ'
+        unit['exposure_reason'] = '需要位于专用网络；本条为该单元的分类依据。'
+        before = json.dumps(state, ensure_ascii=False, sort_keys=True)
+        result = write_brief(workspace, state, unit, '', None)
+        brief = read_text(result['brief'])
+        if not has_definition_link(brief, Path(result['brief']).parent):
+            problems.append('generated unit brief does not reach the definition')
+        if unit['exposure_reason'] not in brief:
+            problems.append('generated unit brief lost the recorded classification basis')
+        if json.dumps(state, ensure_ascii=False, sort_keys=True) != before:
+            problems.append('writing the unit brief changed the audit record')
+    return problems
+
+
 @check('primitive-table')
 def primitive_table():
     """Each attack primitive has its own row in the definition table.
@@ -1441,22 +1503,14 @@ def report_volume_split():
         if shape['mechanical_share'] <= report_shape(body)['mechanical_share']:
             problems.append('inlining the inventories does not raise the measured share: '
                             '%s vs %s' % (shape, report_shape(body)))
-        # The threshold, against the real gate. A synthetic report is used rather than a
-        # fixture big enough to cross 20%: the row has to fail on the share, not on size.
-        heavy = ['# r', ''] + ['## 发现', ''] + ['- f'] * 10 + ['## 证据索引', ''] + ['- e'] * 20
-        (workspace / 'report.md').write_text('\n'.join(heavy), encoding='utf-8')
-        row = next(r for r in evaluate(workspace, state) if r['id'] == 'G10')
-        if row['status'] != 'fail' or '机械清单占正文' not in row['detail']:
-            problems.append('G10 passes a report that is 60%% inventory: %s' % row)
-        light = ['# r', ''] + ['## 发现', ''] + ['- f'] * 40 + ['## 证据索引', ''] + ['- e'] * 2
-        (workspace / 'report.md').write_text('\n'.join(light), encoding='utf-8')
-        row = next(r for r in evaluate(workspace, state) if r['id'] == 'G10')
-        if row['status'] != 'pass':
-            problems.append('G10 fails a report well under the limit: %s' % row)
-        (workspace / 'report.md').unlink()
-        row = next(r for r in evaluate(workspace, state) if r['id'] == 'G10')
+        # Preparation can precede authoring; final delivery cannot. Legacy size
+        # ratios no longer constitute a completed report.
+        row = next(r for r in evaluate(workspace, state, prepare_report=True) if r['id'] == 'G10')
         if row['status'] != 'skip':
-            problems.append('G10 judges a report that does not exist yet: %s' % row)
+            problems.append('G10 blocks report preparation: %s' % row)
+        row = next(r for r in evaluate(workspace, state) if r['id'] == 'G10')
+        if row['status'] != 'fail':
+            problems.append('G10 accepts missing authored reports: %s' % row)
         # Through the command line, because the option and the renderer are wired by one
         # argument that nothing else watches: dropping the pass-through leaves `--full`
         # registered, documented and inert.
@@ -1472,12 +1526,21 @@ def report_volume_split():
                     code = audit.main()
             finally:
                 sys.argv = saved
-            written = (workspace / 'report.md').read_text(encoding='utf-8')
-            inlined = state['checks'][0]['id'] in section(written, '检查结论与缺口')
-            if code != 0 or inlined != wanted:
-                problems.append('%s produced exit %s and inventories inlined=%s'
-                                % (' '.join(argv), code, inlined))
+            indexed = (workspace / 'report' / 'index.json').is_file()
+            full_path = workspace / 'report' / 'full-records.md'
+            inlined = (full_path.is_file() and state['checks'][0]['id'] in
+                       section(full_path.read_text(encoding='utf-8'), '检查结论与缺口'))
+            if code != 0 or not indexed or inlined != wanted:
+                problems.append('%s produced exit %s, indexed=%s, full records=%s'
+                                % (' '.join(argv), code, indexed, inlined))
     return problems
+
+
+@check('two-stage-reporting')
+def two_stage_reporting():
+    """Indexed materials and authored reports obey the two-stage delivery contract."""
+    from reporting_check import run_checks
+    return run_checks(SKILL)
 
 
 @check('kept-knowledge-is-versioned')

@@ -878,8 +878,9 @@ def build_parser():
                         help='dispatch: which wave of this round these units are, recorded '
                              'on each unit so the schedule survives a context reset')
     parser.add_argument('--full', action='store_true',
-                        help='report / snapshot: inline the mechanical inventories in '
-                             'report.md instead of pointing at coverage-details.md')
+                        help='report: also export the legacy full-record view for inspection')
+    parser.add_argument('--check', dest='check_report', action='store_true',
+                        help='report: validate authored reports and update their index')
     parser.add_argument('--route', action='store_true')
     parser.add_argument('--freeze', action='store_true')
     parser.add_argument('--phase', type=int, choices=[1, 2, 3], default=1)
@@ -914,8 +915,12 @@ def main():
             raise ValueError('Split the unit first, then freeze')
         if args.route and args.command != 'seed':
             raise ValueError('--route is only valid with seed')
-        if args.full and args.command not in {'report', 'snapshot'}:
-            raise ValueError('--full is only valid with report and snapshot')
+        if args.full and args.command != 'report':
+            raise ValueError('--full is only valid with report')
+        if args.check_report and args.command != 'report':
+            raise ValueError('--check is only valid with report')
+        if args.full and args.check_report:
+            raise ValueError('--full and --check cannot be combined')
         if args.partial and args.command not in {'seed', 'merge'}:
             raise ValueError('--partial is only valid with seed and merge')
         if args.prepare and args.command not in {'review', 'gate'}:
@@ -1080,17 +1085,24 @@ def main():
                     write_json(workspace / 'report.sarif.json', export_sarif(state, workspace))
                     result['sarif'] = str(workspace / 'report.sarif.json')
                 if args.command == 'report':
-                    report = render_report(state, workspace, full=args.full)
-                    from records import render_coverage, report_shape
-                    appendix = render_coverage(state, workspace)
-                    result['report_shape'] = report_shape(report)
-                    for name in ('report.md', 'coverage-details.md'):
-                        if (workspace / name).is_symlink():
-                            raise ValueError('Report path is a symlink: ' + name)
-                    (workspace / 'coverage-details.md').write_text(appendix, encoding='utf-8')
-                    (workspace / 'report.md').write_text(report, encoding='utf-8')
-                    result['report'] = str(workspace / 'report.md')
-                    result['coverage_details'] = str(workspace / 'coverage-details.md')
+                    from reporting import export_package, finalize_package, _inside
+                    if args.check_report:
+                        result['authored_reports'] = finalize_package(workspace, state)
+                        if not result['authored_reports']['valid']:
+                            print(json.dumps(result, ensure_ascii=False, indent=2))
+                            return 1
+                    else:
+                        index = export_package(workspace, state)
+                        result['report_index'] = str(workspace / 'report' / 'index.json')
+                        result['writing_tasks'] = len(index['tasks'])
+                        result['summary_status'] = index['summary_status']
+                        if args.full:
+                            from records import render_coverage
+                            full_path = _inside(workspace, 'report/full-records.md')
+                            appendix_path = _inside(workspace, 'coverage-details.md')
+                            full_path.write_text(render_report(state, workspace, full=True), encoding='utf-8')
+                            appendix_path.write_text(render_coverage(state, workspace), encoding='utf-8')
+                            result['full_records'] = str(full_path)
                 if args.command == 'snapshot':
                     result['snapshot'] = str(archive(workspace, state, 'audit'))
         print(json.dumps(result, ensure_ascii=False, indent=2))

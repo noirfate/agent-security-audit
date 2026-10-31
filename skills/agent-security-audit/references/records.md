@@ -2,7 +2,7 @@
 
 ## 文件与所有权
 
-工作区包含`audit.json`（目标分析记录）、`report.md`、`coverage-details.md`和`report.sarif.json`（由同一记录生成）、`baselines/<指纹>/`（只读引用知识）和`snapshots/`（只追加历史）。可选动态验证另外生成`dynamic/`固定会话配置与`observations/`观测文件。分单元执行时另有`units/<单元>/`（brief、断点、单元产物与跨范围观察）和可选`surface/`（检索位置与摘要）。合入被拒时原产物留在原路径，错误输出给出原因。初始化和续审都不向框架或安装的skill写入。
+工作区包含`audit.json`（目标分析记录）、`report/`（机械材料、索引与按模板撰写的报告）、`report.md`（导航）和`report.sarif.json`（由审计记录生成）、`baselines/<指纹>/`（只读引用知识）和`snapshots/`（只追加历史）。可选动态验证另外生成`dynamic/`固定会话配置与`observations/`观测文件。分单元执行时另有`units/<单元>/`（brief、断点、单元产物与跨范围观察）和可选`surface/`（检索位置与摘要）。合入被拒时原产物留在原路径，错误输出给出原因。初始化和续审都不向框架或安装的skill写入。
 
 目标记录版本为`1.7`，与框架契约版本独立。更早的工作区先执行`refresh`：归档旧记录，新增空集合，不改写历史快照。`1.0`迁移会把发现标为待复核；`1.2`与`1.3`只增加调度集合，`1.4`把两阶段改成三阶段（单元的`stage`上移为`phase`，队列键改名），`1.5`移除读取回执集合`reads`（有界读取那条通路已撤，覆盖记录改为无条件写明`analysis_method`与`limitations`），迁移会丢弃旧回执并报出条数。这几步都保留原有发现状态。`1.6` 新增 `dismissed_candidates`、模型分片确认及 `cross_scope`。`1.7` 只增字段：`root_causes` 与发现上的 `root_cause_id`、覆盖条目的 `no_check_reason`、单元的 `wave`、队列的 `dispatch_capacity`；迁移不改历史判定，旧发现的 `root_cause_id` 为空，不自动归并，旧覆盖条目不因缺 `no_check_reason` 变成未完成。迁移保留旧事实、未知字段与冻结值，用 `legacy_schema_version` / `legacy_freeze_contract` 标记旧契约；不把历史 fp 补造成反证关联，不把旧冻结宣称为新验证。只有指纹未变的旧合入产物可沿用旧计数口径；新写产物必须满足新契约。真正让检查待复核的是材料变化与知识基线变化——**技能指纹只作记录，不参与判定**。
 
@@ -119,6 +119,16 @@ ID 一律是`<前缀>-<单元token>-<序号>`，单元`U-SH03`的 token 是`SH03
 
 `findings`每项包含`id`、`check_ids`、`title`、`mechanism`、`evidence_ids`、`impact`、`severity`、`severity_reason`、`remediation`、`responsibility`、`validation`、`residual_risk`、`status`，可选`root_cause_id`指向`root_causes`中的一条；为空表示尚未归并，不表示独有根因。
 
+### 入口类型字段
+
+`exposure` 与 `entry_exposure` 共用[攻击入口类型](method.md#attack-entry-types)的定义，各自的判定对象不同：
+
+- `units[].exposure` 是调度阶段对单元入口的分类，环境边界与位置依据写入 `exposure_reason`。初始 `unknown` 是待判定状态，需经现有 `decide` 流程裁决，不能作为已完成分类。
+- `findings[].exposure` 描述本条发现实际分析的入口，起点环境、控制条件和路径依据写入机理；同一发现的不同入口分别说明，不从单元标签推导。
+- `chains[].entry_exposure` 描述整条链的原始入口，各步保持实际环境与前提；不继承首个或末个组件的单元标签。不同入口需要独立走查时分别登记链。
+
+起点环境未确定时保留待判定状态，并在机理、链描述或残余风险中说明缺口。入口已确定但后续链路缺证时保留该类型，在验证与复核中表达缺证；不靠改标签代替证据判断。
+
 `severity`取`critical/high/medium/low/informational`，按实际影响和前提解释；`status`取`current/needs_review/withdrawn`。候选从`needs_review`开始。当前发现由已完成且`confirmed`的检查和有效复核支持，可引用本地检查。数据流问题说明链路，设计问题说明违反的假设与要求。`validation`区分静态走查、真实观测和仍缺的验证。
 
 回源复核后，准备如下JSON文件。分单元产物先用 `merge --unit` 合入共享记录，再登记该发现的复核；合入只导入记录，不替代语义复核：
@@ -161,9 +171,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" review --workspace "$AUDIT_WORKSPACE
 
 ## 输出
 
-`report`同时生成Markdown与SARIF；`audit.py sarif`仅导出SARIF。`snapshot` 将完整工作区保存到快照的 `workspace/`，包含未合入的单元产物、断点、复核记录、运行日志、基线与观测；仅排除工作区根 `snapshots/`，避免递归历史。格式 2 清单记录全部相对路径、空目录与文件哈希，旧三文件快照继续校验。SARIF保留对象命题作为规则ID、本地检查独立编号、目标别名和相对路径、证据位置与稳定发现指纹。无源码位置时不编造行号；修复建议只作文本，不生成可自动应用的补丁。
+`report`导出分类材料、索引与SARIF，人工成文按[两段式报告](report-format.md)执行，`report --check` 核对交付；`audit.py sarif`仅导出SARIF。`snapshot` 将完整工作区保存到快照的 `workspace/`，包含未合入的单元产物、断点、复核记录、运行日志、基线与观测；仅排除工作区根 `snapshots/`，避免递归历史。格式 2 清单记录全部相对路径、空目录与文件哈希，旧三文件快照继续校验。SARIF保留对象命题作为规则ID、本地检查独立编号、目标别名和相对路径、证据位置与稳定发现指纹。无源码位置时不编造行号；修复建议只作文本，不生成可自动应用的补丁。
 
-报告从记录生成，不再手工维护一份独立发现清单。校验通过只说明结构和引用一致，语义仍需回源复核。报告显示未完成覆盖与证据缺口；零发现、零检查和全部通过不是同一件事。
+发现事实与状态只在 audit.json 维护；模型按模板撰写解释，索引核对来源与完整性。重新导出不覆盖作者稿。校验通过只说明结构和引用一致，语义仍需回源复核。报告显示未完成覆盖与证据缺口；零发现、零检查和全部通过不是同一件事。
 
 ## 复审与版本变化
 
@@ -171,6 +181,6 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" review --workspace "$AUDIT_WORKSPACE
 2. 同一内容但行号变化不可能指纹相同；重新定位后核对语义，不能只搬行号。已移除材料保留索引状态供历史引用。
 3. 已安装知识包变化时，刷新记录`pending_framework`，原基线继续可查询。开始按新版本复审时运行`refresh --adopt-framework`，再`seed --rebase`。工具保留旧快照，重置仍存在的命题；被移除命题保留旧基线且待复核，人工判断不适用、重新映射或本地定义，不能静默删除发现。
 4. 工具不会更新安装的skill或知识包。技能指纹只标识执行版本，不触发复核；知识维护与安装新版由审计之外的流程完成。
-5. 完成后先 `validate`、再 `report` 和 `snapshot`。保存前让所有写入者落盘并暂停写入；符号链接、复制失败或复制期间内容变化会使本次快照失败，未完成目录不会作为完整快照发布。历史目录不覆盖，清单核验新增、缺失与内容变化。未完成审计也可保存，报告保留未完成状态。恢复时先校验快照，将格式 2 的 `workspace/` 复制到空工作区，再校验并核对目标 revision；旧格式只含共享记录与报告，恢复未合入工作仍需原单元目录。
+5. 完成材料导出和人工撰写后运行 `report --check`、最终 `gate`、`validate`，再 `snapshot`。保存前让所有写入者落盘并暂停写入；符号链接、复制失败或复制期间内容变化会使本次快照失败，未完成目录不会作为完整快照发布。历史目录不覆盖，清单核验新增、缺失与内容变化。未完成审计也可保存，报告保留未完成状态。恢复时先校验快照，将格式 2 的 `workspace/` 复制到空工作区，再校验并核对目标 revision；旧格式只含共享记录与报告，恢复未合入工作仍需原单元目录。
 
 快照记录审计当时的输入位置和指纹；目标材料若已移动或不可读，当前验证会失败，不能把旧路径缺失解释为安全。迁移目标位置后显式更新`targets`并重新核对材料。

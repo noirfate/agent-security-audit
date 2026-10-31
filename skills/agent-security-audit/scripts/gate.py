@@ -30,7 +30,7 @@ from units import census, partition_errors
 ROWS = ('G1 单元划分是分区', 'G2 单元内文件与维度处置完整', 'G3 原始索引仅供参考',
         'G4 EXT 入口全覆盖', 'G5 跨边界连接有归属', 'G6 队列冻结未被破坏',
         'G7 发现与记录去向完整', 'G8 覆盖声明与分母一致',
-        'G9 根因候选已裁决，归并不丢路径', 'G10 机械清单不挤占正文')
+        'G9 根因候选已裁决，归并不丢路径', 'G10 两段报告与来源对账完整')
 
 
 def _row(rid, title, ok, detail, skipped=False):
@@ -294,28 +294,16 @@ def evaluate(workspace, state, prepare_report=False):
     rows.append(_row('G9', ROWS[8], not cause_problems, detail,
                      skipped=not cause_problems and not mandatory and bool(exempt)))
 
-    # Measured on the delivered file. The requirement this replaces was scoped to one
-    # section's name (「覆盖声明整节 ≤15%」), so moving that section out satisfied it
-    # while four mechanical inventories kept 36% of the report — form met, purpose lost.
-    volume, shape = [], None
-    report_file = workspace / 'report.md'
-    if report_file.exists():
-        try:
-            from records import report_shape
-            shape = report_shape(report_file.read_text(encoding='utf-8'))
-        except (OSError, ValueError) as exc:
-            volume.append('读不到 report.md：%s' % exc)
-        if shape and shape['mechanical_share'] > shape['limit']:
-            volume.append('机械清单占正文 %.0f%%（%d / %d 行），超过 %.0f%%：默认就该外置到'
-                          ' coverage-details.md，正文只留合计与指针'
-                          % (shape['mechanical_share'] * 100, shape['mechanical_lines'],
-                             shape['lines'], shape['limit'] * 100))
-    rows.append(_row('G10', ROWS[9], not volume,
-                     '；'.join(volume[:2]) if volume else
-                     ('机械清单占正文 %.0f%%（上限 %.0f%%）'
-                      % (shape['mechanical_share'] * 100, shape['limit'] * 100) if shape
-                       else '还没生成 report.md，本行等报告生成后再核'),
-                     skipped=shape is None and not volume))
+    # Preparation deliberately precedes authored Markdown. Final delivery checks the
+    # actual files against audit records; a self-reported completion flag is insufficient.
+    if prepare_report:
+        rows.append(_row('G10', ROWS[9], True, '报告准备：成文与来源对账留给最终闸门', skipped=True))
+    else:
+        from reporting import validate_package
+        report_errors = validate_package(workspace, state)
+        detail = ('；'.join(report_errors[:3]) + '（共 %d 项，运行 report --check 查看）' % len(report_errors)
+                  if report_errors else '分类材料、人工报告、来源映射、全量高危清单及 EXT 链对账通过')
+        rows.append(_row('G10', ROWS[9], not report_errors, detail))
     return rows
 
 

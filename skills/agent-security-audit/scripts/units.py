@@ -567,7 +567,10 @@ def pending_decisions(workspace, state, rows=None):
         if not unit['object_ids'] and not unit.get('mapping_note'):
             add('object_mapping', unit['id'], '这个单元承担哪些框架对象职责？没有对应对象时写 mapping_note。')
         if unit['exposure'] == 'unknown':
-            add('exposure', unit['id'], '这个单元的暴露层级是 EXT / ADJ / INT？按绑定地址、认证默认值与真实入口判，并写理由。')
+            add('exposure', unit['id'],
+                '先读本技能的[攻击入口类型](references/method.md#attack-entry-types)。'
+                '明确目标内部运行环境边界后，按攻击起点及必要位置条件判断这个单元的 '
+                'EXT / ADJ / INT，并写依据；权限、用户操作与证据缺口分别说明。')
         if unit['kind'] == 'artifact' and not unit['depth']:
             add('depth', unit['id'], '这个制品按 triage / standard / deep 哪一档审？写 depth_reason。')
     # Target level, not unit level. Every unit records why it *takes* an object, and
@@ -910,7 +913,11 @@ def write_brief(workspace, state, unit, knowledge_brief, surface_path):
         lines.append('- `%s` → `%s`' % (alias, roots.get(alias, '未登记')))
     lines += ['',
              '## 单元事实', '',
-             '- 类型：%s；阶段：%s；暴露层级：%s' % (unit['kind'], unit['phase'], unit['exposure']),
+             '- 类型：%s；阶段：%s；单元入口类型：%s' % (unit['kind'], unit['phase'], unit['exposure']),
+             '- 入口分类依据：%s' % (unit.get('exposure_reason') or '待判定'),
+             '- 分类规则：[攻击入口类型](<%s#attack-entry-types>)；单元标签用于调度，'
+             '发现与攻击链按各自起点判定。'
+             % (Path(__file__).resolve().parents[1] / 'references' / 'method.md'),
              '- 深度：%s（%s）' % (unit['depth'] or '未定', unit['depth_reason'] or '无'),
              '- 文件数：%d（文本 %d / 非文本 %d）；代码量：%.0f KB'
              % (unit['file_count'], unit['text_count'], unit['opaque_count'], unit['byte_count'] / 1024),

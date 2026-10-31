@@ -43,14 +43,14 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" plan --workspace "$WS" --freeze --ph
 
 `--group-depth`（默认 1）、`--artifact-depth`（默认 2）只控制候选分组。制品根标记也是候选信号，模型要核实其真实职责。
 
-模型裁决通过 `decide --decision <kind>:<subject> --resolution … --reason …` 写入，原因不能空。也可用当前 `DEC-…` 编号，避免手改共享记录。
+模型裁决通过 `decide --decision <kind>:<subject> --resolution … --reason …` 写入，原因不能空。也可用当前 `DEC-…` 编号，避免手改共享记录。单元的初始 `exposure=unknown` 表示待判定，会生成裁决待办；它不是可提交的第四种入口类型，不能用它替代裁决并通过冻结。
 
 | kind | 要决定什么 |
 |---|---|
 | `partition` | `queue` 的候选边界是否可用；接受答 `accept`，否则提交 `--apply` |
 | `out_of_scope_candidate` | 目录是否参与运行时加载；答 `in_scope` / `out_of_scope`，排除后 `refresh` |
 | `object_mapping` | 单元承担哪些对象；答对象 ID 列表，或 `none` 并给 `mapping_note` |
-| `exposure` | `EXT` / `ADJ` / `INT`；按入口和前提说明，脚本不从名称推断 |
+| `exposure` | `EXT` / `ADJ` / `INT`；先明确目标内部运行环境边界，再按[攻击入口类型](method.md#attack-entry-types)说明起点环境与位置依据。单元标签用于调度，不直接作为其内每条发现或攻击链的分类 |
 | `depth` | `triage` / `standard` / `deep`；给依据 |
 | `cluster_representative` | 代表是否足够；读差异后由模型选择成员 |
 | `unassigned_material` | 用 `plan --apply` 补足归属，或有依据地排除 |
@@ -117,8 +117,8 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
 三阶段   模型决定 cross_scope → queue_critic 质问 → freeze --phase 3 → 执行 needed 类型
 收口     段级 reviewer 跑 rootcause 读候选、rootcause --apply 落裁决（强候选逐条答，
          判 distinct 也要带理由；合并呈现类的报告待办在这里落地，不留给报告措辞）
-         → gate --prepare → report_writer 写终报并闭合 report_todos → gate（不带 --prepare）
-         → 一名复核终报 → validate / report / sarif / snapshot
+         → gate --prepare → report 导出材料 → report_writer 按模板成文并闭合 report_todos
+         → 一名复核终报 → report --check → gate（不带 --prepare）→ validate / sarif / snapshot
 ```
 
 **目标专属模式留在工作区，不写技能。** 它是这次审计的记录（`target_patterns.json`），
@@ -181,7 +181,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" cross --workspace "$WS" --cross-type
 ## 8 闸门
 
 ```bash
-# 写终报前：只延后 report_todos，其他检查照常
+# 写终报前：只延后 report_todos 与 G10 成文检查，其他检查照常
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS" --prepare
 # 报告呈现与待办处理完成后：全部交付检查
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
@@ -189,7 +189,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 
 退出码分两个方向：**0 全过；1 读得了但内容没收口（去修记录）；2 读不到或读不懂（去修路径或格式）**。**原样跑，不要接管道**——接了管道退出码是末端命令的，闸门会无声放行。
 
-十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 根因强候选逐条裁决、归并逐成员留路径（成员全属旧契约单元的候选豁免；全部豁免时整行 skip，并在 detail 里写明这一行没核到东西）；G10 四张机械清单在 `report.md` 里的行数合计 ≤20%（量的是交付出来的那个文件，没生成报告时整行 skip）。G9 只在收口前有意义——候选要等全部单元合入才稳定，二阶段中途它照常报「还没裁决」，按行读即可，不必为它停下。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将尚未呈现的报告待办留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
+十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 根因强候选逐条裁决、归并逐成员留路径（成员全属旧契约单元的候选豁免；全部豁免时整行 skip，并在 detail 里写明这一行没核到东西）；G10 两段报告与来源对账完整（按[报告契约](report-format.md)核对分类材料、人工模板、完整发现映射、末尾全量高危清单及 EXT 链；最终交付缺报告即失败，准备时延后）。G9 只在收口前有意义——候选要等全部单元合入才稳定，二阶段中途它照常报「还没裁决」，按行读即可，不必为它停下。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将报告待办与 G10 成文核查留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
 
 两条容易读错的：**G4 读的是单元的 `exposure`**（实例上没人填——契约要求填在发现上，单元的由裁决环节填；若按实例判，闸门会永远输出「EXT 实例 0 个」而通过）。**G7 接受带 `needs_evidence` 复核的 `needs_review` 发现**：那是正当判定，它的闭合形式就是「记录了缺什么」；只有毫无复核记录的发现才算悬空。G7 同时核订正条目是否带改前／改后／理由，以及 `report_todos` 是否全部闭合。
 

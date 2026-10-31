@@ -61,11 +61,11 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_a
 
 读取[分析方法](references/method.md)，按[材料指南](references/materials.md)选取当前材料的取证方式，再读[目标指南](references/targets.md)中相应小节。它们是本skill内的方法参考，不要求安装旧skill或元技能。
 
-先读项目目的、设计与部署说明，再用源码、配置或已有记录核对。确认实际组成、关键资产、输入提供者、权限持有者和谁能影响什么。目录清单与构建入口用于核对范围，不能仅凭关键词命中决定审计对象。
+先读项目目的、设计与部署说明，再用源码、配置或已有记录核对。明确目标的内部运行环境边界，按[攻击入口类型](references/method.md#attack-entry-types)判定各入口。确认实际组成、关键资产、输入提供者、权限持有者和谁能影响什么。目录清单与构建入口用于核对范围，不能仅凭关键词命中决定审计对象。
 
 将事实写入`audit.json`的`instances`、`connections`、`assets`、`attackers`、`controls`与`profile`。用`materials`和`coverage`对账：每个范围内材料归属一个明确检查范围，排除项有理由；跨目录共享组件及边界也要有归属。源码不存在的结论需要实际搜索依据；未取得的子模块记录缺口，不自动下载或初始化。
 
-分单元时，`plan`把「这个依赖目录算不算范围外」「这个单元承担哪些对象」「暴露层级是哪一档」「制品按哪一档深度审」「簇代表选谁」列成`pending_decisions`，逐条填结论与理由；一条未填，`--freeze`就拒绝冻结。缓存、依赖与构建目录不按目录名排除：它们可能携带被加载的制品，判范围外要写进`exclusions`并给理由。
+分单元时，`plan`把「这个依赖目录算不算范围外」「这个单元承担哪些对象」「单元入口类型是什么」「制品按哪一档深度审」「簇代表选谁」列成`pending_decisions`，逐条填结论与理由；一条未填，`--freeze`就拒绝冻结。缓存、依赖与构建目录不按目录名排除：它们可能携带被加载的制品，判范围外要写进`exclusions`并给理由。
 
 材料清单标记字节码、读取失败、编码异常和过大文件。使用原生读取工具或适合材料的只读抽取器，记录实际位置、编码、读取范围及局限。`coverage` 中写明 `analysis_method` 和 `limitations`；工具返回内容不等于模型已分析，截断与解码失败不能当已完整阅读。
 
@@ -120,15 +120,18 @@ FM 的 `risk_ids` 提供关联风险索引；单元 brief 展示风险编号、�
 
 核对材料范围、连接边界和模型认领的正式候选都有去向；原始检索命中不要求逐条处置。可以保留明确的证据缺口，不能用“已完成”掩盖未检查部分。每次推进及时保存记录，中断或上下文压缩后从工作区恢复。
 
-报告准备时运行 `gate --prepare`，让 report_writer 完成呈现与 `report_todos`；该选项只延后报告待办，不放宽其他检查。完成后执行最终检查：
+报告按[两段式报告](references/report-format.md)执行：机械阶段导出 `report/index.json` 与分类材料，report_writer 按本技能模板直接撰写 summary 和独立漏洞报告。summary 必须独立解释主要发现、包含 EXT 外部入口攻击链，不含修复建议，最后逐条列全当前 High/Critical 的原理与影响。全部当前发现有独立报告或已裁决根因报告映射。`gate --prepare` 只延后报告待办和成文检查，不放宽审计范围要求。
 
 ```bash
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace /output/agent_audit/example --prepare
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" report --workspace /output/agent_audit/example
+# 派 report_writer 按索引与模板撰写，并落实 report_todos
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" report --workspace /output/agent_audit/example --check
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace /output/agent_audit/example
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" validate --workspace /output/agent_audit/example
-python3 "$AUDIT_SKILL_DIR/scripts/audit.py" report --workspace /output/agent_audit/example
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" snapshot --workspace /output/agent_audit/example
 ```
 
-`validate`核对记录内部一致（引用、指纹、状态与判定关系），`gate`核对显式任务和范围声明是否闭合。原始命中不是覆盖分母；脚本通过不证明范围真的被走过。`gate`退出码 1 是内容没收口、2 是读不到或读不懂，原样跑不要接管道。两者都不能证明推理正确。失败时回到原材料修正记录，不能为了通过而删证据或缩小范围。报告由记录生成；需要补充解释时修改记录再生成。
+`validate`核对记录内部一致（引用、指纹、状态与判定关系），`gate`核对显式任务和范围声明是否闭合。原始命中不是覆盖分母；脚本通过不证明范围真的被走过。`gate`退出码 1 是内容没收口、2 是读不到或读不懂，原样跑不要接管道。两者都不能证明推理正确。失败时回到原材料修正记录，不能为了通过而删证据或缩小范围。机械材料由记录导出，人工叙述直接按模板写 Markdown；补充事实或改变结论须先修正记录并重新复核。
 
-保存快照前让写入者落盘并暂停；格式 2 的 `workspace/` 保存完整工作区，包括未合入单元、复核记录和运行断点。交付 `report.md`、`coverage-details.md`、`report.sarif.json`、结构化目标知识库与快照路径，简述主要发现、有效控制、覆盖程度及未能判定的部分。报告与 SARIF 由同一记录生成；未复核和已撤销发现不作为当前 SARIF 告警。框架知识或方法需另行维护时属于独立任务，不作为本次审计的前置条件。
+保存快照前让写入者落盘并暂停；格式 2 的 `workspace/` 保存完整工作区，包括未合入单元、复核记录和运行断点。交付 `report/summary.md`、`report/index.json`、独立漏洞报告与分类材料、`report.sarif.json`、目标知识库和快照路径，简述主要发现及证据边界。报告和 SARIF 均以同一审计记录为依据；未复核和已撤销发现不作为当前 SARIF 告警。框架知识或方法需另行维护时属于独立任务，不作为本次审计的前置条件。
