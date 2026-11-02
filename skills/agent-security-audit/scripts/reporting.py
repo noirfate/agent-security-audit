@@ -9,7 +9,7 @@ import shutil
 import tempfile
 from urllib.parse import unquote, urlsplit
 
-VERSION = 1
+VERSION = 2
 SHARD_BYTES = 96 * 1024
 SHARD_RECORDS = 32
 SUMMARY_HEADINGS = ('1. 主要发现概览', '2. 从 EXT 外部入口进入的攻击链',
@@ -107,7 +107,10 @@ def task_input(state, task, maps=None):
                  if e.get('material_id') in state.get('materials', {})}
     instance_ids = {iid for c in checks for iid in c.get('instance_ids', [])}
     todo_ids = set(task.get('todo_ids', []))
-    return {'target_id': state['target_id'], 'targets': state.get('targets', []),
+    from attribution import latest_dispositions
+    dispositions = latest_dispositions(state)
+    return {'finding_dispositions': [dispositions[f['id']] for f in findings if f['id'] in dispositions],
+            'target_id': state['target_id'], 'targets': state.get('targets', []),
             'findings': findings, 'checks': checks, 'evidence': evidence, 'materials': materials,
             'reviews': reviews, 'controls': [controls[cid] for cid in sorted(controls)],
             'instances': [maps['instances'][iid] for iid in sorted(instance_ids) if iid in maps['instances']],
@@ -119,18 +122,9 @@ def task_input(state, task, maps=None):
 def build_tasks(state):
     maps = _input_maps(state)
     current = {f['id']: f for f in state.get('findings', []) if f.get('status') == 'current'}
-    groups, assigned = [], set()
-    for cause in state.get('root_causes', []):
-        if cause.get('verdict') != 'merge':
-            continue
-        members = sorted(current.keys() & set(cause.get('finding_ids', [])))
-        if not members:
-            continue
-        if assigned.intersection(members):
-            raise ValueError('Finding belongs to multiple merged root causes')
-        assigned.update(members)
-        groups.append((cause['id'], members, cause['id']))
-    groups.extend((fid, [fid], None) for fid in sorted(current.keys() - assigned))
+    from attribution import build_vulnerability_view
+    groups = [(v['id'], v['finding_ids'], v['root_cause_id'])
+              for v in build_vulnerability_view(state)['vulnerabilities']]
     tasks = []
     for rid, members, root_id in groups:
         rid = _safe_id(rid)
@@ -145,6 +139,7 @@ def build_tasks(state):
         task['input_refs'] = {k: [r['id'] for r in packet[k]]
                               for k in ('findings', 'checks', 'evidence', 'reviews', 'controls', 'instances')}
         task['input_refs']['materials'] = sorted(packet['materials'])
+        task['input_refs']['finding_dispositions'] = [r['id'] for r in packet['finding_dispositions']]
         if root_id:
             task['input_refs']['root_causes'] = [root_id]
         task['input_refs']['report_todos'] = todos
@@ -243,7 +238,7 @@ def _artifact_status(root, path, expected_digest):
 def _pack_index(index):
     """Keep the root index small; detailed record/task maps have their own indexes."""
     root = {k: v for k, v in index.items() if k not in {'catalog', 'locations', 'aliases', 'tasks',
-                                                       'task_indexes', 'task_order'}}
+                                                       'task_indexes', 'task_order', 'finding_map'}}
     root['catalog'], root['task_indexes'], blobs = {}, [], {}
     for category, catalog in index['catalog'].items():
         relative = 'record-index/' + _safe_id(category) + '.json'
@@ -264,6 +259,10 @@ def _pack_index(index):
         blobs[relative] = body
         root['task_indexes'].append({'path': relative, 'ids': [t['id'] for t in tasks],
                                      'sha256': hashlib.sha256(body.encode('utf-8')).hexdigest()})
+    map_path = 'record-index/_finding-map.json'
+    map_body = json.dumps(index.get('finding_map', {}), ensure_ascii=False, indent=2) + '\n'
+    blobs[map_path] = map_body
+    root['finding_map_index'] = {'path': map_path, 'sha256': hashlib.sha256(map_body.encode()).hexdigest()}
     return root, blobs
 
 
@@ -297,6 +296,9 @@ def load_index(workspace):
     if len(stored['task_order']) != len(tasks) or set(stored['task_order']) != set(tasks):
         raise ValueError('Task order does not match task indexes')
     expanded['tasks'] = [tasks[rid] for rid in stored['task_order']]
+    if stored.get('finding_map_index'):
+        descriptor = stored['finding_map_index']
+        expanded['finding_map'] = read_index(descriptor['path'], descriptor['sha256'])
     return expanded
 
 
@@ -346,17 +348,21 @@ def export_package(workspace, state):
                     locations[category][rid] = relative + '#' + _anchor_id(rid)
         catalog[category] = cat
     tasks = build_tasks(state)
+    from attribution import build_vulnerability_view
+    view = build_vulnerability_view(state)
     digest = source_digest(state)
     current = [f for f in state.get('findings', []) if f.get('status') == 'current']
     all_todos = {t['id'] for t in state.get('report_todos', []) if t.get('status') != 'dropped'}
     routed_todos = {tid for task in tasks for tid in task['todo_ids']}
     index = {'version': VERSION, 'source': '../audit.json', 'source_digest': digest,
              'target_id': state['target_id'], 'catalog': catalog, 'locations': locations, 'aliases': aliases,
+             'finding_map': view['finding_map'], 'attribution_pending': view['pending'],
              'statistics': {'finding_status': dict(Counter(f.get('status') for f in state.get('findings', []))),
                             'current_severity': dict(Counter(f['severity'] for f in current)),
                             'current_exposure': dict(Counter(f.get('exposure') or 'unknown' for f in current)),
                             'checks': len(state.get('checks', [])), 'reviews': len(state.get('reviews', [])),
-                            'materials': len(state.get('materials', {})), 'report_tasks': len(tasks)},
+                            'materials': len(state.get('materials', {})), 'report_tasks': len(tasks),
+                            'attribution': view['statistics']},
              'high_findings': [{'id': f['id'], 'severity': f['severity'], 'exposure': f.get('exposure')}
                                for f in high_findings(state)],
              'ext_chains': [{'id': c['id'], 'title': c['title'], 'status': c.get('status')}
@@ -405,6 +411,20 @@ def export_package(workspace, state):
     _atomic_text(pointer, '# 审计报告导航\n\n[阅读审计摘要](report/summary.md) · '
                  '[材料与报告索引](report/index.json)\n\n正文由 report_writer 撰写；'
                  '机械导出完成不代表人工报告已交付。\n')
+    expected_paths = {task['path'] for task in tasks}
+    folder = _inside(root, 'vulnerabilities')
+    if folder.exists():
+        for old in folder.glob('*.md'):
+            relative = str(old.relative_to(root))
+            if relative not in expected_paths:
+                legacy = _inside(root, 'legacy/vulnerabilities/' + old.stem + '-' + hashlib.sha256(old.read_bytes()).hexdigest() + '.md')
+                legacy.parent.mkdir(parents=True, exist_ok=True)
+                if legacy.exists():
+                    if legacy.read_bytes() != old.read_bytes():
+                        raise ValueError('Historical author file collision')
+                    old.unlink()
+                else:
+                    old.rename(legacy)
     return index
 
 
@@ -479,13 +499,18 @@ def _validate_package(workspace, state):
     if index.get('ext_chains') != wanted_ext:
         errors.append('Indexed EXT chains differ from the audit record')
     tasks = build_tasks(state)
+    from attribution import build_vulnerability_view
+    view = build_vulnerability_view(state)
+    if index.get('finding_map') != view['finding_map'] or index.get('attribution_pending') != view['pending']:
+        errors.append('Finding presentation mapping differs from attribution')
     current = [f for f in state.get('findings', []) if f.get('status') == 'current']
     wanted_statistics = {
         'finding_status': dict(Counter(f.get('status') for f in state.get('findings', []))),
         'current_severity': dict(Counter(f['severity'] for f in current)),
         'current_exposure': dict(Counter(f.get('exposure') or 'unknown' for f in current)),
         'checks': len(state.get('checks', [])), 'reviews': len(state.get('reviews', [])),
-        'materials': len(state.get('materials', {})), 'report_tasks': len(tasks)}
+        'materials': len(state.get('materials', {})), 'report_tasks': len(tasks),
+        'attribution': view['statistics']}
     if index.get('statistics') != wanted_statistics:
         errors.append('Indexed statistics differ from the audit record')
     expected = {t['id']: t for t in tasks}
@@ -556,7 +581,14 @@ def _validate_package(workspace, state):
         marker = '## ' + SUMMARY_HEADINGS[-1]
         tail = _prose(body).split(marker, 1)[-1]
         entries = []
-        task_for = {fid: t['path'] for t in tasks for fid in t['finding_ids']}
+        task_for = {fid: row['path'] for fid, row in view['finding_map'].items()}
+        for fid, row in view['finding_map'].items():
+            if row['path'].startswith('summary.md#') and ('<a id="' + fid + '"></a>') not in body:
+                errors.append('summary.md: finding presentation anchor missing: ' + fid)
+        required_chains = {cid for row in view['finding_map'].values() for cid in row.get('chain_ids', [])}
+        for cid in required_chains:
+            if len(re.findall(r'^### ' + re.escape(cid) + r'(?: |$)', _prose(body), re.M)) != 1:
+                errors.append('summary.md: attributed chain landing missing: ' + cid)
         lookup = {f['id']: f for f in high_findings(state)}
         for line in tail.splitlines():
             if not line.startswith('|'):
@@ -577,7 +609,8 @@ def _validate_package(workspace, state):
                 errors.append('summary.md: severity differs: ' + fid)
             if not cells[2].strip() or not cells[3].strip():
                 errors.append('summary.md: mechanism/impact missing: ' + fid)
-            if target.split('#', 1)[0] != task_for[fid]:
+            wanted = task_for.get(fid, '')
+            if target != wanted and not (wanted.startswith('vulnerabilities/') and target == wanted.split('#', 1)[0]):
                 errors.append('summary.md: wrong finding report link: ' + fid)
         if entries != [f['id'] for f in high_findings(state)]:
             errors.append('summary.md: final high/critical rows are missing, duplicated, extra or out of order')

@@ -180,3 +180,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" review --prepare --workspace "$WORKS
 `cross` 同样填写六个维度、`progress.files_done` 和 return 行；`file_count=0` 是跨单元任务不拥有独立材料分区，文件进度写 `0/0`，不表示没有分析工作。每批及时保存进度与产物，最终缺字段或未完成会被预检、合入和 G2 拒绝。
 
 没有发现也要给这一行，并在 `method_notes` 里写查了哪些点、为何未发现。不要空转，也不要写「需下轮专项」「因上下文限制」——本单元内的活没做完就是没做完，回去接着做；真落不进本单元的写 crosslead 或 `stale_notes`。
+
+## 发现粒度
+
+finding 围绕一个具体控制缺陷展开；多个命题可以支撑同一 finding，同一命题也可以对应多个缺陷。按 records.md 用 failure_points 引用决定性失效证据，用 related_findings 保存已知关联，前提、失效与新增影响分别说明。跨单元未知记录写 crosslead，不编造 ID 或越权改写他人产物。
+
+仅串联已有能力时写 chains；仅归纳已有发现时写呈现待办。发现新控制缺陷仍建立候选并复核。复合记录先拆清，不以文件、函数、链标题或字段是否存在推断独立性。

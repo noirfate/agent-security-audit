@@ -1,34 +1,9 @@
 #!/usr/bin/env python3
-"""跨单元根因的候选与裁决。The signals are mechanical; the merge is the model's.
+"""Recall comparison candidates and apply explicit attribution decisions.
 
-A root cause spans units by construction: the partition cuts by directory and
-responsibility, a defect distributes by mechanism. So no worker can see one (its unit is
-frozen and parallel), `merge` refuses semantic judgements, and the report writer may
-neither keep a second finding list nor touch a reviewed finding. This module gives the
-segment reviewer the handle and the write path. It never declares a merge itself.
-
-Both signals were measured on a 227-finding audit before being chosen, and those numbers
-are why the output has the shape it has:
-
-* 命题共享（`fm:`）—— 63 families hold ≥2 findings, 30 span ≥3 units. Families
-  recur legitimately too: one holds 12 findings that are 12 separate authorization gaps.
-  A lead, never a verdict.
-* 位置重合（`set:`）—— 375 pairs of findings share an identical evidence location.
-  Transitive closure over that relation is useless: it chains 137 of the 227 findings
-  into a single component. So a candidate is the set of findings citing one identical
-  location, and its weight is how many identical locations that same set shares (6 at
-  the top of that audit).
-* 修复建议文本相似度 was measured and dropped. Among the 72 findings with no framework
-  proposition it produced 0 pairs at a 0.6 difflib ratio and 1 same-unit pair at 0.3.
-  A signal that fires on nothing is worse than no signal, because it reads as coverage.
-  Those 72 are reported as their own bucket instead — the proposition signal is blind to
-  them by construction.
-
-`strong` is a floor, not the job. Of eight root-cause families read out of that audit by
-hand, seven have a strong candidate and one — the shared media loader, five findings
-across four units — has none, because its members share locations only one at a time.
-That is why the contracts route the merge-type report todos and the no-proposition
-bucket alongside this list, and why `--apply` accepts a cluster no candidate proposed.
+File groups, shared propositions, evidence locations, exact material copies and
+record links are retrieval signals. Semantic comparisons belong to the attribution
+reviewer; the writer binds decisions to their actual facts and preserves history.
 """
 import copy
 import hashlib
@@ -42,7 +17,8 @@ STRONG_FM_UNITS = 3
 STRONG_LOCATIONS = 3
 VERDICTS = ('merge', 'distinct')
 ROW_KEYS = {'id', 'verdict', 'statement', 'fix_point', 'finding_ids', 'member_paths',
-            'candidates', 'by', 'reason'}
+            'candidates', 'by', 'reason', 'comparisons', 'evidence_ids',
+            'source_digest', 'read_dependencies', 'status', 'legacy_review'}
 PATH_KEYS = {'finding_id', 'location', 'difference'}
 ID_RE = re.compile(r'RC-[0-9A-Za-z-]{2,}$')
 
@@ -127,6 +103,8 @@ def candidates(state):
         key = 'set:' + '+'.join(members)
         rows[key] = {'key': key, 'finding_ids': list(members), 'units': units,
                      'basis': [basis], 'strong': strong}
+    for row in file_candidates(state):
+        rows[row['key']] = row
     out = list(rows.values())
     for row in out:
         row['cross_unit'] = len(row['units']) > 1
@@ -140,7 +118,7 @@ def no_proposition(state, rows):
     return {'count': len(local), 'finding_ids': local,
             'unpaired': sorted(set(local) - paired),
             'note': '全是目标本地检查，没有框架命题，命题信号对它们失效；'
-                    'unpaired 的那些连位置信号也没有邻居，只能靠读。'}
+                    'unpaired 的那些还没有候选邻居，仍需人工核查。'}
 
 
 def closure(state, rows=None):
@@ -190,31 +168,34 @@ def closure(state, rows=None):
 
 
 def digest(state, rows=None):
-    """What the model read before adjudicating: the candidate sets and the existing rows."""
-    rows = candidates(state) if rows is None else rows
-    payload = [[row['key'], row['finding_ids']] for row in rows]
-    payload.append(sorted(str(c.get('id')) for c in state.get('root_causes') or []))
-    return hashlib.sha256(json.dumps(payload, sort_keys=True,
-                                     ensure_ascii=False).encode()).hexdigest()
+    from attribution import fingerprint, finding_packet
+    return fingerprint({'facts': finding_packet(state, [f['id'] for f in state.get('findings', [])]),
+                        'root_causes': state.get('root_causes', []),
+                        'dispositions': state.get('finding_dispositions', []),
+                        'chains': state.get('chains', []), 'framework': state.get('framework'),
+                        'targets': state.get('targets', []),
+                        'todos': [{k: v for k, v in t.items() if k not in {'status', 'reason'}}
+                                  for t in state.get('report_todos', [])]})
 
 
 def survey(state):
     rows = candidates(state)
     merged = [c for c in state.get('root_causes') or [] if c.get('verdict') == 'merge']
     grouped = {fid for cause in merged for fid in cause.get('finding_ids') or []}
-    return {'base_sha256': digest(state, rows),
+    from attribution import build_vulnerability_view
+    view = build_vulnerability_view(state)
+    return {'base_sha256': digest(state, rows), 'attribution': view,
             'findings': len(_current(state)), 'candidates': len(rows),
             'root_causes': {'merge': len(merged),
                             'distinct': len([c for c in state.get('root_causes') or []
                                              if c.get('verdict') == 'distinct']),
                             'grouped_findings': len(grouped),
                             'ungrouped_findings': len(_current(state)) - len(grouped)},
-            'closure': closure(state, rows), 'no_proposition': no_proposition(state, rows),
+            'candidate_coverage': closure(state, rows), 'no_proposition': no_proposition(state, rows),
             'rows': rows,
-            'note': '候选是线索，不是分母：两个信号都有误配（同名命题可以是同一处授权缺失重复'
-                    '十二次，也可以是十二个模块各自缺一次），实测还漏掉了一整族（成员每次只'
-                    '共享一处位置）。强候选是必须答的下限，不是可以归并的上限——没有候选的'
-                    '簇照样可以 --apply，合并呈现类的报告待办与 no_proposition 要一起读。'}
+            'note': '候选仅为文件、命题、位置、副本和关联检索线索，不自动判同源。'
+                    'candidate_coverage 是候选应答统计；完整收口以 attribution.pending 与 statistics 为准。'}
+
 
 
 def _row_problems(state, row, keys, claimed):
@@ -296,67 +277,182 @@ def _row_problems(state, row, keys, claimed):
 
 
 def apply_adjudication(workspace, state, payload):
-    """Record adjudications and the back-links, after checking all of them."""
-    from audit import save
-    if not isinstance(payload, dict) or not isinstance(payload.get('root_causes'), list) \
-            or not payload['root_causes']:
-        raise ValueError('rootcause --apply needs a nonempty root_causes list')
-    rows = candidates(state)
-    current = digest(state, rows)
-    if payload.get('base_sha256') != current:
-        # Both values, because the message has to separate 「my hash is old」 from
-        # 「this comparison is wrong」. Without them the only available action is to copy
-        # the hash again, which does nothing when the submission was not the stale side.
-        raise ValueError('Stale base_sha256: the record now reads %s, the submission says '
-                         '%s. Run rootcause and read the current candidates — a successful '
-                         'apply changes it too, so a second batch needs a fresh one.'
-                         % (current, payload.get('base_sha256')))
-    keys = {row['key'] for row in rows}
+    """Trial the whole batch, preserve history, then make one shared-record write."""
+    from audit import save, now
+    from attribution import (fingerprint, decision_digest, disposition_errors,
+                             structural_errors, build_vulnerability_view, comparison_errors, indexes)
+    import uuid
+    if not isinstance(payload, dict):
+        raise ValueError('裁决必须是对象')
+    allowed = {'base_sha256', 'by', 'root_causes', 'finding_dispositions',
+               'retire_root_cause_ids', 'run_id', 'run_digest', 'resolutions'}
+    if set(payload) - allowed:
+        raise ValueError('未知裁决字段：' + ', '.join(sorted(set(payload) - allowed)))
+    if not payload.get('root_causes') and not payload.get('finding_dispositions') and not payload.get('retire_root_cause_ids'):
+        raise ValueError('rootcause --apply needs nonempty decisions')
+    content_hash = fingerprint(payload)
+    commits = state.get('attribution_commits', [])
+    if commits and commits[-1].get('payload_sha256') == content_hash and commits[-1].get('after_sha256') == digest(state):
+        return dict(commits[-1]['result'], replayed=True)
+    if payload.get('base_sha256') != digest(state):
+        raise ValueError('Stale base_sha256: read current facts and reconcile affected decisions')
+    if payload.get('run_id'):
+        from rootcause_run import validate_submission
+        validate_submission(workspace, state, payload)
     working = copy.deepcopy(state)
-    existing = {str(c.get('id')): c for c in working.get('root_causes') or []}
-    claimed = {fid: rid for rid, cause in existing.items()
-               for fid in cause.get('finding_ids') or []
-               if cause.get('verdict') == 'merge'}
-    incoming, problems, seen = [], [], set()
-    for item in payload['root_causes']:
-        if not isinstance(item, dict):
-            problems.append('每条裁决是一个对象')
-            continue
-        row = {k: v for k, v in item.items()}
+    source_maps = indexes(state)
+    existing = {r['id']: r for r in working.get('root_causes', [])}
+    retired = payload.get('retire_root_cause_ids', [])
+    if not isinstance(retired, list) or any(rid not in existing for rid in retired):
+        raise ValueError('retire_root_cause_ids 引用无效')
+    history = working.setdefault('attribution_history', [])
+    for rid in retired:
+        history.append({'at': now(), 'record': copy.deepcopy(existing[rid])})
+        existing[rid] = dict(existing[rid], status='retired')
+    incoming = payload.get('root_causes', [])
+    if not isinstance(incoming, list) or any(not isinstance(row, dict) for row in incoming):
+        raise ValueError('root_causes 必须为对象数组')
+    changed_ids = {row.get('id') for row in incoming}
+    claimed = {fid: rid for rid, row in existing.items()
+               if row.get('verdict') == 'merge' and row.get('status') != 'retired' and rid not in changed_ids
+               for fid in row['finding_ids']}
+    keys = {row['key'] for row in candidates(state)}
+    problems, seen = [], set()
+    for item in incoming:
+        row = copy.deepcopy(item)
         row.setdefault('by', payload.get('by'))
-        rid = str(row.get('id'))
+        rid = row.get('id')
         if rid in seen:
-            problems.append(rid + '：同一次提交里重复')
-            continue
+            problems.append('重复裁决 ID：' + str(rid))
         seen.add(rid)
-        # A replacement releases the members it no longer claims, so the check below
-        # judges the state this apply would leave, not the one it started from.
-        for fid, owner in list(claimed.items()):
-            if owner == rid:
-                claimed.pop(fid)
         problems += _row_problems(state, row, keys, claimed)
         if row.get('verdict') == 'merge':
-            for fid in row.get('finding_ids') or []:
-                claimed.setdefault(fid, rid)
-        incoming.append(row)
+            for fid in row.get('finding_ids', []): claimed.setdefault(fid, rid)
+        # Legacy submissions remain historical leads. A final attribution batch must
+        # provide the new member-level comparison and evidence contract.
+        if 'finding_dispositions' in payload:
+            evidence_ids = row.get('evidence_ids', [])
+            known_evidence = {e['id'] for e in state.get('evidence', [])}
+            if not isinstance(evidence_ids, list) or not evidence_ids or any(eid not in known_evidence for eid in evidence_ids):
+                problems.append(str(rid) + ': 缺少或引用无效裁决证据')
+            if row.get('verdict') == 'distinct':
+                comparisons = row.get('comparisons', [])
+                covered = set()
+                for cmp in comparisons:
+                    problems += comparison_errors(state, cmp, str(rid), 'distinct', source_maps)
+                    covered.update(cmp.get('finding_ids', []))
+                if not comparisons or covered != set(row.get('finding_ids', [])):
+                    problems.append(str(rid) + ': distinct 比较必须覆盖全部成员')
+            expected = decision_digest(state, row, source_maps)
+            if row.get('source_digest') not in (None, expected):
+                problems.append(str(rid) + ': 归因证据已过期')
+            row['source_digest'] = expected
+        if rid in existing:
+            history.append({'at': now(), 'record': copy.deepcopy(existing[rid])})
+        existing[rid] = row
+    dispositions = payload.get('finding_dispositions', [])
+    if not isinstance(dispositions, list):
+        raise ValueError('finding_dispositions 必须为数组')
+    fseen = set()
+    for item in dispositions:
+        row = copy.deepcopy(item)
+        row.setdefault('by', payload.get('by'))
+        problems += disposition_errors(state, row, source_maps)
+        fid = row.get('finding_id')
+        if fid in fseen:
+            problems.append(str(fid) + ': 同批处置重复')
+        fseen.add(fid)
+        expected = decision_digest(state, row, source_maps)
+        if row.get('source_digest') not in (None, expected):
+            problems.append(str(fid) + ': 处置来源已过期')
+        row.update(id='FD-' + uuid.uuid4().hex[:12], source_digest=expected,
+                   created_at=now(), run_id=payload.get('run_id'))
+        working.setdefault('finding_dispositions', []).append(row)
     if problems:
-        raise ValueError('；'.join(problems[:6]))
-    replaced = sorted(str(r['id']) for r in incoming if str(r['id']) in existing)
-    for row in incoming:
-        existing[str(row['id'])] = row
+        raise ValueError('；'.join(problems))
     working['root_causes'] = [existing[k] for k in sorted(existing)]
-    merged = {fid: str(c['id']) for c in working['root_causes']
-              if c.get('verdict') == 'merge' for fid in c.get('finding_ids') or []}
-    cleared = []
-    for finding in working.get('findings') or []:
-        want = merged.get(finding['id'])
-        if finding.get('root_cause_id') and finding.get('root_cause_id') != want:
-            cleared.append(finding['id'])
-        finding['root_cause_id'] = want
+    from attribution import sync_root_cause_links
+    owners = sync_root_cause_links(working)
+    problems = structural_errors(working)
+    view = build_vulnerability_view(working)
+    pending = {r['finding_id']: r['reasons'] for r in view['pending']}
+    for row in dispositions:
+        if row['kind'] not in {'pending', 'superseded'} and row['finding_id'] in pending:
+            problems.append(row['finding_id'] + ': ' + '；'.join(pending[row['finding_id']]))
+        if row['kind'] == 'superseded' and any(x['finding_id'] == row['finding_id'] for x in view['historical_issues']):
+            problems.append(row['finding_id'] + ': 替代关系尚未闭合')
+    if problems:
+        raise ValueError('；'.join(problems))
+    result = {'applied': len(incoming), 'dispositions': len(dispositions),
+              'root_causes': len(existing), 'replaced': sorted(changed_ids & {r['id'] for r in state.get('root_causes', [])}),
+              'grouped_findings': len(owners), 'candidate_coverage': closure(working),
+              'relinked': sorted(f['id'] for f in state['findings'] if f.get('root_cause_id') and f.get('root_cause_id') != owners.get(f['id'])),
+              'attribution': view['statistics'], 'run_id': payload.get('run_id')}
+    working.setdefault('attribution_commits', []).append({
+        'id': 'AC-' + uuid.uuid4().hex[:12], 'run_id': payload.get('run_id'),
+        'payload_sha256': content_hash, 'after_sha256': digest(working),
+        'at': now(), 'result': result})
     save(workspace, working)
-    state.clear()
-    state.update(working)
-    return {'applied': len(incoming), 'replaced': replaced,
-            'root_causes': len(working['root_causes']),
-            'grouped_findings': len(merged), 'relinked': sorted(cleared),
-            'closure': closure(working)}
+    state.clear(); state.update(working)
+    return result
+
+
+def file_groups(state):
+    """Index every evidence file; groups overlap and imply no semantic equality."""
+    from attribution import finding_packet
+    evidence = {e['id']: e for e in state.get('evidence', [])}
+    by_file = defaultdict(set)
+    for finding in _current(state):
+        ids = set(finding.get('evidence_ids', []))
+        for point in finding.get('failure_points', []): ids.update(point.get('evidence_ids', []))
+        for eid in ids:
+            mid = evidence.get(eid, {}).get('material_id')
+            if mid in state.get('materials', {}): by_file[mid].add(finding['id'])
+    grouped = defaultdict(list)
+    for mid, ids in by_file.items(): grouped[tuple(sorted(ids))].append(mid)
+    seen = {fid for ids in grouped for fid in ids}
+    for finding in _current(state):
+        if finding['id'] not in seen: grouped[(finding['id'],)] = []
+    return [{'finding_ids': list(ids), 'material_ids': sorted(mids)}
+            for ids, mids in sorted(grouped.items())]
+
+
+def file_candidates(state):
+    from attribution import fingerprint
+    output = []
+    for group in file_groups(state):
+        ids = group['finding_ids']
+        if len(ids) < 2: continue
+        output.append(dict(group, key='file:' + fingerprint(group)[:20],
+                           units=_units_of(ids), strong=False,
+                           basis=['共享材料，需按具体失效比较；不自动合并']))
+    current = {f['id']: f for f in _current(state)}
+    links = set()
+    for fid, f in current.items():
+        for rel in f.get('related_findings', []):
+            other = rel.get('finding_id')
+            if other in current and other != fid: links.add(tuple(sorted((fid, other))))
+        mentioned = set(re.findall(r'(?<![A-Za-z0-9_-])(F-[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])', f.get('mechanism', '')))
+        for other in mentioned & set(current) - {fid}:
+            links.add(tuple(sorted((fid, other))))
+    for todo in state.get('report_todos', []):
+        ids = sorted(set(re.findall(r'(?<![A-Za-z0-9_-])(F-[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])', todo.get('instruction', ''))) & set(current))
+        if len(ids) > 1: links.add(tuple(ids))
+    by_hash = defaultdict(set)
+    ev = {e['id']: e for e in state.get('evidence', [])}
+    for fid, finding in current.items():
+        for eid in finding.get('evidence_ids', []):
+            material = state.get('materials', {}).get(ev.get(eid, {}).get('material_id'), {})
+            if material.get('sha256'):
+                by_hash[material['sha256']].add(fid)
+    for sha, ids in sorted(by_hash.items()):
+        if len(ids) > 1:
+            output.append({'key': 'copy:' + sha, 'finding_ids': sorted(ids), 'units': _units_of(ids),
+                           'strong': False, 'basis': ['材料内容相同，仅提示核查同源副本']})
+    for cause in state.get('root_causes', []):
+        ids = sorted(set(cause.get('finding_ids', [])) & set(current))
+        if len(ids) > 1 and cause.get('status') != 'retired': links.add(tuple(ids))
+    for ids in sorted(links):
+        output.append({'key': 'link:' + fingerprint(ids)[:20], 'finding_ids': list(ids),
+                       'units': _units_of(ids), 'strong': False, 'basis': ['显式发现关联或完整 ID 回指']})
+    return output

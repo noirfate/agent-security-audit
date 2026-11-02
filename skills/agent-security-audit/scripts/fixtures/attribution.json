@@ -1,0 +1,2771 @@
+{
+  "format": "attribution-fixtures/v1",
+  "purpose": "真实审计记录的最小关系投影与人工语义预期；用于归因流程回归，不声称机器能够自动判断新漏洞是否同源。",
+  "projection_contract": {
+    "source_kind": "local_audit_record",
+    "records_are_a_complete_audit_workspace": false,
+    "retained_text": "所保留的 finding 正文和 evidence.observation 来自完整原字段，仅替换环境标识与一次性数字；不截断字段。",
+    "relationships": "finding 保留原 evidence_ids，check_ids 仅保留案例所需且原本存在的边；所选 check 的证据及反证均保留，材料闭包完整。",
+    "omitted_fields": [
+      "finding.root_cause_id",
+      "checks.explanation",
+      "checks.local_definition",
+      "材料真实摘要与大小",
+      "真实复核对象及其内容绑定",
+      "未选检查及无关全局审计字段"
+    ],
+    "locator_coordinates": "每份材料独立将真实行端点替换为从一开始的序位，保留相等、包含、重叠和先后；不是目标源码行号。真实路径、行号、摘要及原记录映射仅保存在临时 provenance。",
+    "new_fields": "所选真实 finding 全部原本缺少 failure_points 和 related_findings；没有为测试人工删除这些字段。",
+    "counts": "计数仅是各用例在完成规定复核与比较后的语义预期，不推算真实审计总量；pending 不等于风险为零。",
+    "scenario_order": "仅链新增正例设置已知集合与到达顺序，明确标注为测试场景；不伪造原审计发现的历史先后。",
+    "execution": "只读解析现有审计记录；未运行目标代码，未改技能、stage 目录或真实审计。"
+  },
+  "records": {
+    "findings": [
+      {
+        "id": "F-IDENTITY-BASE",
+        "title": "IdentityRouter Router 默认关闭鉴权，连接身份直接取客户端自带的 X-User-Id，取不到也放行",
+        "mechanism": "on_connect 在 self._auth_client 为 None 时取握手头 x-user-id 作为 fallback_user_id，构造 AuthResult(success=True, user_id=fallback_user_id) 并经 apply_auth_result_to_ws 写到连接上，供连接计数与 chat 路由读取同一身份；头缺失时该值为空串而仍返回 success=True。_auth_client 是否存在取决于 config.auth_enabled，其数据类默认为 False、配置解析的缺省字面量也是 'false'，因此自述身份是默认路径。该身份随后贯穿整条委派链：按它维护连接计数与延迟清理、列出并删除该用户的沙箱运行时、解析并绑定宿主工作区 {workspace_root}/<safe_user>（默认 <workspace_root>/<user_id>），并作为 X-Session-Context: {\"sessionCtx\": <uid>} 交给 SandboxProvider faas 用于把沙箱绑定到用户标识。代码本身把该头称作「自报」——鉴权分支的注释写明用 IAM 身份覆写它。",
+        "impact": "能向该渠道发起握手的一方可任意声明身份：声明他人 user_id 即落到他人的宿主工作区绑定与沙箱集合，可列出并删除他人的运行时，并使云侧按该身份创建沙箱。身份与委派链上的每一跳都采信同一自述值，没有任何环节能把它与已认证主体对照。",
+        "severity": "high",
+        "severity_reason": "身份是本组件全部后续决策（工作区、沙箱生命周期、云侧绑定）的唯一输入，而默认配置下它完全由发起方选择；空身份不拒连进一步放大了面。定为 high 而非 critical：实际能触及他人数据还取决于渠道侧的监听范围与多用户部署是否启用，这两项不属本单元材料；临时 SSH 私钥签发已与 issuer 注入耦合，在该路径上不发放（反证见 <范围外记录>）。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-AU",
+          "E-FIX-AV",
+          "E-FIX-AW",
+          "E-FIX-AX",
+          "E-FIX-AY",
+          "E-FIX-AZ"
+        ],
+        "check_ids": [
+          "CHK-FIX-A"
+        ],
+        "residual_risk": "渠道侧（网关）的监听地址与握手前置处理不属本单元材料，因此「谁能发起该握手」的范围未定；本单元已出证的横向事实是另一渠道的同形态问题（<范围外记录> 的 /tui 握手 X-User-Id），说明该形态在产品内不止一处。"
+      },
+      {
+        "id": "F-IDENTITY-PATH",
+        "title": "identity_router 档以客户端自报的 X-User-Id 为最终有效主体，该主体直接决定 Agent 复用与宿主工作区归属",
+        "mechanism": "选用 identity_router 后，连接鉴权入口是 IdentityRouterClient.on_connect。它先看 self._auth_client 是否为 None：为 None 时整个分支不读 token、不发任何校验请求、不比对任何凭据，而是把 WebSocket 握手头 x-user-id 的字面值 strip 后装进 AuthResult(success=True, user_id=…)，再经 apply_auth_result_to_ws 写到连接对象的 user_id / _gateway_user_id / _web_connection_user_id 三个属性上。auth_client 为 None 正是出厂姿态：load_router_config 对缺键的 gateway.identity.auth_enabled 代入字符串 'false'，config/component_ak.yaml 里该键也显式写 false，而 IdentityRouter.__init__ 只在它为真时构造 IdentityAuthenticator、否则传 None。这个未经校验的字符串不止用于记账：它成为 envelope.user_id，经 _extract_user_id（只校验非空）进入 _resolve_agent，再由 AgentManager 按 (user_id, agent_type) 建键——同键已有 READY 运行时就直接返回该实例快照，即复用同一个 Agent 与同一个 SandboxProvider 沙箱；同时它被 _create_agent 交给 resolve_agent_workspace，解析出 {workspace_root}/{user_id} 作为 create_sandbox 的宿主挂载源。上游并无补偿：GatewayServer 在任何鉴权钩子运行之前就已把同一个握手头写进 _gateway_user_id。",
+        "impact": "任何能与网关建立 WebSocket 连接的一方，只要把 X-User-Id 设成目标用户的标识，就取得该用户在本跳的全部身份后果：命中其正在运行的 Agent 实例（连同该会话的上下文与工具可见状态）、命中其宿主工作区目录、并被连接计数与空闲回收当作该用户。身份在这里不是被绕过的一道校验，而是从未被校验过——攻击者不需要凭据、不需要时序条件、也不需要让受害者做任何事。",
+        "severity": "high",
+        "severity_reason": "机制在证据范围内完全静态可证，无前置条件、无竞态；后果是跨用户的 Agent 与工作区归属冒用，属身份层而非单点越权。未取 critical 的限定有二，均在本条内说明：本跳的全部前提是 gateway.agent_client.type 设为 identity_router；出厂值是 websocket（E-FIX-BH），因此默认安装不启用本扩展（register_extensions 直接返回空列表，<范围外记录>）。本条按「配置可达的身份跳」定级，不按默认姿态定级。另一项是暴露面：/tui 与 /acp 两条 WS 路由出厂绑 <loopback>（GATEWAY_HOST 可改，<范围外记录>），因此默认需要本机或同主机立足点；而北向 SSH 渠道一旦被启用即绑 <all_interfaces>:<数值>（<范围外记录>），暴露面比两条 WS 路由宽——但它不随本档自动启用：channels.ssh.enabled 出厂为 false（<范围外记录>），app_gateway 要求该键为真「且」agent_client.type==\"identity_router\" 两个条件同时满足才启动 SshChannel（<范围外记录>），蕴含方向是「SSH 渠道只在本档下存在」而非反过来；且 SSH 入口的主体取值走的是 SshChannel 会话分支（<范围外记录>）而不是本条所述的 on_connect / X-User-Id 这条路径，故本条的定级与暴露判断只按两条 WS 路由计，SSH 一侧由 <范围外记录> 承担。Web/TUI 渠道自身的监听地址属别单元材料，未审，不作为降档依据。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-BL",
+          "E-FIX-BM",
+          "E-FIX-BJ",
+          "E-FIX-BI",
+          "E-FIX-BK",
+          "E-FIX-BQ",
+          "E-FIX-BP",
+          "E-FIX-BS",
+          "E-FIX-BO",
+          "E-FIX-BX",
+          "E-FIX-BH"
+        ],
+        "check_ids": [
+          "CHK-FIX-B"
+        ],
+        "residual_risk": "envelope.user_id 在 Web/TUI 渠道内的完整填充链路（从 ws 属性到 E2AEnvelope）落在别单元材料，本单元只核到两端；若那段另有覆写，影响范围需按该单元结论重算。"
+      },
+      {
+        "id": "F-SSH-EARLY",
+        "title": "SSH 渠道缺省监听 <all_interfaces>:<数值>，而 auth 开关独立且缺省关闭，开启渠道即得到一个任意口令放行的 Agent 会话入口",
+        "mechanism": "ProxyConfig 与 SshChannelConfig 的 listen_host 缺省都是 \"<all_interfaces>\"、端口 <数值>；SshAuthConfig.enabled 缺省 False，且与 channels.ssh.enabled 彼此独立——开启渠道不会自动开启认证。auth 关闭时 ProxySSHServer.password_auth_supported() 返回 True，validate_public_key 与 validate_password 都直接 `return True`（注释「Auth disabled: keep permissive behaviour (backward compatible)」）。随后 _handle_ssh_client 在没有 authenticated_entry 时取 user_id = 客户端自选的 SSH 用户名、auth_source 记为 \"none\"，连同可选的 process.command 组成 metadata 交 SshChannel._submit_relay，以 ReqMethod.SSH_RELAY 把活的会话接到 MessageHandler。",
+        "impact": "启用 SSH 渠道而未显式开启 auth 时，网络上任意对端用任意用户名/口令即可取得一个与 Agent 直连的交互会话，并可带 exec command；主体是其自选的用户名，审计无法区分。",
+        "severity": "high",
+        "severity_reason": "这是本单元唯一缺省绑定全部网络接口的入口，且「放行」是认证函数的显式返回 True 而非配置疏漏。未计 critical 是因为 channels.ssh.enabled 缺省为 False，需要管理员主动开启该渠道；但开启者没有理由预期还要另开一个 auth 开关。",
+        "exposure": "EXT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-CG",
+          "E-FIX-CH",
+          "E-FIX-CI",
+          "E-FIX-CJ",
+          "E-FIX-CK"
+        ],
+        "check_ids": [
+          "CHK-FIX-C"
+        ],
+        "residual_risk": "实际部署是否开启 channels.ssh.enabled 由 config/component_ak.yaml 决定（本单元未取得实际部署配置）；auth 开启时的 SshPublicKeyAuthenticator 实现在 extensions/identity（本单元外）。"
+      },
+      {
+        "id": "F-SSH-LATER",
+        "title": "SSH 通道认证开关的代码默认值（False）与随产品分发的 YAML 默认值（true）方向相反，关闭档位对 <all_interfaces>:<数值> 上的任意客户端全放行",
+        "mechanism": "关闭档位不是降级而是全放行：validate_public_key 在 not self.auth_enabled or self.authenticator is None 时直接 return True，不取指纹也不比对；validate_password 同样在 not self.auth_enabled 时 return True，两处注释都写 'Auth disabled: keep permissive behaviour (backward compatible)'。而进入该档位可以是静默的：YAML 出厂写 auth.enabled: true 并注释『公钥认证开关。true 时校验客户端公钥并签发临时密钥；false 为宽松认证。』，但解析端 SshAuthConfig 的 dataclass 默认值与 from_dict 兜底都是 False——只要 channels.ssh 下缺少 auth 子段或该子段缺 enabled 键，认证即关闭，方向与 YAML 注释给部署者的印象相反。暴露面同时是最宽的一档：listen_host 在 YAML 与 ProxyConfig 两处的默认值都是 <all_interfaces>、端口 <数值>。",
+        "impact": "在认证关闭的档位下，任何能连到该主机 <数值> 端口的客户端都能以任意用户名、任意公钥或任意口令完成认证，进入 SSH 通道承载的交互入口。由于 listen_host 默认 <all_interfaces>，该端口对所在网络的全部主机可达。",
+        "severity": "medium",
+        "severity_reason": "机制本身是完全绕过认证、暴露面是全网络接口，这两点指向高危；但可达性有三道真实前提：① channels.ssh 出厂 enabled: false，须管理员主动启用该通道；② app_gateway 另要求 gateway.agent_client.type == \"identity_router\" 才会构造并启动 SshChannel（出厂值为 websocket，即本通道只在 IdentityRouter Router 档下存在，enabled 为真而档位不符时只记 warning 并不启动）；③ 随产品分发的 config/component_ak.yaml 确实写了 auth.enabled: true，照默认文件部署不会进入关闭档位。要命中需要配置被改写或 auth 子段在迁移、界面写回中丢失。综合定为 medium，不因「默认配置里写了 true」就忽略代码默认相反这一缺陷。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-CB",
+          "E-FIX-CC",
+          "E-FIX-CD",
+          "E-FIX-CE"
+        ],
+        "check_ids": [
+          "CHK-FIX-D"
+        ],
+        "residual_risk": "authenticator（SshPublicKeyAuthenticator）与 KeyRegistry 的实现在 agent_component<auth_component_directory>/ 下，不在本单元材料内；启用档位下指纹注册与签发侧的正确性未核。"
+      },
+      {
+        "id": "F-BROWSER-SCRIPT",
+        "title": "保存的 localStorage 键值在回灌时未经转义拼入 run_js/execute_script，攻击者页面可取得后续会话中的 JS 执行",
+        "mechanism": "browser-addon 保存会话时以 run_js(\"return JSON.stringify(localStorage);\") 读取当前页面的 localStorage 全量——内容由被访问页面自行写入，攻击者完全可控。回灌时三个文件五处调用点都把键值拼进 JS 字符串字面量：src/component_q.py 的 `v_escaped = json.dumps(v) if not isinstance(v, str) else f'\"{v}\"'` 对字符串值只加一对双引号、对键 k 完全不处理，随后 run_js(f\"localStorage.setItem('{k}', {v_escaped});\")（drission）与 execute_script（selenium）各一处；src/component_r.py 的两处更直接：f\"localStorage.setItem('{k}', '{v}');\"，键与值都不处理；src/component_s.py 一处与 session_manager 同形。因此一个键名含单引号、或一个字符串值含双引号/反斜杠/换行的条目就能闭合字面量并追加任意语句，该语句在下一次会话恢复时于「当前页面」的上下文中执行——而当前页面由 CLI 的 -u/--url 决定，可以是与保存来源无关的另一个站点（见 F-BROWSER-ORIGIN）。载荷在 <session_store>/<session_name>.json 中持久存在，每次恢复都会重放。",
+        "impact": "攻击者页面取得「在后续会话的目标站点上下文中执行任意 JS」的能力：读取该站点的 DOM 与 cookie、以用户身份发起请求并外发数据，且因为载荷存放在会话文件中，每次恢复都重新生效。",
+        "severity": "high",
+        "severity_reason": "注入点、数据来源与缺失的转义都已逐处回源，五个调用点形态一致说明是统一的根因而非个别疏漏；攻击者只需让 Agent 访问一次自己的页面并保存会话（这正是该 skill 的主流程：登录后保存会话以便后续复用）。未定为 critical 是因为执行发生在页面上下文而非宿主，且需要一次会话恢复动作作为触发。",
+        "exposure": "EXT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-AB",
+          "E-FIX-AC",
+          "E-FIX-AD",
+          "E-FIX-AE",
+          "E-FIX-AF"
+        ],
+        "check_ids": [
+          "CHK-FIX-E"
+        ],
+        "residual_risk": "DrissionPage 与 selenium 对 run_js/execute_script 的具体求值语义属第三方依赖，不在本次提取范围内，因此结论限定在「脚本侧构造的字符串可被键值闭合」这一静态事实。"
+      },
+      {
+        "id": "F-BROWSER-ORIGIN",
+        "title": "会话恢复不绑定来源 origin，而会话记录里保存了 url 却从不比对",
+        "mechanism": "browser-addon 的会话文件以文件名为唯一标识存放在 <session_store>/<session_name>.json。src/component_s.py 的 use 子命令把 -u/--url 与 -s/--session 定义为两个彼此独立的必填参数，任意组合都被接受；其 use_saved_session 先 page.get(url) 导航到调用方给出的地址，再把 session_data['cookies'] 中每个名值对 set 到当前页面。关键在于信息是齐备的：保存时 login_and_save 明确把 \"url\": page.url 写进了会话记录，src/component_t.py 的 save_session 同样写入 'url'，而两处恢复路径都只读 cookies、从不读取这个字段，也不做任何域名比对；src/component_r.py 的 save_session 甚至不保存 url，连比对的依据都没有留。即「做这项检查所需的数据已经在记录里，只是没有人读它」。",
+        "impact": "站点 A 的会话 cookie 可被投放到站点 B 的页面上下文：若 B 由攻击者控制，它在自己的域上直接收到受害者在 A 的会话令牌；反向也成立——错误的会话被带到敏感站点上，造成以非预期身份操作。配合 F-BROWSER-SCRIPT，恢复动作还会把攻击者的 JS 载荷带到任意站点的上下文中执行。",
+        "severity": "medium",
+        "severity_reason": "缺失的比对与可用的数据都已回源确认，机制明确。触发需要一次 (URL, 会话名) 的错误配对，而该配对由模型决定、代码不加约束——本簇已出证页面内容可影响模型决策，因此并非不可达，但不是独立起点，故按 medium 记。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-AG",
+          "E-FIX-AH",
+          "E-FIX-AI",
+          "E-FIX-AF",
+          "E-FIX-AD"
+        ],
+        "check_ids": [
+          "CHK-FIX-F"
+        ],
+        "residual_risk": "DrissionPage 的 cookies.set 在只给名值对时如何决定作用域属第三方依赖语义，不在本次提取范围内；本结论限定在「脚本侧不做来源比对」这一静态事实。"
+      },
+      {
+        "id": "F-DEPENDENCY-COMPOSITE",
+        "title": "外发与登录链上存在两类未闭合的外部代码引入点：可替换的发信程序与未固定来源的依赖安装",
+        "mechanism": "`src/component_v.py` 的 `--cli-command`（默认 `<sender_command>`）按空白切分后作为 argv 前缀交给 `subprocess.run`，因此实际执行这次外发的程序由命令行实参决定；它不经 shell，不构成命令注入，但确实让「谁来执行这次外发」脱离了包的控制，而 `gog` 在 PATH 上解析到什么不在本单元证据范围内。另一类是 dependency-addon 的两个脚本在缺依赖时自动执行未固定版本、未固定索引、未校验哈希的 `pip install browser_dependency` 与 `browser_dependency install browser_runtime`（装进 Agent 自己的解释器环境），以及 tool-addon 的 `npm install -g connector_dependency`——装进来的代码在下次 import 时即与连接器同权限运行。两条路径的制品侧事实都已确认（见 F-DEPENDENCY-INSTALL），未闭合的是可达性：谁能设定 `--cli-command`、以及包索引/registry 解析到哪里。",
+        "impact": "若这两处的输入可被攻击者而非操作者决定，结果是在 Agent 的身份与解释器环境内运行外部代码。本单元只能确认入口存在，不能确认谁控制它。",
+        "severity": "medium",
+        "severity_reason": "按未闭合项记录：机制清楚、后果严重（Agent 权限内执行外部代码），但缺少判定可达性所必需的材料（Agent 如何构造命令行、宿主的 pip/npm 索引配置、PATH 内容）。定级取已确认部分的上界，不按最坏假设。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-AK",
+          "E-FIX-AQ",
+          "E-FIX-AR",
+          "E-FIX-AS",
+          "E-FIX-AT"
+        ],
+        "check_ids": [
+          "CHK-FIX-G"
+        ],
+        "residual_risk": "在取得宿主侧参数来源与包索引配置之前，这两条都不能判为成立，也不能判为不成立。"
+      },
+      {
+        "id": "F-DEPENDENCY-INSTALL",
+        "title": "技能正文要求 AI 在缺依赖时自动执行未固定版本/来源的 pip/npm 安装进 Agent 自身解释器环境，并禁止把安装动作交回用户决定（事后汇报仍被要求）",
+        "mechanism": "dependency-addon 的 `docs/component_z.md` 三处规定同一件事：脚本会在**运行时按需**检测、缺依赖时「自动在当前 Python 环境下执行安装（`pip install browser_dependency` + `browser_dependency install browser_runtime`），无需人工干预」（触发信号是脚本的 stderr 文本与 `ModuleNotFoundError`，不是技能加载期的初始化步骤）；「**禁止**向用户输出\"请你先执行 pip install ...\"这类把安装动作甩回给用户的话」；「AI 必须自动执行 `python3 -m pip install browser_dependency && python3 -m browser_dependency install browser_runtime`，不要把安装动作交给用户」。须分清这条禁令的对象：被禁止的是**把安装动作甩回给用户**这一句式（原文「禁止向用户输出\"请你先执行 pip install ...\"」），而不是把这一步告知用户——同两处正文反而要求「确认流程能走通再向用户汇报」（`docs/component_z.md:<数值>`、`SKILL.md:<数值>`），安装失败时脚本也把手动安装指令打到 stderr（`src/component_aa.py:<数值>-<数值>`、:<数值>-<数值>）。即被取消的是事先征求同意这一环，不是用户的事后察觉。实现与文档一致：`src/component_aa.py` 与 `src/component_ab.py` 各带一份 `_auto_install_browser_dependency`，用 `subprocess.run([sys.executable, \"-m\", \"pip\", \"install\", \"browser_dependency\"])` 后再 `browser_dependency install browser_runtime`（约 <browser_download_size> 浏览器二进制），没有版本号、没有 `--require-hashes`、没有指定索引源，安装目标是 Agent 自己的解释器环境。tool-addon 的 `docs/component_ac.md` 同样指示 `npm install -g connector_dependency` 且未固定版本。",
+        "impact": "引入外部代码到 Agent 运行环境这一动作既不固定来源也不固定版本，而正文要求 AI 自行执行、不把它交回用户决定——等于把这个**事先**决定点从人机界面上删掉（事后汇报仍被要求，故用户的察觉被保留）。装进来的包在下次 import 时与技能脚本同权限运行；`browser_dependency install browser_runtime` 还会额外下载一个浏览器二进制。",
+        "severity": "medium",
+        "severity_reason": "后果是在 Agent 的解释器环境内安装并随后运行未固定来源、未固定版本、未指定索引的第三方代码，且该动作不经任何事先的人工批准（正文要求 AI 自行执行、禁止把安装动作交回用户）。定级 medium 而非 high：原 high 的第二条承重理由是「规则主动消除了用户察觉与干预的机会」，而回源后只剩「消除事先批准」——同两处正文明文要求安装完成后向用户汇报，脚本在安装失败时也把手动安装指令打到 stderr，察觉并未被消除；剩下的下界与本簇 F-DEPENDENCY-COMPOSITE 的同形问题一致。实际是否被利用取决于索引解析，属未闭合部分（见 F-DEPENDENCY-COMPOSITE）。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-AQ",
+          "E-FIX-AR",
+          "E-FIX-AS",
+          "E-FIX-AT",
+          "E-FIX-AP"
+        ],
+        "check_ids": [
+          "CHK-FIX-H"
+        ],
+        "residual_risk": "若宿主为 Agent 进程配置了可信的私有索引并锁定版本，来源不确定这一面可被兜住；该配置不在本单元证据范围内。本条不覆盖 `data-analysis` 一侧——该包的两份材料内没有自动安装或相关条款。"
+      },
+      {
+        "id": "F-SERVICE-AUTH",
+        "title": "AgentServer 的 HTTP 与 WebSocket 监听面无身份认证与授权，管理面与安全控制面写操作可被任意能连上端口的一方直接调用",
+        "mechanism": "两条入口在非 enforce 部署下都是明文无认证监听，但默认是否起监听不同：WS 面无条件启动（start 的 listen 默认 True，只有 link mTLS enforce 时才传 listen=False），HTTP 面另需 http_enabled 为真而随包 config/component_ak.yaml 写的是 http_server.enabled: false，因此随包默认形态下只有 WS 在听，REST 面需显式开启。WS 在 AGENT_SERVER_HOST（默认 <loopback>）的 <数值> 上由 legacy_serve 启动，握手只挂 _process_request 做一次可选 Origin 校验（开关为假时直接 return None），建连后 _connection_handler 没有任何凭据校验分支，连 IdentityStore 取不到身份也「连接继续」；HTTP 入口（config/component_ak.yaml http_server.enabled 或 AGENT_HTTP_ENABLED 打开，默认端口 <数值>）在 build_fastapi_app 里只无条件挂了 CORSMiddleware，LinkBindingMiddleware 仅 enforce 时挂载。两条入口在 dispatch_parsed_request 汇合，而这条流水线与 dispatch_to_handler 全程没有认证或授权环节：HandlerSpec 只有 fn/args/kwargs/stream_fn，RequestContext 连一个已认证主体字段都没有，业务 handler 在结构上取不到「调用者是谁」。调用身份完全由请求内容给定——request_context 直接把 x-user-id 当 user_id，把 x-service-id/x-agent-id/x-workspace-key 当租户键，WS 侧则取信封顶层同名字段；这些值随后决定会话根与工作区根。可达的方法集合包含 <数值> 条声明式路由、<generic_rpc_endpoint> 通用透传、<envelope_endpoint> 原始信封透传，以及 WS 独占的 <数值> 个 sandbox.* 配置方法，其中业务面与管理面（permissions.* <数值> 条、config/actions/* <数值> 条、mcp/servers 增删改、plugins/install 与 enable/disable、extensions 导入删除、harness/packages 激活删除、skills 安装卸载、channels/*/config、im/hosting/*）挂在同一前缀、同一中间件之下，没有任何分流。代码自身对此有自述：CORS 放开分支的 warning 写「本入口无鉴权，任意网站的页面都能跨域调用它」，WS 的 listen=False 日志把带监听的形态称作 unauthenticated WS listener。",
+        "impact": "任意同机非特权进程、以及用户浏览器打开的任意网页（浏览器的 WebSocket 跨源连接不受同源策略与 CORS 预检约束），都能以完整权限驱动该 Agent：读写任意会话与任意租户工作区、改权限规则与受信目录、装卸技能与插件与 Rail 扩展、改渠道与更新器配置、持久化子智能体的系统提示词、关停沙箱。这些能力在随包默认形态下经 WS 面（<loopback>:<数值>，无条件启动）即可全部到达——WS 与 HTTP 在 dispatch_parsed_request 汇合，分发表与沙箱配置方法对两条入口一视同仁；REST 专属的形态（<数值> 条路由的 URL 面、CORS、<api_docs_endpoint> 与 OpenAPI 暴露、<generic_rpc_endpoint> 与 <envelope_endpoint> 透传）另需开启 http_server.enabled 才出现。它同时是本单元其余发现的共同可达前提——F-SERVICE-EXEC（命令执行）、<范围外记录>（沙箱自改）、F-SERVICE-TENANT（跨租户数据）、<范围外记录>（冒充 Gateway）、<范围外记录>（个人上下文）都靠这一条到达。",
+        "severity": "critical",
+        "severity_reason": "影响面是该 Agent 的全部能力加宿主用户的本机权限，前提只有「能建立一条到本机端口的 TCP 连接」——同机任意进程天然满足，浏览器页面经 WebSocket 亦可满足，不需要任何凭据、不需要用户交互。产品把安全性完全寄托在「只有本机 Gateway 会连」这一假设上，而该假设在桌面多进程环境与浏览器场景下都不成立。定级只用本单元与已读材料中的事实：入口无认证、分发无授权、管理面同面暴露三项均已取证。",
+        "exposure": "EXT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-A",
+          "E-FIX-B",
+          "E-FIX-C",
+          "E-FIX-D",
+          "E-FIX-E",
+          "E-FIX-F",
+          "E-FIX-G",
+          "E-FIX-H",
+          "E-FIX-I",
+          "E-FIX-J",
+          "E-FIX-K",
+          "E-FIX-L",
+          "E-FIX-M",
+          "E-FIX-Y",
+          "E-FIX-Z",
+          "E-FIX-AA"
+        ],
+        "check_ids": [
+          "CHK-FIX-I"
+        ],
+        "residual_risk": "即使加了本机令牌，同机进程仍可能读到令牌文件（同用户权限内）；浏览器场景需同时依赖 Origin 校验与令牌。企业版部署下还需确认 Gateway 与 AgentServer 之间的 mTLS 实际启用。"
+      },
+      {
+        "id": "F-SERVICE-EXEC",
+        "title": "经 command.mcp add 可在无认证前提下登记任意本地 stdio MCP 服务并落盘生效，取得以 Agent 身份执行命令的能力（mcp.server.add 受下游解释器白名单约束）",
+        "mechanism": "src/component_i.py 的 _normalize_mcp_payload 对 transport=stdio 的条目直接接受客户端给的 command、args、cwd、env，唯一要求是 command 非空；add 分支的预检 _pre_check_mcp_server 只用 shutil.which(command) 确认该命令在 PATH 中存在（以及对 .js/.mjs/.cjs/.py 结尾的绝对路径参数做存在性检查），且该预检本身可被跳过——src/component_i.py:<数值> 的 `if bool(server_payload.get(\"enabled\", True)):` 使请求里带 enabled: false 时整段预检不执行。预检之后 upsert_mcp_server_in_config(server_payload) 把条目落进 config/component_ak.yaml，再于同一请求内 await reload_agents_config 让它生效；reload 抛错只把回执里的 applied 置 False，配置此时已经写盘。到达路径有两条且都无认证：HTTP POST <mcp_command_endpoint>（body 里给 action=add 与整个条目）与 WS 的 command.mcp。这条路径上命令白名单不存在，因此 powershell / cmd / python 这类 PATH 内的解释器加任意 args 即可通过预检——本单元内可追到的最后一跳是 runtime/agent_adapter 的 _sync_mcp_servers_for_runtime → _build_mcp_server_config，它把 command/args/cwd/env 原样搬进 McpServerConfig 并注册，不经任何命令形态判定。另一条路径 POST <mcp_registry_endpoint> → handle_mcp_server_add 同样只校验 servers 是 list，但它交给的注册表下游（common/mcp_config.create_mcp_tool，材料属 <范围外记录>）对 stdio 条目有两道约束：_normalize_stdio_command_kind 按 basename 只放行 node / python* / npx / uvx，_check_dangerous_args 拦截 -e/--eval/-c/--command/-i 一类内联代码参数。因此该路径不是「任意命令」，残余能力是「解释器 + 任意脚本或 npm 包」——仍足以执行攻击者指定的代码，只是需要先在盘上或 registry 上放置目标。企业版对这两组方法整组拒绝（判据是环境变量 AGENT_COMPONENT_EDITION 恰为 enterprise），桌面个人版不拒绝；两条方法在 HANDLERS 表与 ROUTES 表里都是无条件登记，不受任何模式或特性开关过滤。",
+        "impact": "攻击者获得以 agent-server 身份（即宿主登录用户）在本机执行任意命令的能力，且该条目落进 config/component_ak.yaml 后跨进程重启持续存在。这是本单元里由未认证入口直达宿主代码执行的最短路径，后续可用于读取用户文件、取回 config/.env 中的模型凭据、安装持久化组件。",
+        "severity": "critical",
+        "severity_reason": "机制与可达性都在本单元取证完整：参数无白名单、预检只查存在性、落盘与 reload 都在同一请求内完成，入口无认证（F-SERVICE-AUTH）。影响是宿主级代码执行加持久化，前提仅为一次 HTTP POST 或一条 WS 消息。仅在企业版下被整组开关拦住（判据是环境变量 AGENT_COMPONENT_EDITION，默认不设即为个人版），而本次目标是桌面个人版形态；两条方法的登记无任何模式或特性开关条件，已回源核实。定级以 command.mcp add 这条无白名单路径为准；mcp.server.add 受下游解释器白名单约束，单独看应降一档，但不改变本条发现的定级。",
+        "exposure": "EXT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-L",
+          "E-FIX-M",
+          "E-FIX-Q",
+          "E-FIX-R",
+          "E-FIX-S",
+          "E-FIX-AA"
+        ],
+        "check_ids": [
+          "CHK-FIX-J"
+        ],
+        "residual_risk": "即使加了命令白名单，远程 MCP（sse/http）条目的 url 与 headers 仍由调用方给定，可用于把工具调用导向攻击者服务；该方向需另行处置。"
+      },
+      {
+        "id": "F-SERVICE-TENANT",
+        "title": "会话与工作区的租户根由客户端声明的请求头决定且无主体绑定，可跨租户读取、删除与下载文件并接管他人会话",
+        "mechanism": "数据侧的「命名空间」在本单元就是租户根目录，而它完全由调用方给定：handlers/workspace._tenant_root_from_request 在企业版取 workspace_key（HTTP 头 X-Workspace-Key 或 params），非企业版取 request.service_id / request.agent_id（X-Service-Id / X-Agent-Id 或 E2A 信封顶层）；_shared._sessions_dir_for_request 用同一组值经 TenantAgentPool.extract_ids 解析会话根。三处数据关口用的是同一组客户端值：workspace.tree/preview/download 读（download 把文件内容 base64 整体回传）、workspace.entries.delete 删、session.list 与 history.get 读。会话侧没有任何归属判定：handle_session_switch 只校验 session_id 非空，整个 src/component_o.py 不含一处 user_id 或归属主体比对，默认路径 _handle_unary_impl/_handle_stream_impl 也只按 request 选 agent 后直接 process_message。RequestContext 里根本没有已认证主体字段，因此「重连与恢复后重新执行同一绑定判定」这件事在实现上不存在。",
+        "impact": "同一条未认证连接只要改一个请求头就能换到另一租户的目录，读出、下载或删除其工作区文件；只要知道或枚举到 session_id 就能 switch/rewind/delete 他人会话并读出完整历史。在企业版多租户部署下这是跨租户的数据读取与破坏；在桌面单用户形态下它是「任意本机进程取得用户全部会话与工作区」的通路。",
+        "severity": "high",
+        "severity_reason": "影响是受保护数据的跨边界读取与删除，前提只有一次未认证请求加一个可枚举/可猜测的标识。企业版形态下跨租户成立使影响面扩大到其他租户的数据，故不按单用户场景降档；路径穿越是否被 WorkspaceService 的相对路径校验拦住与本结论无关——此处越界发生在「选哪个根」这一层，而不是根内的路径。",
+        "exposure": "EXT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-D",
+          "E-FIX-N",
+          "E-FIX-O",
+          "E-FIX-P",
+          "E-FIX-W",
+          "E-FIX-X",
+          "E-FIX-Y"
+        ],
+        "check_ids": [
+          "CHK-FIX-K"
+        ],
+        "residual_risk": "即使入口加了认证，只要租户键仍从请求字段读取而不从认证结果推导，同一主体仍可能越权到未授权租户；修复须落在「键从哪来」而非「键是否合法」。"
+      },
+      {
+        "id": "F-SERVICE-COMBINATION",
+        "title": "AgentServer 无认证监听面使客户端请求头成为主体与租户键，冒充任意用户/租户跨租户读删下载并接管会话（U-FIX-G，可经 mcp add 升级为执行）",
+        "mechanism": "AgentServer 的 HTTP/WS 面在非 mTLS 部署下无认证中间件，request_context 直接以 x-user-id 为主体、以 x-service-id/x-agent-id/x-workspace-key 为租户键（CHK-FIX-I），且下游 _sessions_dir_for_request / _tenant_root_from_request 据此选会话根与工作区根。任意能连上端口者改一个请求头即冒充任意用户/租户，进而跨租户读取、删除、下载文件并接管他人会话（F-SERVICE-TENANT）。同一无认证入口还经 command.mcp add 登记任意本地 stdio MCP 服务并落盘，取得以 Agent 身份执行命令的能力（F-SERVICE-EXEC）。",
+        "impact": "外部无凭据方可冒充任意主体、跨租户访问与破坏数据、接管会话，并经 MCP 登记取得代码执行。属管理面与安全控制面对未认证方开放。",
+        "severity": "critical",
+        "severity_reason": "critical：入口 EXT 且无任何认证（F-SERVICE-AUTH critical），冒充→跨租户读删下载/会话接管为 confirmed（F-SERVICE-TENANT high），并可升级为执行（F-SERVICE-EXEC critical）。定级不依赖排除范围内组件。",
+        "exposure": "EXT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-D",
+          "E-FIX-E",
+          "E-FIX-N",
+          "E-FIX-P"
+        ],
+        "check_ids": [
+          "CHK-FIX-I"
+        ],
+        "residual_risk": "link_mtls.enforced 部署下入口需 mTLS（CHK-FIX-I 已限定）；mcp add 的执行面受下游解释器白名单约束（F-SERVICE-EXEC）。"
+      },
+      {
+        "id": "F-WORKSPACE-BOUNDARY",
+        "title": "宿主工作区路径只清洗字符形态不校验范围：user_id 取 '..' 即逃出 workspace_root，字符折叠另使不同主体共用同一目录",
+        "mechanism": "resolve_agent_workspace 用 _WORKSPACE_NAME_RE（[^A-Za-z0-<数值>._-]+）把 user_id 里的非法字符整段替换成下划线，空结果回落 'default'，再 (Path(workspace_root) / safe_user).resolve()，然后直接返回——规范化之后没有任何与 workspace_root 的包含性比对。问题出在字符类把点号列为允许字符：'.' 与 '..' 整体通过清洗，而 .resolve() 恰好会把它们规范化掉。以出厂 workspace_root='<workspace_root>' 计，user_id='..' 得到 '<workspace_parent>'（workspace_root 的父目录，含全部用户的工作区），user_id='.' 得到 '<workspace_root>'（工作区根本身）。该返回值随即作为 create_sandbox 的 workspace 实参送往 SandboxProvider <sandbox_creation_endpoint>，消费侧对它的校验只有「非空且以 / 开头」。同一处清洗还制造了反向问题：凡两个 user_id 只在 [A-Za-z0-<数值>._-] 之外的字符上不同，就会折叠成同一个目录名——'a/b' 与 'a_b' 在复用键（只 strip）与注册中心 service_id（sha256 摘要）两处是两个互不相干的主体，在工作区这一处却合流成同一个 'a_b'。",
+        "impact": "能自选 user_id 的一方（默认档下即 F-IDENTITY-PATH 所述的任何连接方）可以让自己的 Agent 沙箱拿到 workspace_root 的父目录作为挂载源，一次读写覆盖全部用户的工作区内容，而不只是越到某一个受害者的目录；取 '.' 则直接拿到工作区根。字符折叠这一侧不需要构造特殊值也会自然发生：两个合法但字符集不同的用户标识会在毫不知情的情况下共用一个宿主目录，彼此的产物互相可见、可改。",
+        "severity": "high",
+        "severity_reason": "逃逸取值只有两个字符、无需编码技巧，且上游 _extract_user_id 与 normalize_key_value 都只要求非空，没有任何一层会拦住它；折叠碰撞则是常态风险而非构造风险。本跳的全部前提是 gateway.agent_client.type 设为 identity_router；出厂值是 websocket（E-FIX-BH），因此默认安装不启用本扩展（register_extensions 直接返回空列表，<范围外记录>）。本条按「配置可达的身份跳」定级，不按默认姿态定级。危害上界受一个未审环节限制并已在本条标明：SandboxProvider frontend 对 workspace 实参的实际挂载行为（是否 bind mount、读写权限）不在本次提取物内，该环节未经审计；若它不挂载，影响收敛为「路径被创建」。按产品自述（resolve_agent_workspace 的 docstring 写明这是 host workspace bind path、宿主侧负责提供可写挂载源；config/component_ak.yaml:<数值> 注释写「Agent create 时宿主机 workspace 父目录」）判定挂载为设计意图。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-BN",
+          "E-FIX-CA",
+          "E-FIX-BI",
+          "E-FIX-BQ",
+          "E-FIX-BL",
+          "E-FIX-BY",
+          "E-FIX-BO",
+          "E-FIX-BS",
+          "E-FIX-BW",
+          "E-FIX-BH"
+        ],
+        "check_ids": [
+          "CHK-FIX-L",
+          "CHK-FIX-M",
+          "CHK-FIX-N"
+        ],
+        "residual_risk": "SandboxProvider frontend 侧的挂载语义未审，见上；workspace_root 若被运维改成更浅的目录（如 '/home'），'..' 的逃逸落点随之上移，本条按出厂值取证。"
+      },
+      {
+        "id": "F-INGRESS-FOLLOWUP",
+        "title": "A2A 入站配置的整条校验链不设监听地址与暴露面策略：validate_security 只核鉴权字段形态，A2AIngressConfig.validate 只核 host 非空，_create_and_start_locked 的唯一闸门是 is_enterprise",
+        "mechanism": "三段同一链条。①`src/component_at.py:<数值>-<数值>` 的 `validate_security` 只做鉴权字段形态校验（auth_type 枚举、专用凭据头、哈希形态、启用鉴权须有凭据、card_auth 不得配 none），无任何地址/回环分支，`auth_type=\"none\"` 无附加约束；②`src/component_aj.py` 的 `A2AIngressConfig.validate()` 对 host 仅要求非空、port 仅范围、三条路径仅前缀与互异——host 是自由字符串；③`src/component_ah.py` 的 `_create_and_start_locked` 仅经 `_require_ingress_available()` 的 `is_enterprise()` 一道即按 `config.host` 启动。配合 U-FIX-I 已证事实（F-INGRESS-BASE：该配置可经 `A2AManager.update(patch, apply=True)`/`enable()` 写入并 `os.environ.update` 即时生效，非回环绑定只有 exposure_warning 文案），整条校验链对「入站面绑到哪个地址、是否要求认证」不设任何限制。",
+        "impact": "能到达 a2a 管理面的主体可把入站服务改绑任意地址（含 <all_interfaces>）并保持 `auth_type=\"none\"`；非企业版无第二道闸。入站面一旦外绑即成为无认证的 Agent 触发入口（下游后果按 <范围外记录> 的通道清单口径）。",
+        "severity": "medium",
+        "severity_reason": "三段机制均静态确定成立、无猜测；定级与 F-INGRESS-BASE 同档——管理面（`a2a.outbound.*`/`a2a.ingress.*` 到 RPC 的绑定与鉴权）可达性未闭合，不因「可能更严重」抬档；默认 host=<loopback> 与 enabled=False 只是缺省值，校验链不阻止改绑，故不作有利折减。",
+        "exposure": "INT",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-CL",
+          "E-FIX-BG",
+          "E-FIX-BA"
+        ],
+        "check_ids": [
+          "CHK-FIX-O"
+        ],
+        "residual_risk": "管理面到 RPC 的绑定与该面鉴权未核（与 <范围外记录> 同一未决项，决定本条可达性上界）；本条同时是 F-INGRESS-BASE residual 所指 `validate_security` 缺口的闭合侧证，该发现的主张、机理与定级不因本条改变。"
+      },
+      {
+        "id": "F-INGRESS-BASE",
+        "title": "A2A 入站服务的暴露面无清单约束、缺省不要求任何认证，绑定非回环地址只给一条文字告警",
+        "mechanism": "入站服务的暴露面（是否启用、监听地址与端口、rpc 路径、两条 card 路径、是否要求 card 认证、认证类型与凭据头）完全由 `.env` 里的 <数值> 个 `A2A_SERVER_*` 键决定，可经 `A2AManager.update(patch, apply=True)` / `enable()` 写入并 `os.environ.update` 即时生效，随后按新值重建通道。技术要求的「按清单收敛、未列入清单的入口不可从外部到达」在本单元没有任何实现：三条路径是自由字符串（只校验以 `/` 开头、互不相同），host 是自由字符串，绑定非回环时 `snapshot()` 只填一条 `exposure_warning` 文案而不拒绝启动。缺省值方向是收紧的（`enabled=False`、`host=<loopback>`、端口 <数值>），但缺省 `auth_type=\"none\"` 与 `card_auth_required=False` 意味着一旦启用并改绑地址，入口即可被识别并以无凭据请求到达；`expose_reasoning` 缺省 True 还会把推理内容纳入对外输出。",
+        "impact": "A2A 入站一旦被启用并绑定到非回环地址，外部即可按公开的 well-known card 路径识别该 Agent 并在缺省配置下无凭据地投递消息激活处理；产品对此只给一句提示而不阻止。",
+        "severity": "medium",
+        "severity_reason": "缺省不启用、缺省绑回环这两点显著压低了实际暴露，因此不按远程未认证计高档；但「启用即无认证、路径与地址无清单约束、暴露只告警」是设计层面的缺口，且配置可经管理动作即时改写。`auth_type=\"none\"` 时认证中间件的实际放行行为在 U-FIX-C 范围、本单元未作为依据。",
+        "exposure": "ADJ",
+        "status": "current",
+        "evidence_ids": [
+          "E-FIX-BD",
+          "E-FIX-BG",
+          "E-FIX-BC",
+          "E-FIX-BB",
+          "E-FIX-BF",
+          "E-FIX-BE"
+        ],
+        "check_ids": [
+          "CHK-FIX-P"
+        ],
+        "residual_risk": "`validate_security(config)` 的实现（`src/component_at.py`）不在本单元材料内，它是否对 `auth_type=\"none\"` 施加额外约束未核；该 RPC 管理面的鉴权同样未核（见 <范围外记录>）。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "CHK-FIX-A",
+        "failure_mode_id": "FM-FIX-A",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-AU",
+          "E-FIX-AW",
+          "E-FIX-AX",
+          "E-FIX-AY"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-B",
+        "failure_mode_id": "FM-FIX-A",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code",
+          "configuration"
+        ],
+        "evidence_ids": [
+          "E-FIX-BL",
+          "E-FIX-BM",
+          "E-FIX-BJ",
+          "E-FIX-BI",
+          "E-FIX-BK",
+          "E-FIX-BQ",
+          "E-FIX-BX"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-C",
+        "failure_mode_id": "FM-FIX-B",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-CH",
+          "E-FIX-CI",
+          "E-FIX-CJ",
+          "E-FIX-CK"
+        ],
+        "counterevidence_ids": [
+          "E-FIX-CF"
+        ]
+      },
+      {
+        "id": "CHK-FIX-D",
+        "failure_mode_id": null,
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code",
+          "configuration"
+        ],
+        "evidence_ids": [
+          "E-FIX-CB",
+          "E-FIX-CC",
+          "E-FIX-CD",
+          "E-FIX-CE"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-E",
+        "failure_mode_id": "FM-FIX-C",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-AB",
+          "E-FIX-AC",
+          "E-FIX-AD",
+          "E-FIX-AE",
+          "E-FIX-AJ"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-F",
+        "failure_mode_id": "FM-FIX-D",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-AG",
+          "E-FIX-AH",
+          "E-FIX-AI",
+          "E-FIX-AF"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-G",
+        "failure_mode_id": "FM-FIX-E",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-AN",
+          "E-FIX-AO",
+          "E-FIX-AL",
+          "E-FIX-AM",
+          "E-FIX-AK"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-H",
+        "failure_mode_id": null,
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "design",
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-AQ",
+          "E-FIX-AR",
+          "E-FIX-AS",
+          "E-FIX-AT"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-I",
+        "failure_mode_id": "FM-FIX-A",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-D",
+          "E-FIX-E",
+          "E-FIX-N",
+          "E-FIX-P"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-J",
+        "failure_mode_id": "FM-FIX-F",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-L",
+          "E-FIX-M",
+          "E-FIX-Q",
+          "E-FIX-R",
+          "E-FIX-S",
+          "E-FIX-T",
+          "E-FIX-U",
+          "E-FIX-V",
+          "E-FIX-W",
+          "E-FIX-Y"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-K",
+        "failure_mode_id": "FM-FIX-G",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-D",
+          "E-FIX-N",
+          "E-FIX-O",
+          "E-FIX-P"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-L",
+        "failure_mode_id": null,
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-BN",
+          "E-FIX-CA",
+          "E-FIX-BI",
+          "E-FIX-BQ",
+          "E-FIX-BL",
+          "E-FIX-BY",
+          "E-FIX-BO"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-M",
+        "failure_mode_id": null,
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code",
+          "configuration"
+        ],
+        "evidence_ids": [
+          "E-FIX-BO",
+          "E-FIX-BN",
+          "E-FIX-CA",
+          "E-FIX-BY",
+          "E-FIX-BV",
+          "E-FIX-BR",
+          "E-FIX-BT",
+          "E-FIX-BU",
+          "E-FIX-BI"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-N",
+        "failure_mode_id": null,
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-BS",
+          "E-FIX-BR",
+          "E-FIX-CA",
+          "E-FIX-BN",
+          "E-FIX-BZ",
+          "E-FIX-BW"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-O",
+        "failure_mode_id": null,
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-CL",
+          "E-FIX-BG",
+          "E-FIX-BA"
+        ],
+        "counterevidence_ids": []
+      },
+      {
+        "id": "CHK-FIX-P",
+        "failure_mode_id": "FM-FIX-H",
+        "status": "complete",
+        "verdict": "confirmed",
+        "scope": [
+          "code"
+        ],
+        "evidence_ids": [
+          "E-FIX-BD",
+          "E-FIX-BG",
+          "E-FIX-BC",
+          "E-FIX-BB",
+          "E-FIX-BF",
+          "E-FIX-BE"
+        ],
+        "counterevidence_ids": []
+      }
+    ],
+    "evidence": [
+      {
+        "id": "E-FIX-A",
+        "material_id": "MAT-FIX-A",
+        "kind": "code",
+        "observation": "main() 用 os.getenv(\"AGENT_SERVER_HOST\", \"<loopback>\") 取监听地址，端口依次取 AGENT_SERVER_PORT / AGENT_PORT，缺省 <数值>；地址与端口全部由环境变量决定，没有任何只允许回环的强制校验。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-B",
+        "material_id": "MAT-FIX-A",
+        "kind": "code",
+        "observation": "AgentWebSocketServer.get_instance(host, port).start() 之后再按 resolve_http_server_settings(host) 决定是否另起 HTTP 入口。WS 侧：start 的 listen 形参默认为 True，app_agentserver 只在 link_mtls.enforced 为真时传 listen=False，因此非 enforce 部署下 WS 明文监听无条件启动。HTTP 侧：条件是 `http_enabled or link_mtls.enforced`，http_enabled 由 AGENT_HTTP_ENABLED > config/component_ak.yaml http_server.enabled > False 解析，两级都缺省时为 False，此时只打印「HTTP 入口未开启」而不监听。两条入口起来时启动链上都没有任何凭据/令牌装载步骤。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-C",
+        "material_id": "MAT-FIX-B",
+        "kind": "code",
+        "observation": "resolve_cors_origins 在 origins 含 \"*\" 时打印 warning，正文写明「本入口无鉴权，任意网站的页面都能跨域调用它。仅限受控环境使用。」——产品代码自述该 HTTP 入口不做身份认证。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-D",
+        "material_id": "MAT-FIX-C",
+        "kind": "code",
+        "observation": "request_context 直接把请求头当身份：user_id = headers.get(\"x-user-id\")，routing 取 x-group-id/x-bot-id/x-gateway-id，tenant_ids 取 x-service-id/x-agent-id/x-workspace-key；全程只做 strip 与 normalize，没有任何签名、令牌或会话校验。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-E",
+        "material_id": "MAT-FIX-C",
+        "kind": "code",
+        "observation": "build_fastapi_app 只无条件挂了 CORSMiddleware；LinkBindingMiddleware（配合 mTLS 的 binding 校验）仅在 link_mtls.enforced 为真时挂载。非 enforce 部署下整个 FastAPI 应用没有认证中间件。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-F",
+        "material_id": "MAT-FIX-C",
+        "kind": "code",
+        "observation": "POST <generic_rpc_endpoint> 为通用透传：只用 is_valid_req_method(method) 校验方法名合法，随后把 query/path/body 合并成 params 交给 invoke_unary / iter_stream，任意 ReqMethod 都可直接调用。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            7,
+            8
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-G",
+        "material_id": "MAT-FIX-C",
+        "kind": "code",
+        "observation": "POST <envelope_endpoint> 把请求体当完整 E2A 信封原样透传给与 WS 相同的解析入口。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            9,
+            10
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-H",
+        "material_id": "MAT-FIX-D",
+        "kind": "code",
+        "observation": "start() 用 websockets legacy_serve 在 host:port 上监听，process_request 只挂 _process_request；listen=False 分支的日志把带监听的形态称作 \"unauthenticated WS listener\"。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-I",
+        "material_id": "MAT-FIX-D",
+        "kind": "code",
+        "observation": "_process_request 在握手阶段只做 Origin 校验：is_origin_check_enabled() 为假时直接 return None 放行，为真时按 is_allowed_browser_origin(origin) 判定。整个握手没有任何凭据校验。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-J",
+        "material_id": "MAT-FIX-D",
+        "kind": "code",
+        "observation": "_connection_handler 对新连接只做：注册推送订阅（reverse_rpc_capable 取自请求头 X-Jiuwen-Push-Consumer）、尝试 IdentityStore.fetch_and_store()（注释写明「无 provider 时身份为 null，连接继续」）、回一条 connection.ack，随后进入消息循环。没有认证或断连分支。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-K",
+        "material_id": "MAT-FIX-E",
+        "kind": "code",
+        "observation": "dispatch_parsed_request 是 WS 与 HTTP 的共同汇合点，依次做日志绑定、metadata 提升、chat hook 触发，然后表驱动分发或落默认路径；整条流水线没有任何主体校验或授权判定步骤。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-L",
+        "material_id": "MAT-FIX-F",
+        "kind": "code",
+        "observation": "HANDLERS 表登记了会话、团队、命令、智能体、扩展/Hook/Harness 包、调度、运维、工作区、IM 托管等域的处理器；表项只有 fn/args/kwargs/stream_fn，没有任何权限或角色字段。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-M",
+        "material_id": "MAT-FIX-F",
+        "kind": "code",
+        "observation": "dispatch_to_handler 命中表项后直接 await spec.resolve_fn(is_stream)(ctx, ...)，分发前后都不做授权检查。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-N",
+        "material_id": "MAT-FIX-G",
+        "kind": "code",
+        "observation": "_tenant_root_from_request 决定工作区根：企业版取 request.workspace_key 或 params[\"workspace_key\"]，否则取 request.service_id / request.agent_id；这些值来自 HTTP 头 X-Workspace-Key / X-Service-Id / X-Agent-Id 或 E2A 信封顶层字段。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-O",
+        "material_id": "MAT-FIX-G",
+        "kind": "code",
+        "observation": "handle_workspace 用上述租户根构造 WorkspaceService，分发 workspace.tree / usage / entries.delete / preview / download 五个方法，其中 download 把文件内容 base64 后整体回给调用方。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-P",
+        "material_id": "MAT-FIX-H",
+        "kind": "code",
+        "observation": "_sessions_dir_for_request 用 TenantAgentPool.extract_ids(request) 得到 agent_id/service_id/workspace_key 再解析会话根目录；这三个值同样来自客户端请求头或信封。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-Q",
+        "material_id": "MAT-FIX-I",
+        "kind": "code",
+        "observation": "_normalize_mcp_payload 对 transport=stdio 的条目取客户端给的 command、args、cwd、env 并原样落进 payload，只要求 command 非空；没有命令白名单。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-R",
+        "material_id": "MAT-FIX-I",
+        "kind": "code",
+        "observation": "command.mcp 的 add 分支：预检只用 shutil.which(command) 确认命令在 PATH 中存在，通过后 upsert_mcp_server_in_config(server_payload) 落盘并 reload_agents_config 让其生效。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-S",
+        "material_id": "MAT-FIX-J",
+        "kind": "code",
+        "observation": "handle_mcp_server_add 只校验 servers 是 list（企业版整组拒绝），随后交给 get_mcp_server_registry().add_servers(servers)。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-T",
+        "material_id": "MAT-FIX-K",
+        "kind": "code",
+        "observation": "handle_extensions_import 取 params[\"folder_path\"]，只校验该目录存在，随后 manager.import_extension(folder_path) 导入 Rail 扩展。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-U",
+        "material_id": "MAT-FIX-L",
+        "kind": "code",
+        "observation": "handle_command_add_dir 取 params[\"path\"] 并直接调 persist_cli_trusted_directory(str(directory_path)) 把该目录登记为受信目录，只校验非空。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-V",
+        "material_id": "MAT-FIX-M",
+        "kind": "code",
+        "observation": "agents.create 分支把 params[\"prompt\"]（必要时由 LLM 生成覆盖）与其余字段交给 service 创建子智能体，再 upsert_subagent_in_config(agent.name, enabled=True) 落盘，使该系统提示词对后续所有运行持续生效。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-W",
+        "material_id": "MAT-FIX-N",
+        "kind": "code",
+        "observation": "_handle_unary_impl 默认路径按 request 选择租户池 / 无状态 agent / 会话 agent，然后 await agent.process_message(request) 并回写响应；全程以 request.session_id 定位会话，没有归属校验。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-X",
+        "material_id": "MAT-FIX-O",
+        "kind": "code",
+        "observation": "handle_session_switch 取 params[\"session_id\"] 或 request.session_id 作为切换目标，只校验非空；整个 src/component_o.py 没有任何 user_id / 归属主体比对。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-Y",
+        "material_id": "MAT-FIX-P",
+        "kind": "code",
+        "observation": "RequestContext 只携带 request、sink、connection_id、services 四项，没有任何已认证主体字段；业务 handler 因此无从取得「当前调用者是谁」。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-Z",
+        "material_id": "MAT-FIX-B",
+        "kind": "code",
+        "observation": "_is_enterprise_skill_forbidden 仅在企业版下对 skills.* 做白名单兜底，注释写明它是为「AgentServer 被直连（HTTP 直连）时绕过 Gateway」兜底；非企业版直接返回 False。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AA",
+        "material_id": "MAT-FIX-C",
+        "kind": "code",
+        "observation": "ROUTES 声明式路由表共 <数值> 条，覆盖会话、对话动作、命令、智能体、团队、技能与技能市场、扩展/Hook/插件、调度、Harness 包、工作区、权限、配置与运维、IM 托管、浏览器运行时、Symphony、渠道配置与更新器等域；其中包含 permissions.*、config/actions/*、mcp/servers、plugins/install、extensions 等管理面写操作。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AB",
+        "material_id": "MAT-FIX-Q",
+        "kind": "code",
+        "observation": "apply_to_browser 把保存的 localStorage 逐项回灌：v_escaped = json.dumps(v) if not isinstance(v, str) else f'\"{v}\"'，随后 page.run_js(f\"localStorage.setItem('{k}', {v_escaped});\")（drission 分支，对应源码段）与 page.execute_script(同式)（selenium 分支，对应源码段）。键 k 未经任何转义直接拼入单引号 JS 字符串；值为字符串时仅加一对双引号、不转义内部的双引号、反斜杠与换行。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AC",
+        "material_id": "MAT-FIX-Q",
+        "kind": "code",
+        "observation": "import_from_browser 以 page.run_js(\"return JSON.stringify(localStorage);\")（对应源码段）或 page.execute_script(同式)（对应源码段）读取当前页面的 localStorage 全量，并把 cookie 名值对与 localStorage 存入 self.data 后 save() 落盘；异常被 bare except 吞掉。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AD",
+        "material_id": "MAT-FIX-R",
+        "kind": "code",
+        "observation": "load_session 在 drission 分支执行 driver_or_page.run_js(f\"localStorage.setItem('{k}', '{v}');\")（对应源码段）、在 selenium 分支执行 execute_script(f\"localStorage.setItem('{k}', '{v}');\")（对应源码段），键与值都未转义即拼入单引号 JS 字符串；同函数把保存的 cookie 以 cookies.set({name: value}) 应用到当前页面（对应源码段）。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AE",
+        "material_id": "MAT-FIX-S",
+        "kind": "code",
+        "observation": "use_saved_session 对保存的 localStorage 执行 v_escaped = json.dumps(v) if not isinstance(v,str) else f'\"{v}\"' 后 page.run_js(f\"localStorage.setItem('{k}', {v_escaped});\")，键无转义、字符串值仅加双引号；整段包在 try/except 内，注入失败不报错。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AF",
+        "material_id": "MAT-FIX-S",
+        "kind": "code",
+        "observation": "login_and_save 保存的会话 JSON 包含 \"url\": page.url、\"title\"、\"cookies\": page.cookies.as_dict()、\"localStorage\" 与时间戳，写入 <session_store>/<session_name>.json；write_text 调用未指定文件权限模式。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AG",
+        "material_id": "MAT-FIX-S",
+        "kind": "code",
+        "observation": "use_saved_session 先 page.get(url)（url 为调用方给出的目标地址），再把 session_data['cookies'] 中每个名值对 page.cookies.set({name: value}) 应用到该页面；全过程未读取会话记录里已保存的 'url' 字段，也未比对域名，即不校验 cookie 的原始来源与当前页面是否同源。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AH",
+        "material_id": "MAT-FIX-S",
+        "kind": "code",
+        "observation": "命令行把 use 子命令的 -u/--url 与 -s/--session 定义为两个彼此独立的必填参数，任意 (URL, 会话名) 组合都被接受。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            7,
+            8
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AI",
+        "material_id": "MAT-FIX-T",
+        "kind": "code",
+        "observation": "save_session 把 'url': page.url 连同 cookies 写入会话文件；load_session 读取同一文件后只遍历 data['cookies'] 调 page.set.cookies({k: v})，不读取其中的 'url'、不做来源比对，异常被 bare except 忽略。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AJ",
+        "material_id": "MAT-FIX-U",
+        "kind": "code",
+        "observation": "inject_captcha_token 把第三方打码服务返回的 token 以 f-string 插入单引号 JS 字符串（recaptcha 分支对应源码段同时写入 innerHTML 并调用 ___grecaptcha_cfg 的回调，hcaptcha/turnstile 分支写入表单字段 value），随后 page.run_js(js) 或 page.execute_script(js) 执行；token 未做任何转义或格式校验。该函数在本次提取范围内无调用方（CLI 入口只调四个 solve_* 函数并打印 token）。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AK",
+        "material_id": "MAT-FIX-V",
+        "kind": "code",
+        "observation": "`main()` 读取 `args.approved_file` 后直接 `for prospect in approved:` 遍历；收件人取 `prospect.get(\"email\")`，正文与主题取同一条记录里 `angle_drafts[approved_angle]` 的 `body`/`subject`，批准角度 `approved_angle` 也是这条记录自述的字段。整个过程没有收件方允许清单、没有与任何人工确认记录的比对，日发上限 `args.max` 由命令行实参决定（默认 <数值>），去重只按 email 查 history。随后用 `SMTP_PASSWORD` 等环境变量里的发信凭据经 `smtplib` 真实投递。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AL",
+        "material_id": "MAT-FIX-W",
+        "kind": "code",
+        "observation": "`--serve` 分支执行 `HTTPServer((\"<all_interfaces>\", args.port), RB2BWebhookHandler)`（默认端口 <数值>）后 `serve_forever()`：绑定所有网卡、无 TLS，启动日志只打印端口与 dry_run 状态。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AM",
+        "material_id": "MAT-FIX-W",
+        "kind": "code",
+        "observation": "`do_POST` 只做两件事：按 `Content-Length` 拒绝超过 <数值> MB 的请求体，以及 `json.loads` 失败时返回 <数值>。没有共享密钥校验、没有 HMAC/签名头核对、没有来源 IP 或 Host 限制、没有任何鉴权；解析出的对象（或对象数组）直接逐条交给 `process_visitor`。`do_GET` 无条件返回 <数值> 健康检查。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AN",
+        "material_id": "MAT-FIX-X",
+        "kind": "code",
+        "observation": "路由脚本的 `--serve` 同样是 `HTTPServer((\"<all_interfaces>\", args.port), WebhookHandler)`（默认 <数值>）；`WebhookHandler.do_POST`（对应源码段）与摄入脚本一样只有 <数值> MB 体积限制和 JSON 解析，无任何鉴权或签名校验，解析结果直接进入 `process_visitor`。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AO",
+        "material_id": "MAT-FIX-X",
+        "kind": "code",
+        "observation": "`write_remote_record` 以 `subprocess.run([\"curl\", \"-s\", \"-X\", \"POST\", \"https://connector.example.invalid/records\", \"-H\", f\"Authorization: Bearer {CONNECTOR_API_KEY}\", ...])` 完成真实的 lead 写入；email、first_name、company_name、website、custom_variables 全部来自 webhook 请求体，没有收件方允许清单，也没有批准检查。API 密钥同样位于子进程命令行实参中。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AP",
+        "material_id": "MAT-FIX-Y",
+        "kind": "configuration",
+        "observation": "hook-addon 随包声明了一个 `PreToolUse` 钩子：`matcher` 是一条超宽正则 `(?i)(tapd|需求|story|stories|缺陷|bug|任务|task|迭代|iteration|sprint|工时|effort|…|priority|处理人|owner|…)`，命中后执行 `{\"type\":\"prompt\",\"prompt\":\"用户的请求涉及 TAPD 平台相关操作。请使用 hook-addon 技能来查询和调用 TAPD API。如果涉及 Wiki 搜索，请使用 <outside_material> 先同步再搜索。\"}`。`story`、`task`、`bug`、`owner`、`priority`、`release`、`category`、`effort`、`搜索` 这些词与 TAPD 无必然关系，匹配面覆盖大量与本技能无关的工具调用；命中时注入的是一条指示 Agent 改用本技能并先执行 `search_wiki.py sync` 的指令。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AQ",
+        "material_id": "MAT-FIX-Z",
+        "kind": "design",
+        "observation": "随包文档明确规定依赖自动安装：对应源码段「`src/component_aa.py` 与 `src/component_ab.py` 在运行时会**自动检测 Playwright 是否已安装**，若未安装会**自动在当前 Python 环境下执行安装**（`pip install browser_dependency` + `browser_dependency install browser_runtime`），无需人工干预」；对应源码段「**禁止**向用户输出\"请你先执行 pip install ...\"这类把安装动作甩回给用户的话」；对应源码段「AI 必须自动执行 `python3 -m pip install browser_dependency && python3 -m browser_dependency install browser_runtime`，不要把安装动作交给用户」。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AR",
+        "material_id": "MAT-FIX-AA",
+        "kind": "code",
+        "observation": "`_auto_install_browser_dependency` 对应实现：`subprocess.run([sys.executable, \"-m\", \"pip\", \"install\", \"browser_dependency\"], check=False)` 后 `subprocess.run([sys.executable, \"-m\", \"browser_dependency\", \"install\", \"browser_runtime\"], check=False)`。没有版本固定、没有 `--require-hashes`、没有指定索引源，安装目标是 Agent 自己的解释器环境；日志只打印进度，不询问。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AS",
+        "material_id": "MAT-FIX-AB",
+        "kind": "code",
+        "observation": "`src/component_ab.py` 里是同一段自动安装逻辑的第二份副本（`pip install browser_dependency` + `browser_dependency install browser_runtime`），区别只是把子进程 stdout 重定向到 stderr 以免污染本脚本的协议 JSON。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AT",
+        "material_id": "MAT-FIX-AC",
+        "kind": "design",
+        "observation": "docs/component_ac.md 指示 `npm install -g connector_dependency` 全局安装该 MCP 客户端，对应源码段「若未找到，执行 `npm install -g connector_dependency` 后重新验证」；未固定版本、未校验完整性。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AU",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "IdentityRouterClient.on_connect：self._auth_client 为 None 时取握手头 x-user-id 作 fallback_user_id，构造 AuthResult(success=True, user_id=fallback_user_id) 并 apply_auth_result_to_ws 落到连接上（<数值>-<数值>）——头缺失时该值为空串而仍返回 success=True；有 auth_client 的分支（<数值>-<数值>）才做 IAM 认证，注释 <数值>-<数值> 自述用鉴权身份『覆写 ws 上的自报 X-User-Id』。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            7
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AV",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "resolve_agent_workspace 以 _WORKSPACE_NAME_RE（对应源码段 [^A-Za-z0-<数值>._-]+）把 user_id 中的非法字符替换为下划线，空值回落 'default'，再取 (workspace_root 或 DEFAULT_AGENT_WORKSPACE_ROOT)/<safe_user> 并 mkdir；docstring <数值> 自述默认根为 <workspace_root>/<user_id>。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AW",
+        "material_id": "MAT-FIX-AE",
+        "kind": "code",
+        "observation": "RouterConfig 数据类字段 auth_service_url 默认空串、timeout 默认 <数值>、auth_enabled 默认 False。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AX",
+        "material_id": "MAT-FIX-AE",
+        "kind": "code",
+        "observation": "load_router_config 以 str(identity.get('auth_enabled', 'false')).strip().lower() in ('true','<数值>','yes') 解析 auth_enabled，即配置缺省字面量为 'false'。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AY",
+        "material_id": "MAT-FIX-AF",
+        "kind": "code",
+        "observation": "IdentityRouter.__init__ 构造 IdentityRouterClient 时传 auth_client=IdentityAuthenticator(config.auth_service_url, config.timeout) if config.auth_enabled else None（<数值>）。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            2,
+            3
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-AZ",
+        "material_id": "MAT-FIX-AG",
+        "kind": "code",
+        "observation": "_invoke_headers 在 user_id 非空时附加 X-Session-Context: {\"sessionCtx\": <uid>}（<数值>-<数值>），docstring <数值>-<数值> 自述 faas 据此为 CreateSandbox 绑定用户标识；uid 为空时只记一条 uid_empty=yes 告警并省略该头（<数值>-<数值>）。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BA",
+        "material_id": "MAT-FIX-AH",
+        "kind": "code",
+        "observation": "`_require_ingress_available()`：`is_enterprise()` 为真时抛 `A2AIngressError(\"A2A_INGRESS_DISABLED\", …)`——A2A 入站服务只在个人版可用。`start_from_config` / `update` / `enable` / `reload` / `_create_and_start_locked` 都调它（`disable` 不调）。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BB",
+        "material_id": "MAT-FIX-AH",
+        "kind": "code",
+        "observation": "`snapshot()` 在 `not _is_loopback_host(config.host)` 时填 `exposure_warning=\"A2A ingress is bound to a non-loopback interface; configure network access controls.\"`，并分别报告 desired / effective 的 auth_type、card_auth_required、credential_configured 与 `security_pending_apply`。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BC",
+        "material_id": "MAT-FIX-AH",
+        "kind": "code",
+        "observation": "`update(patch, apply=False)` 经 `self._config.with_patch(patch)` 校验后 `_persist_locked` 落盘并自增 config_revision；`apply=True` 时按 enabled 决定 `_reload_locked` 还是 `_disable_locked`。`enable()` / `disable()` / `reload()` 同样在 `self._lock` 内改配置并重建通道。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BD",
+        "material_id": "MAT-FIX-AI",
+        "kind": "code",
+        "observation": "`load_a2a_ingress_config` 的缺省值：`A2A_SERVER_ENABLED=False`、`A2A_SERVER_HOST=\"<loopback>\"`、端口 <数值>、rpc `/a2a`、card `/<outside_material>`、`A2A_SERVER_EXPOSE_REASONING=True`、**`A2A_SERVER_AUTH_TYPE=\"none\"`**、`A2A_SERVER_API_KEY_HEADER=\"X-API-Key\"`、**`A2A_SERVER_CARD_AUTH_REQUIRED=false`**；凭据从 `A2A_SERVER_API_KEY` 读出后经 `decrypt` 还原。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BE",
+        "material_id": "MAT-FIX-AI",
+        "kind": "code",
+        "observation": "`_persist_dotenv_updates` 只改 `updates` 里列出的键（其余行原样保留），值经 `_quote_dotenv_value` 转义反斜杠、双引号与换行后加双引号写出，全程在进程内 `_DOTENV_WRITE_LOCK` 与 `.env.lock` 的 portalocker 锁内、经临时文件 `os.replace` 原子换。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BF",
+        "material_id": "MAT-FIX-AI",
+        "kind": "code",
+        "observation": "`A2AIngressConfigRepository.save` 把配置按 `A2A_INGRESS_ENV_MAP` 映射成固定的 <数值> 个 `A2A_SERVER_*` 键（白名单），凭据写入前经 `encrypt(\"A2A_SERVER_API_KEY\", …)`，随后同样 `os.environ.update`。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BG",
+        "material_id": "MAT-FIX-AJ",
+        "kind": "code",
+        "observation": "`A2AIngressConfig` 的字段缺省：`enabled=False`、`host=\"<loopback>\"`、`port=<数值>`、`expose_reasoning=True`、`auth_type=\"none\"`、`api_key_header=\"X-API-Key\"`、`card_auth_required=False`、`credential=\"\"`；`credential_hash` 用 `hash_credential`。`validate()` 调 `validate_security(self)`（实现在 src/component_at.py，不在本单元材料内），另自查 host 非空、端口范围、三个路径以 `/` 开头且互不相同、protocol_version/app_name/app_version 非空。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BH",
+        "material_id": "MAT-FIX-AK",
+        "kind": "configuration",
+        "observation": "gateway.agent_client 段：注释列出四档 type（websocket（默认）| http | sandbox_provider | identity_router，:<数值>），键 type 的出厂取值为 websocket（:<数值>）；同段另给 frontend_endpoint、function_version_urn、concurrency、invoke_timeout_s、agent_timeout_s、agent_namespace，其中前两项在本文件中留空。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BI",
+        "material_id": "MAT-FIX-AK",
+        "kind": "configuration",
+        "observation": "gateway.identity 段：注释写「agent_client.type=identity_router 时生效」（:<数值>）；workspace_root 为 \"<workspace_root>\"，上一行注释写「Agent create 时宿主机 workspace 父目录；实际路径为 {workspace_root}/{user_id}」（:<数值>-<数值>）；agent_key_fields 列出 user_id、agent_type 两项，注释写「可选字段：user_id、agent_type、session_id（必须包含前两项）」（:<数值>-<数值>）；registry.endpoint 留空，注释写「空=本地 stub，不发 HTTP」（:<数值>-<数值>）；ssh.client_keys_dir 为 \"<gateway_key_store>\"（:<数值>）；auth_service_url 取环境变量 IDENTITY_AUTH_SERVICE_URL（:<数值>）；auth_enabled 为 false，注释写「Web/TUI token 鉴权总开关；默认关闭」（:<数值>-<数值>）。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BJ",
+        "material_id": "MAT-FIX-AE",
+        "kind": "code",
+        "observation": "load_router_config 解析 identity 段：auth_service_url 取 identity['auth_service_url']；timeout 取 identity['timeout'] 默认 <数值>；auth_enabled = str(identity.get('auth_enabled','false')).strip().lower() in ('true','<数值>','yes')——缺键时默认字符串 'false'，即鉴权默认关闭。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            5
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BK",
+        "material_id": "MAT-FIX-AF",
+        "kind": "code",
+        "observation": "IdentityRouter.__init__ 装配：AgentManager 以 key_fields=config.agent_key_fields 构造（:<数值>-<数值>）；IdentityRouterClient 收到 workspace_root=config.workspace_root（:<数值>）与 auth_client=IdentityAuthenticator(config.auth_service_url, config.timeout) if config.auth_enabled else None（:<数值>）——即 auth_enabled 为假时 auth_client 实参为 None。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            3
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BL",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "on_connect 的 auth_client is None 分支：把握手头小写化后取 headers['x-user-id']，strip 后直接作为 AuthResult(success=True, user_id=fallback_user_id) 的主体，并调 apply_auth_result_to_ws(ws, result) 落到连接上；该分支不读 token、不发任何校验请求、不比对任何凭据，且 success 恒为 True——头缺失时 fallback_user_id 为空串，仍返回 success=True。注释自称「auth 未启用：回落使用握手头里的 X-User-Id」。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BM",
+        "material_id": "MAT-FIX-AL",
+        "kind": "code",
+        "observation": "extract_token 从 ws.path 与请求头取 token（经 extract_token_from_path_and_headers，优先级 ?token= > Authorization: Bearer > X-Token）；extract_headers 从 ws.request.headers 或 ws.request_headers 取头；apply_auth_result_to_ws 把 result.user_id 同时写到 ws.user_id、ws._gateway_user_id 与 ws._web_connection_user_id 三个属性上，并把 result.extensions 的每个键以 auth_<key> 形式 setattr 到 ws。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BN",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "resolve_agent_workspace：safe_user = _WORKSPACE_NAME_RE.sub('_', str(user_id or '').strip()) or 'default'，workspace = (Path(workspace_root or DEFAULT_AGENT_WORKSPACE_ROOT).expanduser() / safe_user).resolve()，随后 best-effort mkdir(parents=True, exist_ok=True) 并返回 str(workspace)。拼接后调用了 .resolve() 规范化，但规范化结果没有与 workspace_root 做任何包含性比对，也没有对 safe_user 做 '.'/'..' 的排除；OSError 被吞掉只记 warning。docstring 自述该路径是「host workspace bind path」，宿主侧负责提供可写挂载源。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BO",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "_create_agent 末段：workspace = resolve_agent_workspace(agent_info.user_id, workspace_root=self._workspace_root)，随后 self._sandbox_provider.create_sandbox(namespace=..., name=f'{agent_info.user_id}+{agent_info.agent_type}', workspace=workspace, runtime_spec=runtime_spec, env_vars=env_vars)；返回的 sandbox_id 与 workspace 一并写入 agent_info.metadata。user_id 在这里既决定沙箱名也决定 workspace 实参。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            12,
+            13
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BP",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "_resolve_agent：user_id = self._extract_user_id(envelope)，agent_type = self._extract_agent_type(envelope)，随后 get_or_create_agent(user_id, agent_type, key_values={'session_id': envelope.session_id}, creator=self._create_agent, metadata={'session_id': envelope.session_id}, acquire=acquire)。chat 与 ssh.relay 两条路径都经此函数把 envelope 上的身份交给 AgentManager，本函数未对 user_id 作任何校验。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            10,
+            11
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BQ",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "_extract_user_id 只做 str(envelope.user_id or '').strip() 并在为空时抛 ValueError，非空即原样返回，不校验字符集、长度或与任何已鉴权主体的一致性；_extract_agent_type 依次取 envelope.params['agent_type']、envelope.channel_context['agent_type']，交 AgentRuntime.normalize_agent_type 归一。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            14,
+            15
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BR",
+        "material_id": "MAT-FIX-AM",
+        "kind": "code",
+        "observation": "AgentRuntime.normalize_agent_type：str(raw or '').strip().lower()，空值回落 BUILTIN_AGENT_TYPE('agent_component')，docstring 明写 'any non-empty name is accepted (no allowlist)'——函数体内确无任何白名单、字符集或长度校验。normalize_session_id 只要求非空。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BS",
+        "material_id": "MAT-FIX-AM",
+        "kind": "code",
+        "observation": "get_or_create_agent：key = self._make_key(user_id, agent_type, key_values=key_values)，key_user_id/key_agent_type 由 _identity_from_key(key) 取回；在 _runtimes_lock 下按 key 查 self._runtimes，已存在且 READY 即直接 touch/acquire 并返回该实例快照——即同一 key 的不同调用者复用同一个已创建的 Agent 运行时；不存在才新建并置 owner。键的构成完全由 key_fields 与传入的身份值决定，没有任何调用者身份的二次核对。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BT",
+        "material_id": "MAT-FIX-AN",
+        "kind": "code",
+        "observation": "resolve_client_keys_dir：safe_user = _USER_ID_SAFE_RE.sub('_', str(user_id or '').strip()) or 'default'，再对模板做 raw.format(user_id=safe_user)（模板不含 {user_id} 占位符时 user_id 完全不参与，路径对所有北向主体相同），返回 Path(rendered).expanduser()；list_client_key_paths 在该目录下按 OpenSSH 默认基名清单（id_ed25519/id_ecdsa/id_rsa/id_dsa/id_ed448/agent_key 等）收集存在的私钥文件。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BU",
+        "material_id": "MAT-FIX-AN",
+        "kind": "code",
+        "observation": "YuanrongSshSettings 的默认值：port=DEFAULT_SSH_PORT(<数值>)、user_template=DEFAULT_SSH_USER_TEMPLATE('yr:instance:{instance}')、connect_timeout_s=<数值>、client_keys_dir=DEFAULT_CLIENT_KEYS_DIR('<gateway_key_store>')；load_sandbox_provider_ssh_settings 从 gateway.identity.ssh 块逐项取值，缺项回落上述默认。默认模板不含 {user_id}。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BV",
+        "material_id": "MAT-FIX-AO",
+        "kind": "code",
+        "observation": "get_image_info 的 not enabled（registry.endpoint 为空）分支：framework = str(image_name or '').strip() 后直接内插成 imageurl = f'local/stub/{framework}:latest'，并把它放进 runtime_spec['rootfs']['imageurl']（另固定 runtime=python3.<数值>、sandbox_type=docker、user=identity、ports=['tcp:<数值>']、cpu=<数值>、memory=<数值>），作为 ImageInfo.metadata['runtime_spec'] 返回。framework 在本分支未经任何白名单、字符集或长度校验。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BW",
+        "material_id": "MAT-FIX-AO",
+        "kind": "code",
+        "observation": "instance_service_id：service_id = 'generic_' + sha256(f'{uid}\\<数值>{fw}')[:<数值>]，uid/fw 只做 strip；resolve_instance_kind 按框架名前缀把实例分成 KIND_JIUWEN 与 KIND_THIRD_PARTY 两类。注册中心侧能看到的身份只有这个 <数值> 位摘要。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BX",
+        "material_id": "MAT-FIX-AP",
+        "kind": "code",
+        "observation": "GatewayServer._connection_handler：路由匹配通过后即 ws_user_id = self._extract_ws_user_id(ws)、setattr(ws,'_gateway_user_id',ws_user_id)、setattr(ws,'_gateway_agent_type','agent_component')，随后记日志并进入连接钩子循环。连接身份在任何鉴权钩子运行之前就已由握手头填好。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BY",
+        "material_id": "MAT-FIX-AG",
+        "kind": "code",
+        "observation": "create_sandbox：对 namespace/name/workspace 作非空校验，workspace 另要求以 '/' 开头（绝对路径），再把 namespace、name、workspace、runtime_spec（及可选 env_vars、mounts）组成 payload 交 _do_agent_create 发往 <sandbox_creation_endpoint>。对 workspace 的校验只有「非空且绝对」，没有前缀范围或白名单约束。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-BZ",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "_on_channel_event 与 _delayed_cleanup：连接事件只取 event.user_id（strip 后非空才处理），connected 递增该 user_id 的连接计数并取消挂起的清理任务，disconnected 递减、归零后起 <数值> 秒延迟清理；_delayed_cleanup 二次确认连接数为 <数值> 后，对该 user_id 名下全部 BUILTIN_AGENT_TYPE 运行时调 delete_agent。计数与清理的归属键同样是未经校验的 user_id 字符串。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            8,
+            9
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CA",
+        "material_id": "MAT-FIX-AD",
+        "kind": "code",
+        "observation": "模块级常量：_WORKSPACE_NAME_RE = re.compile(r'[^A-Za-z0-<数值>._-]+')——字符类允许点号、下划线与连字符，因此 '.' 与 '..' 这两个路径元字符整体落在允许集合内，不会被该正则替换；另有 WS 冷启动重试的超时与可重试状态码常量。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CB",
+        "material_id": "MAT-FIX-AQ",
+        "kind": "code",
+        "observation": "validate_public_key：当 not self.auth_enabled or self.authenticator is None 时直接 return True（注释 'Auth disabled: keep permissive behaviour (backward compatible)'），不取指纹也不比对；auth 开启时才 get_fingerprint() 并经 authenticator.verify 与 lookup_entry 双重判定。validate_password 同样在 not self.auth_enabled 时 return True。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            2,
+            3
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CC",
+        "material_id": "MAT-FIX-AR",
+        "kind": "code",
+        "observation": "SshAuthConfig 的 enabled 字段 dataclass 默认值为 False，from_dict 也以 conf.get('enabled', False) 取值：当 channels.ssh 下缺少 auth 子段或该子段缺 enabled 键时，解析结果是认证关闭。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CD",
+        "material_id": "MAT-FIX-AK",
+        "kind": "configuration",
+        "observation": "channels.ssh 出厂配置：enabled: false、listen_host: '<all_interfaces>'、listen_port: <数值>、auth.enabled: true，注释明确写『公钥认证开关。true 时校验客户端公钥并签发临时密钥；false 为宽松认证。』YAML 默认值 true 与 src/component_ar.py 解析端的代码默认值 False 方向相反。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CE",
+        "material_id": "MAT-FIX-AS",
+        "kind": "code",
+        "observation": "ProxyConfig 的 listen_host 默认值为 '<all_interfaces>'、listen_port 为 <数值>；proxy_config_from_dict 以 raw.get('listen_host', '<all_interfaces>') 取值，即配置缺省时监听所有网络接口。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CF",
+        "material_id": "MAT-FIX-AT",
+        "kind": "code",
+        "observation": "A2AAuthenticationMiddleware 在读取请求体之前校验头部：按 auth_type 选 authorization 或专用 api_key_header，要求该头恰好出现一次，bearer 时校验 scheme，再用 hash_credential + hmac.compare_digest 与 config.credential_hash 定长比较，不匹配返回 <数值> 并打审计事件；auth_type == \"none\" 或命中未要求鉴权的 card_path 时整体放行。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CG",
+        "material_id": "MAT-FIX-AS",
+        "kind": "code",
+        "observation": "ProxyConfig 默认 `listen_host = \"<all_interfaces>\"`、`listen_port = <数值>`，host_key_path 缺省落在 get_config_dir()/ssh_host_key；proxy_config_from_dict 的兜底同样是 <all_interfaces>:<数值>。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CH",
+        "material_id": "MAT-FIX-AR",
+        "kind": "code",
+        "observation": "SshAuthConfig.enabled 默认 False；SshChannelConfig 默认 enabled=False、listen_host=\"<all_interfaces>\"、listen_port=<数值>、relay_timeout_sec=<数值>，from_dict 的兜底与默认值一致。auth 与 channel 的开关彼此独立：开启 channels.ssh.enabled 不会自动开启 auth。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            3
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CI",
+        "material_id": "MAT-FIX-AQ",
+        "kind": "code",
+        "observation": "ProxySSHServer：auth_enabled 为假时 password_auth_supported() 返回 True，validate_public_key 在 `if not self.auth_enabled or self.authenticator is None` 时直接 `return True`（注释“Auth disabled: keep permissive behaviour (backward compatible)”），validate_password 同样 `return True`。即任意公钥、任意口令、任意用户名都通过认证。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            4
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CJ",
+        "material_id": "MAT-FIX-AQ",
+        "kind": "code",
+        "observation": "_handle_ssh_client 在没有 authenticated_entry（auth 关闭）时取 `user_id = process.get_extra_info(\"username\") or server.client_username or \"unknown\"`、username=user_id、source=\"none\"，连同 client_addr 与可选的 process.command 组成 metadata 交 submit_relay；SSH 客户端自选的用户名即成为下游主体标识。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            5,
+            6
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CK",
+        "material_id": "MAT-FIX-AR",
+        "kind": "code",
+        "observation": "SshChannel._submit_relay 用 `user_id = metadata.get(\"user_id\") or username` 构造 ReqMethod.SSH_RELAY 的 Message（params 携带活的 relay_session 与可选 command）并交 _on_message_cb 下发，直接把 SSH 会话接到 MessageHandler。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            4,
+            5
+          ]
+        }
+      },
+      {
+        "id": "E-FIX-CL",
+        "material_id": "MAT-FIX-AT",
+        "kind": "code",
+        "observation": "src/component_at.py:<数值>-<数值> 的 validate_security 只做鉴权字段形态校验（auth_type 枚举、专用凭据头、哈希形态、启用鉴权须有凭据、card_auth 不得配 none），无任何地址/回环分支，auth_type=\"none\" 无附加约束。",
+        "status": "current",
+        "locator": {
+          "lines": [
+            1,
+            2
+          ]
+        }
+      }
+    ],
+    "materials": {
+      "MAT-FIX-A": {
+        "id": "MAT-FIX-A",
+        "target_id": "target-a",
+        "path": "src/component_a.py",
+        "status": "present"
+      },
+      "MAT-FIX-B": {
+        "id": "MAT-FIX-B",
+        "target_id": "target-a",
+        "path": "src/component_b.py",
+        "status": "present"
+      },
+      "MAT-FIX-C": {
+        "id": "MAT-FIX-C",
+        "target_id": "target-a",
+        "path": "src/component_c.py",
+        "status": "present"
+      },
+      "MAT-FIX-D": {
+        "id": "MAT-FIX-D",
+        "target_id": "target-a",
+        "path": "src/component_d.py",
+        "status": "present"
+      },
+      "MAT-FIX-E": {
+        "id": "MAT-FIX-E",
+        "target_id": "target-a",
+        "path": "src/component_e.py",
+        "status": "present"
+      },
+      "MAT-FIX-F": {
+        "id": "MAT-FIX-F",
+        "target_id": "target-a",
+        "path": "src/component_f.py",
+        "status": "present"
+      },
+      "MAT-FIX-G": {
+        "id": "MAT-FIX-G",
+        "target_id": "target-a",
+        "path": "src/component_g.py",
+        "status": "present"
+      },
+      "MAT-FIX-H": {
+        "id": "MAT-FIX-H",
+        "target_id": "target-a",
+        "path": "src/component_h.py",
+        "status": "present"
+      },
+      "MAT-FIX-I": {
+        "id": "MAT-FIX-I",
+        "target_id": "target-a",
+        "path": "src/component_i.py",
+        "status": "present"
+      },
+      "MAT-FIX-J": {
+        "id": "MAT-FIX-J",
+        "target_id": "target-a",
+        "path": "src/component_j.py",
+        "status": "present"
+      },
+      "MAT-FIX-K": {
+        "id": "MAT-FIX-K",
+        "target_id": "target-a",
+        "path": "src/component_k.py",
+        "status": "present"
+      },
+      "MAT-FIX-L": {
+        "id": "MAT-FIX-L",
+        "target_id": "target-a",
+        "path": "src/component_l.py",
+        "status": "present"
+      },
+      "MAT-FIX-M": {
+        "id": "MAT-FIX-M",
+        "target_id": "target-a",
+        "path": "src/component_m.py",
+        "status": "present"
+      },
+      "MAT-FIX-N": {
+        "id": "MAT-FIX-N",
+        "target_id": "target-a",
+        "path": "src/component_n.py",
+        "status": "present"
+      },
+      "MAT-FIX-O": {
+        "id": "MAT-FIX-O",
+        "target_id": "target-a",
+        "path": "src/component_o.py",
+        "status": "present"
+      },
+      "MAT-FIX-P": {
+        "id": "MAT-FIX-P",
+        "target_id": "target-a",
+        "path": "src/component_p.py",
+        "status": "present"
+      },
+      "MAT-FIX-Q": {
+        "id": "MAT-FIX-Q",
+        "target_id": "target-b",
+        "path": "src/component_q.py",
+        "status": "present"
+      },
+      "MAT-FIX-R": {
+        "id": "MAT-FIX-R",
+        "target_id": "target-b",
+        "path": "src/component_r.py",
+        "status": "present"
+      },
+      "MAT-FIX-S": {
+        "id": "MAT-FIX-S",
+        "target_id": "target-b",
+        "path": "src/component_s.py",
+        "status": "present"
+      },
+      "MAT-FIX-T": {
+        "id": "MAT-FIX-T",
+        "target_id": "target-b",
+        "path": "src/component_t.py",
+        "status": "present"
+      },
+      "MAT-FIX-U": {
+        "id": "MAT-FIX-U",
+        "target_id": "target-b",
+        "path": "src/component_u.py",
+        "status": "present"
+      },
+      "MAT-FIX-V": {
+        "id": "MAT-FIX-V",
+        "target_id": "target-b",
+        "path": "src/component_v.py",
+        "status": "present"
+      },
+      "MAT-FIX-W": {
+        "id": "MAT-FIX-W",
+        "target_id": "target-b",
+        "path": "src/component_w.py",
+        "status": "present"
+      },
+      "MAT-FIX-X": {
+        "id": "MAT-FIX-X",
+        "target_id": "target-b",
+        "path": "src/component_x.py",
+        "status": "present"
+      },
+      "MAT-FIX-Y": {
+        "id": "MAT-FIX-Y",
+        "target_id": "target-b",
+        "path": "config/component_y.json",
+        "status": "present"
+      },
+      "MAT-FIX-Z": {
+        "id": "MAT-FIX-Z",
+        "target_id": "target-b",
+        "path": "docs/component_z.md",
+        "status": "present"
+      },
+      "MAT-FIX-AA": {
+        "id": "MAT-FIX-AA",
+        "target_id": "target-b",
+        "path": "src/component_aa.py",
+        "status": "present"
+      },
+      "MAT-FIX-AB": {
+        "id": "MAT-FIX-AB",
+        "target_id": "target-b",
+        "path": "src/component_ab.py",
+        "status": "present"
+      },
+      "MAT-FIX-AC": {
+        "id": "MAT-FIX-AC",
+        "target_id": "target-b",
+        "path": "docs/component_ac.md",
+        "status": "present"
+      },
+      "MAT-FIX-AD": {
+        "id": "MAT-FIX-AD",
+        "target_id": "target-a",
+        "path": "src/component_ad.py",
+        "status": "present"
+      },
+      "MAT-FIX-AE": {
+        "id": "MAT-FIX-AE",
+        "target_id": "target-a",
+        "path": "src/component_ae.py",
+        "status": "present"
+      },
+      "MAT-FIX-AF": {
+        "id": "MAT-FIX-AF",
+        "target_id": "target-a",
+        "path": "src/component_af.py",
+        "status": "present"
+      },
+      "MAT-FIX-AG": {
+        "id": "MAT-FIX-AG",
+        "target_id": "target-a",
+        "path": "src/component_ag.py",
+        "status": "present"
+      },
+      "MAT-FIX-AH": {
+        "id": "MAT-FIX-AH",
+        "target_id": "target-a",
+        "path": "src/component_ah.py",
+        "status": "present"
+      },
+      "MAT-FIX-AI": {
+        "id": "MAT-FIX-AI",
+        "target_id": "target-a",
+        "path": "src/component_ai.py",
+        "status": "present"
+      },
+      "MAT-FIX-AJ": {
+        "id": "MAT-FIX-AJ",
+        "target_id": "target-a",
+        "path": "src/component_aj.py",
+        "status": "present"
+      },
+      "MAT-FIX-AK": {
+        "id": "MAT-FIX-AK",
+        "target_id": "target-a",
+        "path": "config/component_ak.yaml",
+        "status": "present"
+      },
+      "MAT-FIX-AL": {
+        "id": "MAT-FIX-AL",
+        "target_id": "target-a",
+        "path": "src/component_al.py",
+        "status": "present"
+      },
+      "MAT-FIX-AM": {
+        "id": "MAT-FIX-AM",
+        "target_id": "target-a",
+        "path": "src/component_am.py",
+        "status": "present"
+      },
+      "MAT-FIX-AN": {
+        "id": "MAT-FIX-AN",
+        "target_id": "target-a",
+        "path": "src/component_an.py",
+        "status": "present"
+      },
+      "MAT-FIX-AO": {
+        "id": "MAT-FIX-AO",
+        "target_id": "target-a",
+        "path": "src/component_ao.py",
+        "status": "present"
+      },
+      "MAT-FIX-AP": {
+        "id": "MAT-FIX-AP",
+        "target_id": "target-a",
+        "path": "src/component_ap.py",
+        "status": "present"
+      },
+      "MAT-FIX-AQ": {
+        "id": "MAT-FIX-AQ",
+        "target_id": "target-a",
+        "path": "src/component_aq.py",
+        "status": "present"
+      },
+      "MAT-FIX-AR": {
+        "id": "MAT-FIX-AR",
+        "target_id": "target-a",
+        "path": "src/component_ar.py",
+        "status": "present"
+      },
+      "MAT-FIX-AS": {
+        "id": "MAT-FIX-AS",
+        "target_id": "target-a",
+        "path": "src/component_as.py",
+        "status": "present"
+      },
+      "MAT-FIX-AT": {
+        "id": "MAT-FIX-AT",
+        "target_id": "target-a",
+        "path": "src/component_at.py",
+        "status": "present"
+      }
+    },
+    "chains": [
+      {
+        "id": "CHAIN-SERVICE-COMBINATION",
+        "title": "AgentServer HTTP/WS 无认证、主体与租户键取自客户端请求头，冒充任意用户/租户后跨租户读删下载文件、接管会话，并经 mcp add 取得执行",
+        "entry_exposure": "EXT",
+        "unit_id": "U-FIX-H",
+        "steps": [
+          {
+            "unit_id": "U-FIX-G",
+            "primitive": "IMPERSONATE",
+            "check_id": "CHK-FIX-I",
+            "description": "request_context 的 user_id 直接取请求头 x-user-id，routing 取 x-group-id/x-bot-id/x-gateway-id，租户键取 x-service-id/x-agent-id/x-workspace-key；build_fastapi_app 在非 link_mtls.enforced 下只挂 CORSMiddleware、无认证中间件，这些头没有可比对的认证主体，冒用只需改一个头。"
+          },
+          {
+            "unit_id": "U-FIX-G",
+            "primitive": "READ",
+            "check_id": "CHK-FIX-I",
+            "description": "下游 _sessions_dir_for_request 与 _tenant_root_from_request 用这些头选会话根与工作区根（F-SERVICE-TENANT），据此可跨租户读取、删除、下载文件并接管他人会话。"
+          },
+          {
+            "unit_id": "U-FIX-G",
+            "primitive": "EXEC",
+            "finding_id": "F-SERVICE-EXEC",
+            "description": "经 command.mcp add 在无认证前提下登记任意本地 stdio MCP 服务并落盘生效，取得以 Agent 身份执行命令的能力。"
+          }
+        ],
+        "description": "U-FIX-G（EXT、原零链单元）内闭合的 IMPERSONATE 链：无认证监听面使客户端自述请求头成为主体与租户键（CHK-FIX-I，F-SERVICE-AUTH critical），据此跨租户读删下载文件与接管会话（CHK-FIX-I，F-SERVICE-TENANT），并经 command.mcp add 升级为 Agent 身份执行（F-SERVICE-EXEC critical，受下游解释器白名单约束）。入口是任意能连上 AgentServer HTTP/WS 端口的一方。"
+      },
+      {
+        "id": "CHAIN-WORKSPACE-BOUNDARY",
+        "entry_exposure": "ADJ",
+        "title": "以 user_id='..' 让自己的沙箱挂上全部用户工作区的父目录",
+        "steps": [
+          {
+            "unit": "U-FIX-B",
+            "primitive": "IMPERSONATE",
+            "description": "以 X-User-Id: .. 建立连接并发起一条 chat；该值经 on_connect 落盘、经 _extract_user_id（只校验非空）进入 _resolve_agent，成为复用键的第一维。",
+            "check_id": "CHK-FIX-B",
+            "finding_id": "F-IDENTITY-PATH"
+          },
+          {
+            "unit": "U-FIX-B",
+            "primitive": "ESCAPE",
+            "description": "键不存在即触发 _create_agent，其中 resolve_agent_workspace('..') 经字符清洗（点号在允许集内）与 .resolve() 得到 '<workspace_parent>'，即 workspace_root 的父目录；函数不与根做包含性比对，直接返回。",
+            "check_id": "CHK-FIX-L",
+            "finding_id": "F-WORKSPACE-BOUNDARY"
+          },
+          {
+            "unit": "U-FIX-B",
+            "primitive": "READ",
+            "description": "该路径作为 workspace 实参送往 create_sandbox（消费侧只校验非空且绝对），沙箱据此获得覆盖全部用户工作区的挂载源；Agent 删除又不清理这些目录，残留内容同样在覆盖范围内。",
+            "check_id": "CHK-FIX-M",
+            "finding_id": "F-WORKSPACE-BOUNDARY"
+          }
+        ],
+        "target_asset": "workspace_root 下全部用户的宿主工作区内容（出厂 <workspace_root>/*）",
+        "unit_id": "U-FIX-B"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "same_identity_branch",
+      "name": "同一身份分支的重复发现",
+      "input": {
+        "finding_ids": [
+          "F-IDENTITY-BASE",
+          "F-IDENTITY-PATH"
+        ],
+        "check_ids": [
+          "CHK-FIX-A",
+          "CHK-FIX-B"
+        ],
+        "evidence_ids": [
+          "E-FIX-AU",
+          "E-FIX-AV",
+          "E-FIX-AW",
+          "E-FIX-AX",
+          "E-FIX-AY",
+          "E-FIX-AZ",
+          "E-FIX-BL",
+          "E-FIX-BM",
+          "E-FIX-BJ",
+          "E-FIX-BI",
+          "E-FIX-BK",
+          "E-FIX-BQ",
+          "E-FIX-BP",
+          "E-FIX-BS",
+          "E-FIX-BO",
+          "E-FIX-BX",
+          "E-FIX-BH"
+        ],
+        "material_ids": [
+          "MAT-FIX-AD",
+          "MAT-FIX-AE",
+          "MAT-FIX-AF",
+          "MAT-FIX-AG",
+          "MAT-FIX-AL",
+          "MAT-FIX-AK",
+          "MAT-FIX-AM",
+          "MAT-FIX-AP"
+        ],
+        "chain_ids": []
+      },
+      "comparison_evidence_ids": [
+        "E-FIX-AU",
+        "E-FIX-BL",
+        "E-FIX-BS",
+        "E-FIX-BO"
+      ],
+      "semantic_expectation": {
+        "relation": "same_defect",
+        "resolved_independent_defects": 1,
+        "reason": "两份记录落在同一 on_connect 的 auth_client 为 None 分支；后者补足运行体复用和宿主工作区影响。两个完整缺陷陈述可以作为同组 defect 成员；不能把不同取证范围当作独立性。",
+        "must_preserve": [
+          "两个来源 finding",
+          "身份信任分支",
+          "运行体复用路径",
+          "工作区路径",
+          "各自完整证据关系"
+        ],
+        "forbidden": [
+          "按不同单元分别计数",
+          "只保留一份来源证据",
+          "共享文件即自动归并"
+        ]
+      }
+    },
+    {
+      "id": "ssh_prerequisite_conflict",
+      "name": "相同 SSH 放行分支但前提与等级冲突",
+      "input": {
+        "finding_ids": [
+          "F-SSH-EARLY",
+          "F-SSH-LATER"
+        ],
+        "check_ids": [
+          "CHK-FIX-C",
+          "CHK-FIX-D"
+        ],
+        "evidence_ids": [
+          "E-FIX-CG",
+          "E-FIX-CH",
+          "E-FIX-CI",
+          "E-FIX-CJ",
+          "E-FIX-CK",
+          "E-FIX-CB",
+          "E-FIX-CC",
+          "E-FIX-CD",
+          "E-FIX-CE",
+          "E-FIX-CF"
+        ],
+        "material_ids": [
+          "MAT-FIX-AS",
+          "MAT-FIX-AR",
+          "MAT-FIX-AQ",
+          "MAT-FIX-AK",
+          "MAT-FIX-AT"
+        ],
+        "chain_ids": []
+      },
+      "comparison_evidence_ids": [
+        "E-FIX-CI",
+        "E-FIX-CB",
+        "E-FIX-CC",
+        "E-FIX-CD"
+      ],
+      "semantic_expectation": {
+        "relation": "same_branch_with_fact_conflict",
+        "initial_disposition": "pending",
+        "resolved_independent_defects": null,
+        "conflicting_fields": [
+          "severity",
+          "exposure",
+          "默认配置与缺配置时的认证姿态"
+        ],
+        "required_action": "回源区分解析端 auth.enabled 缺省为 False、发行配置显式为 true、通道默认关闭和指定运行档位前提，再修正事实并完成归因。",
+        "forbidden": [
+          "选择较低或较高等级掩盖冲突",
+          "按两个等级计两项",
+          "保持冲突直接合并展示"
+        ]
+      }
+    },
+    {
+      "id": "independent_controls_same_file",
+      "name": "同一文件中的脚本拼接和跨来源状态恢复",
+      "input": {
+        "finding_ids": [
+          "F-BROWSER-SCRIPT",
+          "F-BROWSER-ORIGIN"
+        ],
+        "check_ids": [
+          "CHK-FIX-E",
+          "CHK-FIX-F"
+        ],
+        "evidence_ids": [
+          "E-FIX-AB",
+          "E-FIX-AC",
+          "E-FIX-AD",
+          "E-FIX-AE",
+          "E-FIX-AF",
+          "E-FIX-AG",
+          "E-FIX-AH",
+          "E-FIX-AI",
+          "E-FIX-AJ"
+        ],
+        "material_ids": [
+          "MAT-FIX-Q",
+          "MAT-FIX-R",
+          "MAT-FIX-S",
+          "MAT-FIX-T",
+          "MAT-FIX-U"
+        ],
+        "chain_ids": []
+      },
+      "comparison_evidence_ids": [
+        "E-FIX-AE",
+        "E-FIX-AG",
+        "E-FIX-AF",
+        "E-FIX-AD"
+      ],
+      "semantic_expectation": {
+        "relation": "distinct_defects",
+        "resolved_independent_defects": 2,
+        "reason": "脚本参数序列化与恢复时的来源绑定是两个不同控制责任；修好字符串转义仍不会校验 origin，补 origin 校验仍不会消除同源恢复时的脚本拼接。",
+        "must_preserve": [
+          "共享材料与共享背景证据",
+          "不同失效证据范围",
+          "两个独立控制缺陷"
+        ],
+        "forbidden": [
+          "按文件分组直接计一个漏洞",
+          "按共享证据的连通分量合并"
+        ]
+      }
+    },
+    {
+      "id": "partial_overlap_dependency_and_executor",
+      "name": "运行期安装重叠且另有执行体选择机制",
+      "input": {
+        "finding_ids": [
+          "F-DEPENDENCY-COMPOSITE",
+          "F-DEPENDENCY-INSTALL"
+        ],
+        "check_ids": [
+          "CHK-FIX-G",
+          "CHK-FIX-H"
+        ],
+        "evidence_ids": [
+          "E-FIX-AK",
+          "E-FIX-AQ",
+          "E-FIX-AR",
+          "E-FIX-AS",
+          "E-FIX-AT",
+          "E-FIX-AP",
+          "E-FIX-AN",
+          "E-FIX-AO",
+          "E-FIX-AL",
+          "E-FIX-AM"
+        ],
+        "material_ids": [
+          "MAT-FIX-V",
+          "MAT-FIX-Z",
+          "MAT-FIX-AA",
+          "MAT-FIX-AB",
+          "MAT-FIX-AC",
+          "MAT-FIX-Y",
+          "MAT-FIX-X",
+          "MAT-FIX-W"
+        ],
+        "chain_ids": []
+      },
+      "overlap_evidence_ids": [
+        "E-FIX-AQ",
+        "E-FIX-AR",
+        "E-FIX-AS",
+        "E-FIX-AT"
+      ],
+      "residual_evidence_ids": [
+        "E-FIX-AK"
+      ],
+      "semantic_expectation": {
+        "relation": "partial_overlap",
+        "initial_disposition": "pending",
+        "resolved_independent_defects": null,
+        "required_action": "交回事实复核，拆清重复的依赖安装与剩余执行体选择；完成替代复核后保留旧 ID 到新 ID 的历史映射。",
+        "must_preserve": [
+          "argv 前缀来自命令行但未经过 shell",
+          "参数控制方与索引解析尚未闭合",
+          "安装后仍要求向用户汇报"
+        ],
+        "forbidden": [
+          "整条吞并导致执行体选择丢失",
+          "未拆分就计两个完全独立漏洞",
+          "将未经过 shell 的 argv 前缀描述成 shell 注入",
+          "把缺事先批准写成用户永不知情"
+        ]
+      }
+    },
+    {
+      "id": "pure_chain_reuses_existing_defects",
+      "name": "已有失效点的组合链不新增独立漏洞",
+      "input": {
+        "finding_ids": [
+          "F-SERVICE-AUTH",
+          "F-SERVICE-EXEC",
+          "F-SERVICE-TENANT",
+          "F-SERVICE-COMBINATION"
+        ],
+        "check_ids": [
+          "CHK-FIX-I",
+          "CHK-FIX-J",
+          "CHK-FIX-K"
+        ],
+        "evidence_ids": [
+          "E-FIX-A",
+          "E-FIX-B",
+          "E-FIX-C",
+          "E-FIX-D",
+          "E-FIX-E",
+          "E-FIX-F",
+          "E-FIX-G",
+          "E-FIX-H",
+          "E-FIX-I",
+          "E-FIX-J",
+          "E-FIX-K",
+          "E-FIX-L",
+          "E-FIX-M",
+          "E-FIX-Y",
+          "E-FIX-Z",
+          "E-FIX-AA",
+          "E-FIX-Q",
+          "E-FIX-R",
+          "E-FIX-S",
+          "E-FIX-N",
+          "E-FIX-O",
+          "E-FIX-P",
+          "E-FIX-W",
+          "E-FIX-X",
+          "E-FIX-T",
+          "E-FIX-U",
+          "E-FIX-V"
+        ],
+        "material_ids": [
+          "MAT-FIX-A",
+          "MAT-FIX-B",
+          "MAT-FIX-C",
+          "MAT-FIX-D",
+          "MAT-FIX-E",
+          "MAT-FIX-F",
+          "MAT-FIX-P",
+          "MAT-FIX-I",
+          "MAT-FIX-J",
+          "MAT-FIX-G",
+          "MAT-FIX-H",
+          "MAT-FIX-N",
+          "MAT-FIX-O",
+          "MAT-FIX-K",
+          "MAT-FIX-L",
+          "MAT-FIX-M"
+        ],
+        "chain_ids": [
+          "CHAIN-SERVICE-COMBINATION"
+        ]
+      },
+      "baseline_finding_ids": [
+        "F-SERVICE-AUTH",
+        "F-SERVICE-EXEC",
+        "F-SERVICE-TENANT"
+      ],
+      "incoming_finding_ids": [
+        "F-SERVICE-COMBINATION"
+      ],
+      "semantic_expectation": {
+        "relation": "composition_or_duplicate_of_existing_defects",
+        "additional_independent_defects": 0,
+        "reason": "组合记录的入口、租户访问与 MCP 执行能力均由输入中的既有 finding 承载，没有证明额外独立控制失效。保留链及引用，逐项处置重述部分。",
+        "must_preserve": [
+          "非强制双向认证部署前提",
+          "HTTP 与 WS 监听默认值差别",
+          "执行路径的解释器约束",
+          "链和组成发现"
+        ],
+        "forbidden": [
+          "关联 chains 就一律排除所有成员 finding",
+          "填写 failure_points 后把组合项新增计数",
+          "将此记录当作链中新独立缺陷的正例"
+        ]
+      }
+    },
+    {
+      "id": "chain_contains_additional_control_defect",
+      "name": "链关联的路径控制缺陷仍进入独立归因",
+      "input": {
+        "finding_ids": [
+          "F-IDENTITY-PATH",
+          "F-WORKSPACE-BOUNDARY"
+        ],
+        "check_ids": [
+          "CHK-FIX-B",
+          "CHK-FIX-L",
+          "CHK-FIX-M",
+          "CHK-FIX-N"
+        ],
+        "evidence_ids": [
+          "E-FIX-BL",
+          "E-FIX-BM",
+          "E-FIX-BJ",
+          "E-FIX-BI",
+          "E-FIX-BK",
+          "E-FIX-BQ",
+          "E-FIX-BP",
+          "E-FIX-BS",
+          "E-FIX-BO",
+          "E-FIX-BX",
+          "E-FIX-BH",
+          "E-FIX-BN",
+          "E-FIX-CA",
+          "E-FIX-BY",
+          "E-FIX-BW",
+          "E-FIX-BV",
+          "E-FIX-BR",
+          "E-FIX-BT",
+          "E-FIX-BU",
+          "E-FIX-BZ"
+        ],
+        "material_ids": [
+          "MAT-FIX-AD",
+          "MAT-FIX-AL",
+          "MAT-FIX-AE",
+          "MAT-FIX-AK",
+          "MAT-FIX-AF",
+          "MAT-FIX-AM",
+          "MAT-FIX-AP",
+          "MAT-FIX-AG",
+          "MAT-FIX-AO",
+          "MAT-FIX-AN"
+        ],
+        "chain_ids": [
+          "CHAIN-WORKSPACE-BOUNDARY"
+        ]
+      },
+      "baseline_finding_ids": [
+        "F-IDENTITY-PATH"
+      ],
+      "incoming_finding_ids": [
+        "F-WORKSPACE-BOUNDARY"
+      ],
+      "scenario_note": "先有身份缺陷、后输入路径缺陷的顺序是测试场景，非原审计时间线；两条缺陷和链引用均取自真实记录。新增仅相对于这个夹具的已知集合。",
+      "comparison_evidence_ids": [
+        "E-FIX-BL",
+        "E-FIX-BN",
+        "E-FIX-CA",
+        "E-FIX-BY"
+      ],
+      "semantic_expectation": {
+        "relation": "additional_control_defect_with_chain",
+        "additional_independent_defects_after_review_and_comparison": 1,
+        "reason": "信任自报身份与工作区路径缺少包含性判断是不同控制；后者有独立失效证据，不因出自跨单元记录或被链引用而失去 defect 资格。",
+        "required_action": "新缺陷照常经过事实复核与比较；链保持独立登记。",
+        "must_preserve": [
+          "路径归一化保留点号造成越界",
+          "消费侧仅检查非空绝对路径",
+          "真实挂载行为在原证据范围外"
+        ],
+        "forbidden": [
+          "按 cross 单元或 chain 引用直接判纯链",
+          "尚未事实复核和比较就自动计数"
+        ]
+      }
+    },
+    {
+      "id": "legacy_without_new_fields",
+      "name": "未新增事实字段的旧记录仍可比较",
+      "input": {
+        "finding_ids": [
+          "F-IDENTITY-BASE",
+          "F-IDENTITY-PATH"
+        ],
+        "check_ids": [
+          "CHK-FIX-A",
+          "CHK-FIX-B"
+        ],
+        "evidence_ids": [
+          "E-FIX-AU",
+          "E-FIX-AV",
+          "E-FIX-AW",
+          "E-FIX-AX",
+          "E-FIX-AY",
+          "E-FIX-AZ",
+          "E-FIX-BL",
+          "E-FIX-BM",
+          "E-FIX-BJ",
+          "E-FIX-BI",
+          "E-FIX-BK",
+          "E-FIX-BQ",
+          "E-FIX-BP",
+          "E-FIX-BS",
+          "E-FIX-BO",
+          "E-FIX-BX",
+          "E-FIX-BH"
+        ],
+        "material_ids": [
+          "MAT-FIX-AD",
+          "MAT-FIX-AE",
+          "MAT-FIX-AF",
+          "MAT-FIX-AG",
+          "MAT-FIX-AL",
+          "MAT-FIX-AK",
+          "MAT-FIX-AM",
+          "MAT-FIX-AP"
+        ],
+        "chain_ids": []
+      },
+      "absent_finding_fields": [
+        "failure_points",
+        "related_findings"
+      ],
+      "semantic_expectation": {
+        "must_schedule_all_current_findings": true,
+        "relation": "same_defect",
+        "resolved_independent_defects_after_comparison": 1,
+        "reason": "原始记录本来缺少两项新字段；已有 mechanism、checks 与 evidence 足以召回并比较同一分支。",
+        "forbidden": [
+          "按缺字段归为 chain 或 summary",
+          "按缺字段判无效",
+          "缺新字段时直接当已完成单例"
+        ]
+      }
+    },
+    {
+      "id": "local_checks_without_framework_mode",
+      "name": "全部关联本地检查的 finding 不能漏派",
+      "input": {
+        "finding_ids": [
+          "F-WORKSPACE-BOUNDARY"
+        ],
+        "check_ids": [
+          "CHK-FIX-L",
+          "CHK-FIX-M",
+          "CHK-FIX-N"
+        ],
+        "evidence_ids": [
+          "E-FIX-BN",
+          "E-FIX-CA",
+          "E-FIX-BI",
+          "E-FIX-BQ",
+          "E-FIX-BL",
+          "E-FIX-BY",
+          "E-FIX-BO",
+          "E-FIX-BS",
+          "E-FIX-BW",
+          "E-FIX-BH",
+          "E-FIX-BV",
+          "E-FIX-BR",
+          "E-FIX-BT",
+          "E-FIX-BU",
+          "E-FIX-BZ"
+        ],
+        "material_ids": [
+          "MAT-FIX-AD",
+          "MAT-FIX-AK",
+          "MAT-FIX-AG",
+          "MAT-FIX-AM",
+          "MAT-FIX-AO",
+          "MAT-FIX-AN"
+        ],
+        "chain_ids": []
+      },
+      "semantic_expectation": {
+        "all_linked_failure_mode_ids_are_null": true,
+        "must_schedule_all_current_findings": true,
+        "initial_disposition": "pending",
+        "independent_defects_before_standalone_comparison": 0,
+        "required_action": "即使候选为空，也须有范围检索、人工比较与来源绑定；在此之前不是已确认单例。",
+        "forbidden": [
+          "因没有共享 FM 不进入任务",
+          "只标 defect 就计作独立漏洞",
+          "人为制造 distinct 对象填空"
+        ]
+      }
+    },
+    {
+      "id": "legacy_prose_backreference_supplement",
+      "name": "旧记录正文回指及本地检查补完已有证据",
+      "input": {
+        "finding_ids": [
+          "F-INGRESS-BASE",
+          "F-INGRESS-FOLLOWUP"
+        ],
+        "check_ids": [
+          "CHK-FIX-P",
+          "CHK-FIX-O"
+        ],
+        "evidence_ids": [
+          "E-FIX-BD",
+          "E-FIX-BG",
+          "E-FIX-BC",
+          "E-FIX-BB",
+          "E-FIX-BF",
+          "E-FIX-BE",
+          "E-FIX-CL",
+          "E-FIX-BA"
+        ],
+        "material_ids": [
+          "MAT-FIX-AI",
+          "MAT-FIX-AJ",
+          "MAT-FIX-AH",
+          "MAT-FIX-AT"
+        ],
+        "chain_ids": []
+      },
+      "absent_finding_fields": [
+        "failure_points",
+        "related_findings"
+      ],
+      "prose_reference": {
+        "source": "F-INGRESS-FOLLOWUP",
+        "target": "F-INGRESS-BASE"
+      },
+      "semantic_expectation": {
+        "relation": "supplement_or_same_defect",
+        "additional_independent_defects": 0,
+        "reason": "后续记录直接回指已有入站配置缺口，补完安全校验与启动链；后续 finding 的本地检查没有 FM，仍须召回并裁决。",
+        "required_action": "保留旧正文回指与证据关系；如采用 supplement，目标须是有效 defect，前提或入口口径差别仍须核清。",
+        "forbidden": [
+          "无 related_findings 就忽略正文回指",
+          "仅以不同单元判 distinct",
+          "supplement 指向另一个 supplement 作为闭合目标"
+        ]
+      }
+    }
+  ],
+  "unit_membership": {
+    "U-FIX-A": [
+      "F-IDENTITY-BASE"
+    ],
+    "U-FIX-B": [
+      "F-IDENTITY-PATH",
+      "F-WORKSPACE-BOUNDARY"
+    ],
+    "U-FIX-C": [
+      "F-SSH-EARLY",
+      "F-INGRESS-FOLLOWUP"
+    ],
+    "U-FIX-D": [
+      "F-SSH-LATER"
+    ],
+    "U-FIX-E": [
+      "F-BROWSER-SCRIPT",
+      "F-BROWSER-ORIGIN"
+    ],
+    "U-FIX-F": [
+      "F-DEPENDENCY-COMPOSITE",
+      "F-DEPENDENCY-INSTALL"
+    ],
+    "U-FIX-G": [
+      "F-SERVICE-AUTH",
+      "F-SERVICE-EXEC",
+      "F-SERVICE-TENANT"
+    ],
+    "U-FIX-H": [
+      "F-SERVICE-COMBINATION"
+    ],
+    "U-FIX-I": [
+      "F-INGRESS-BASE"
+    ]
+  }
+}

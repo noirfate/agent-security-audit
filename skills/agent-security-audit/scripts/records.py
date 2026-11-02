@@ -37,7 +37,10 @@ def summary(state, workspace):
     inaccessible = [mid for mid in present if state['materials'][mid].get('access_error')]
     enumeration_errors = [r for r in state['inventory_exclusions'] if r['reason'].startswith('enumeration_failed')]
     observations = state.get('observations', [])
+    from attribution import build_vulnerability_view
+    attribution = build_vulnerability_view(state)['statistics']
     return {
+        'attribution': attribution,
         'materials': len(present), 'materials_without_completed_coverage': len(present - accounted),
         'checks': len(checks), 'statuses': dict(Counter(c['status'] for c in checks)),
         'verdicts': dict(Counter(c['verdict'] for c in checks if c['status'] == 'complete')),
@@ -561,7 +564,7 @@ def _validate(workspace, state):
             # The back link, not just the forward one. A merge that writes the cluster
             # and leaves the members unlinked renders a summary that claims findings
             # whose own section never mentions it.
-            for member in members if isinstance(members, list) else []:
+            for member in members if isinstance(members, list) and row.get('status') != 'retired' else []:
                 if member in findings:
                     require(findings[member].get('root_cause_id') == rid,
                             '%s: %s does not link back (its root_cause_id is %s)'
@@ -593,6 +596,8 @@ def _validate(workspace, state):
         if finding['status'] == 'current':
             require(all(checks[c]['status'] == 'complete' and checks[c]['verdict'] == 'confirmed' for c in finding['check_ids'] if c in checks), fid + ': current finding requires confirmed checks')
             require(all(evidence[e]['status'] == 'current' for e in finding['evidence_ids'] if e in evidence), fid + ': current finding uses stale evidence')
+    from attribution import structural_errors
+    errors.extend(structural_errors(state))
     from audit import snapshot_manifest
     history = workspace / 'snapshots'
     if history.is_symlink():
@@ -777,6 +782,9 @@ def render_report(state, workspace, full=False):
     known = {f['id']: f for f in state['findings']}
     grouped = {fid for c in merged for fid in c.get('finding_ids') or []}
     out += ['', '## 按根因汇总', '']
+    attr = counts['attribution']
+    out.append('当前发现 %d；已裁决独立漏洞 %d；待归因 %d。以下是根因裁决记录，含历史与待核项，不以条目数代表有效漏洞数。'
+               % (attr['current_findings'], attr['independent_vulnerabilities'], attr['pending_findings']))
     if not merged:
         out.append('本次没有记录跨单元根因归并（`root_causes` 为空），下方发现逐条独立呈现。')
     else:

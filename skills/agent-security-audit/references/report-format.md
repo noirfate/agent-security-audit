@@ -9,7 +9,7 @@
 - `report/index.json`：机器维护的来源指纹、统计、分类分片、记录位置、写作任务和报告映射。不内嵌长证据或机理。
 - `report/records/<类别>/<单元或记录>-<分片>.md`：机械材料。保留每条记录完整 JSON 与稳定 ID 锚点；按类别和单元拆分，再按大小分片。单条超大记录单独成片，不截断。历史日志重复 ID 用定位后缀逐项保留，JSON 内的原 ID 不改写。原字段保持原义，未复核材料不会因导出而成为当前结论。
 - `report/summary.md`：模型撰写的独立可读总览。
-- `report/vulnerabilities/<根因或发现ID>.md`：模型撰写的独立漏洞报告。已裁决 merge 的当前成员同文，其余当前发现单独成文；每个成员保留位置、前提、影响差异与显式锚点。
+- `report/vulnerabilities/<根因或发现ID>.md`：模型撰写的独立漏洞报告。按有效漏洞视图生成，每个同源组或已核查单例一篇；每个成员保留位置、前提、影响差异与显式锚点。
 - 工作区根 `report.md` 是机械导航；迁移时旧正文保存在 `report/legacy/report.md`。旧覆盖附录可以保留为历史，新的分类材料是本次写作入口。
 
 机器只替换 `records/`、`record-index/`、`task-index/`、`index.json` 与根导航，不覆盖人工正文。重新导出后，正文依据未变则仍为草稿，依据变化则标记 stale；不能把 stale 文件当作本次交付。`writing_status` 来自文件与指纹检查，不表示语义审阅已通过。
@@ -20,7 +20,7 @@
 
 `summary_todo_ids` 是没有按发现 ID 路由的待办，由总览作者处理。自动路由只是检索帮助；涉及跨报告的要求由模型核查，必要时把相关资料一并读入。入口标签按[攻击入口类型](method.md#attack-entry-types)解释；索引按已登记值归类，不证明分类正确。发现标签与原始来源冲突或其他新矛盾时交回复核流程，不在报告里更改入口类型、等级、可达性或已复核主张。
 
-全部 current 发现必须有报告映射，不仅生成高危报告。needs_review 和 withdrawn 只留在分类材料及总览的范围说明，不计入当前漏洞清单。根因分组改变阅读组织，不把展示组数宣称为独立漏洞数。
+全部 current 发现必须有呈现映射。独立漏洞写专篇；supplement 随目标漏洞，chain/summary 写总览或相关链，pending 写总览边界并保留 ID 锚点。统计区分 current finding 数、有效独立漏洞数、高危独立漏洞数、补充/链/汇总和待处理数，归因未完成时明确统计仅覆盖已裁决部分。needs_review/withdrawn 保留机械材料和边界说明。
 
 ## 人工 Markdown 模板
 
@@ -41,7 +41,7 @@
 
 EXT 链逐条呈现，包括未闭合候选的明确落点。每条以 `### CHAIN-ID 标题` 开头，写出外部主体、入口、必要身份/配置/用户交互、逐跳失效与能力变化、最终资产和影响。EXT 不等于公网匿名访问。元数据 chain_dispositions 必须覆盖索引全部 ext_chains，取 static_trace / partial / needs_evidence；这些值表达本次叙述的证据边界，不是运行时成功标记。原记录仍为 candidate 的链只能写 partial 或 needs_evidence。其他链是否闭合要读证据判断，缺少 status 不能机械判为成立。实测与静态走查分别说明，不因补齐叙述而宣称复现。
 
-最后一节逐条列出全部 `current` 且 `severity` 为 `critical/high` 的发现。表格固定四列：编号、等级、漏洞原理、影响。编号使用指向该发现报告的 Markdown 链接，合并报告可带成员锚点；每个发现一行，同根因也不省略成员。等级先 critical 后 high，同等级按 EXT、ADJ、INT、未分类，再按 ID 排序，与 index.high_findings 一致。原理与影响各用简洁完整句子，保留决定成立的前提，不用标题或“见详情”代替解释。表格单元格中的竖线写成 `\|`。
+最后一节逐条列出全部 `current` 且 `severity` 为 `critical/high` 的发现。表格固定四列：编号、等级、漏洞原理、影响。编号按 finding_map_index 指向实际呈现位置，漏洞成员用报告锚点，chain/summary/pending 用 summary.md 的发现锚点；每个发现一行，同根因也不省略成员。等级先 critical 后 high，同等级按 EXT、ADJ、INT、未分类，再按 ID 排序，与 index.high_findings 一致。原理与影响各用简洁完整句子，保留决定成立的前提，不用标题或“见详情”代替解释。表格单元格中的竖线写成 `\|`。
 
 末尾清单必须全量，没有 Top N 或全文字数上限。零高危时保留表头并明确零条。没有 EXT 链时明确记录不存在此类已登记链，不虚构路径。要核对主要结论的语义，不用机械关键词检查代替阅读。
 
@@ -60,3 +60,12 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" snapshot --workspace "$AUDIT_WORKSPA
 `report` 只完成机械导出，不代表人工段完成。`report --check` 核对全量映射、模板、来源指纹、链接、每个根因成员、高危表及 EXT 链落点，并刷新索引的检查状态。作者/复核者另行判断原理、影响与证据是否相符。准备 gate 仅延后报告待办和 G10 成文检查，不放宽其他审计要求；最终 gate 必须核对当前磁盘文件。
 
 `report --full` 额外导出 `report/full-records.md` 与 `coverage-details.md` 供单文件记录查阅；它们是机械记录，不替代两段式交付，也不覆盖人工正文。`--full` 与 `--check` 不同时使用。snapshot 只归档实际工作区，不重新生成作者稿。
+
+
+## 归因映射及正文更新
+
+index.finding_map_index 指向全部 current finding 的性质及 path，作者按该映射呈现，不自行去重。漏洞任务 input_refs 包含 finding_dispositions；summary 同时读 attribution_pending 和独立漏洞统计。为映射到 summary.md 的发现逐条添加 `<a id="F-ID"></a>` 并解释性质与去向。非 EXT 但被处置引用的重要链在主要发现或边界章节内用 `### CHAIN-ID 标题` 呈现，不因不在 EXT 专节而消失。
+
+模板保留四节和末尾完整高危四列表；补充、链、汇总和 pending 在原理或影响中写清性质，不重复计为独立漏洞。G9 核计划关联和有效归因，G10 核真实文件、发现锚点与链落点。报告作者若发现事实或归因有误，交回主代理分别派 reviewer/rootcause_reviewer；不得在正文中更改等级、入口、机制或归组。
+
+机械导出保留仍对应任务的作者稿，来源改变标 stale；不再对应任务的旧漏洞稿按内容指纹移入 report/legacy/vulnerabilities/，保留历史，不作为当前交付。重新撰写先回读新依据，不能只换 source_digest。

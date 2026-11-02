@@ -1034,7 +1034,7 @@ def rootcause_candidates():
 
     Measured on a 227-finding audit: 63 proposition families hold at least two findings
     and 375 pairs share an identical evidence location, while only 47 member sets are
-    strong. The strong slice is G9's denominator, so both thresholds are asserted in both
+    strong. These remain recall signals, so both thresholds are asserted in both
     directions, from one notch below each — widen either and the gate starts demanding
     232 adjudications instead of 47.
     """
@@ -1061,7 +1061,7 @@ def rootcause_candidates():
             problems.append('the location candidate does not say what it found: '
                             + '; '.join(pair['basis']))
         local = no_proposition(state, list(rows.values()))
-        if local['finding_ids'] != ['F-CC01-02'] or local['unpaired'] != ['F-CC01-02']:
+        if local['finding_ids'] != ['F-CC01-02'] or local['unpaired'] != []:
             problems.append('the findings no proposition can see are reported wrong: %s'
                             % local)
         # The other direction, and it sits one notch below each threshold on purpose:
@@ -1086,75 +1086,24 @@ def rootcause_candidates():
 
 @check('rootcause-closure')
 def rootcause_closure():
-    """G9 counts adjudications over the strong slice, and nothing else.
-
-    Drives the real gate. An unanswered strong candidate fails; an adjudication that
-    names the candidate but leaves one of its members unaccounted for fails (that is the
-    「归并不丢路径」 half, and it is the shape the report todos actually took — a merge
-    requirement answered for some of the findings it named); answering both closes it.
-
-    The grandfathering is asserted at the unit, not the workspace: a cold-start reviewer
-    ran this on a migrated 48-unit workspace, left 39 strong candidates unanswered, and
-    the gate passed — because the first version skipped the whole row on
-    `queue.legacy_freeze_contract`, which a migration sets for good. So the
-    workspace-level marker alone must NOT exempt anything, a candidate all of whose
-    members sit in old-contract units must skip and say it checked nothing, and one
-    member in a unit merged since must bring the row back.
-    """
+    """Every current finding needs attribution, including migrated and no-FM records."""
     import copy
     import tempfile
     from gate import evaluate
-
-    def g9(workspace, state):
-        return next(row for row in evaluate(workspace, state) if row['id'] == 'G9')
+    from report_fixtures import adjudicate_fixture
     problems = []
     with tempfile.TemporaryDirectory() as tmp:
-        workspace, clean = root_cause_fixture(tmp)
-        unanswered = g9(workspace, clean)
-        if unanswered['status'] != 'fail' or '强候选' not in unanswered['detail']:
-            problems.append('an unadjudicated strong candidate does not fail G9: %s'
-                            % unanswered)
-        dropped = g9(workspace, linked(copy.deepcopy(clean), [copy.deepcopy(MERGE)]))
-        if dropped['status'] != 'fail' or '漏下成员' not in dropped['detail']:
-            problems.append('a merge that drops a member of the candidate it answers '
-                            'passes G9: %s' % dropped)
-        settled = linked(copy.deepcopy(clean), [
-            dict(copy.deepcopy(MERGE),
-                 candidates=['fm:FM-A1.1-01', 'set:F-AA01-01+F-BB01-01']),
-            {'id': 'RC-02', 'verdict': 'distinct', 'by': 'segment reviewer',
-             'reason': '同名命题，CC01 是另一个模块各自缺一次授权',
-             'finding_ids': ['F-CC01-01', 'F-AA01-01'], 'candidates': ['fm:FM-A1.1-01']}])
-        closed = g9(workspace, settled)
-        if closed['status'] != 'pass':
-            problems.append('a fully adjudicated record still fails G9: %s' % closed['detail'])
-        migrated = copy.deepcopy(clean)
-        migrated['queue']['legacy_freeze_contract'] = '1.6'
-        marker_only = g9(workspace, migrated)
-        if marker_only['status'] != 'fail':
-            problems.append('the workspace-level migration marker alone exempts G9: %s'
-                            % marker_only)
-        old_units = copy.deepcopy(clean)
-        for unit in old_units['units']:
-            unit['legacy_schema_version'] = '1.6'
-        exempt = g9(workspace, old_units)
-        if exempt['status'] != 'skip' or '什么都没核' not in exempt['detail']:
-            problems.append('candidates whose members all sit in old-contract units do '
-                            'not skip G9, or the row does not say it checked nothing: %s'
-                            % exempt)
-        half = linked(copy.deepcopy(old_units), [copy.deepcopy(MERGE)])
-        if g9(workspace, half)['status'] != 'fail':
-            problems.append('a merge that drops a member goes unreported on an '
-                            'old-contract workspace: %s' % g9(workspace, half))
-        mixed = copy.deepcopy(clean)
-        for unit in mixed['units']:
-            if unit['id'] != 'U-CC01':
-                unit['legacy_schema_version'] = '1.6'
-        enforced = g9(workspace, mixed)
-        if (enforced['status'] != 'fail' or 'fm:FM-A1.1-01' not in enforced['detail']
-                or 'set:F-AA01-01+F-BB01-01' in enforced['detail']):
-            problems.append('per-unit grandfathering is wrong: a candidate with one '
-                            'member in a new unit must be enforced and an all-old one '
-                            'must not: %s' % enforced)
+        workspace, state = root_cause_fixture(tmp)
+        def g9(): return next(r for r in evaluate(workspace, state, prepare_report=True) if r['id'] == 'G9')
+        if g9()['status'] != 'fail' or len(g9()['work_items']) != 4:
+            problems.append('G9 must list every unclassified current finding')
+        for unit in state['units']: unit['legacy_schema_version'] = '1.7'
+        if g9()['status'] != 'fail': problems.append('legacy marker bypassed attribution')
+        linked(state, [copy.deepcopy(MERGE)])
+        adjudicate_fixture(state)
+        if g9()['status'] != 'pass': problems.append('valid grouping and singleton comparisons did not close G9')
+        state['finding_dispositions'].pop()
+        if g9()['status'] != 'fail': problems.append('no-FM singleton disappeared from G9')
     return problems
 
 
@@ -1746,6 +1695,12 @@ def knowledge_bundle():
                             'rebuild the skill from the framework data'
                             % (key, len(data[key]), expected))
     return problems
+
+
+@check('attribution-workflow')
+def attribution_workflow():
+    from attribution_check import run_checks
+    return run_checks()
 
 
 def main(argv=None):

@@ -49,8 +49,6 @@ brief 中每条 FM 附有关联风险编号、名称与知识包引用；需要�
 ## 你改产物时的三条纪律
 
 1. **只改本单元的记录**（ID 带该单元 token 的那些），不碰别的单元的产物、不写 `audit.json`。
-   唯一的例外是主代理单独派给你的根因裁决（见下面那一节）：它走 `rootcause --apply`，
-   不是手改记录，而且只写 `root_causes` 与发现上的 `root_cause_id` 这两处。
    要改的发现**已登记过复核**时，先告诉主代理撤销那条复核（`review --withdraw`），
    再改——复核是对某一段具体文本的判断，不撤就改会让账本指向没人判过的东西。
 2. **每一次订正留一条 `corrections` 条目**：`id`、`target`（记录 ID）、`field`、`before`（改前 JSON 值）、`after`（改后 JSON 值）、`reason`、`by`（你的角色名）。缺 `before`/`after`/`reason` 任一项，闸门会判不闭合。
@@ -80,84 +78,9 @@ brief 中每条 FM 附有关联风险编号、名称与知识包引用；需要�
 - **叙述字段的语言**：产物里给人读的字段（`title`、`mechanism`、`impact`、`remediation`、`observation`、`explanation` 等）应与交付语言一致（默认中文），代码、标识符、路径与报错原文不译。整片用了另一种语言就判订正——记录是终报的唯一来源，混用会直接出现在交付物里。
 - **同一模型复核要如实标注**，不宣称独立验证。
 
-## 根因裁决（收口时单独派，全部单元合入之后）
+## 归因线索与事实回交
 
-同一根因的发现按构造散在多个单元里——划分按目录与职责切，缺陷按机制分布——所以这件事
-只有你这个段级视角做得了：worker 的单元已冻结，`merge` 不判语义，report_writer 不许维护
-第二份发现清单也改不了已复核的发现。
-
-```bash
-python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS"
-# --apply 收的是文件路径，不是命令行上的 JSON 字面量；写在复核账本旁边
-python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" \
-        --apply "$WS/units/_reviews/rootcause_<轮次>.json"
-```
-
-**判同源要读发现本身，候选行不够。** 候选行只有 `key`、成员、跨哪些单元、依据和 `strong`。
-要判「这两条是不是一回事」，看 `audit.json` 里 `findings` 的 `title` / `mechanism` /
-`remediation`，位置看它们的 `evidence_ids` → `evidence[].material_id` 与 `locator` →
-`materials[].path`。**读 `audit.json` 没问题，纪律第 1 条禁的是写。** 要求合并呈现的报告待办
-也在那里（`report_todos`，上一轮是你们自己写的，常常直接点名了哪几条同源）。
-
-不带 `--apply` 给候选：每条带 `key`、成员发现、跨哪些单元、依据（哪个命题被几条发现引用／
-几处完全相同的证据位置），以及 `strong` 标记和 `base_sha256`。逐条判 `merge` 还是 `distinct`，
-两种都要 `reason`：判同源写靠什么判的，判不同源写差在哪。`merge` 另外要 `statement`
-（缺陷机制一句话）、`fix_point` 和 `member_paths`——**每个成员恰好一条**，写它自己的位置以及
-与其他成员的差异，只写 `finding_id`、`location`、`difference` 三个键（多写会被拒）。位置在记录里
-没有现成字段，自己拼：`evidence_ids` → `evidence[].material_id` 查 `materials[].path`，接
-`evidence[].locator`，写成 `路径:起-止`。归并不改发现的主张、机理与定级，所以不用撤复核；
-真要改标题或机理，还是先 `review --withdraw`。
-
-`fix_point` 可以是同一处修复点，**也可以是同一条契约**——后半句同样承重。四个插件各写一遍
-「allowlist 为空就放行」，没有「同一处」可指，可它们是同一条契约的同一次违反；按「同一处」读
-会判成 `distinct`，按「同一条契约」读才是明显的 `merge`。
-
-裁决 JSON 的形状（`base_sha256` 原样抄 `rootcause` 的输出。它把已有裁决一起算进去了，所以
-**自己成功提交一次，哈希就变了**：分批提交时每批之前重跑一次 `rootcause` 取新的。同一个 `id`
-再提一次是替换语义，返回里写 `replaced`，被移出的成员会自动解除回链）：
-
-```json
-{"base_sha256": "<rootcause 输出里的那串>", "by": "<你的角色名>",
- "root_causes": [
-   {"id": "RC-01", "verdict": "merge",
-    "statement": "共享加载器不校验来源，调用方给什么就取什么",
-    "fix_point": "<模块>/loader.ts 的取数入口",
-    "finding_ids": ["F-AA01-01", "F-BB01-02"],
-    "candidates": ["fm:FM-X1.1-01", "set:F-AA01-01+F-BB01-02"],
-    "member_paths": [
-      {"finding_id": "F-AA01-01", "location": "<模块>/a.ts:120-146",
-       "difference": "入口是附件下载，无额外前提"},
-      {"finding_id": "F-BB01-02", "location": "<模块>/b.ts:88-101",
-       "difference": "入口是回调转发，需要先持有会话"}],
-    "reason": "同一个取数入口，两条路径只差进入方式"},
-   {"id": "RC-02", "verdict": "distinct",
-    "finding_ids": ["F-CC01-01", "F-CC01-02"],
-    "candidates": ["set:F-CC01-01+F-CC01-02"],
-    "reason": "共享同一组位置，但一条是脱敏缺失、一条是完整性缺失，修复点不同"}]}
-```
-
-`candidates` 写这条裁决答的候选 key；一条裁决可以答几个候选，几条裁决也可以答同一个候选
-（把一族拆成「这三条同源」加「那九条各自独立」就是这样）。一条发现只能归入一个 `merge`，
-但 `distinct` 不受这条限制：同一条发现可以既在某个 merge 里，又出现在另一行 `distinct` 里
-说明它与第三条不同源。
-
-**答一个候选就要把它的成员答全。** 把某个 key 写进 `candidates`，它的每个成员都必须出现在
-答它的某一行里——归并一部分、其余判 `distinct` 并写理由。答一半会被闸门点成「漏下成员」。
-所以 12 个成员的命题族里只想处理 4 条时，要么把其余 8 条一并判 `distinct`，要么这一轮先别点它。
-
-**强候选是必须答完的下限，候选清单不是可以归并的上限。** 两个信号都会误配：同一个命题可以是一处缺陷重复十二次，也可以是
-十二个模块各自缺一次。反方向也有：实测有一整族（共享的媒体加载器，五条发现跨四个单元）
-一个强候选都没出，因为它的成员每次只共享一处位置。所以除了候选，还要读三样——要求合并
-呈现、避免重复计数的**报告待办**（上一轮是你们自己写的）、`no_proposition` 里那些没有框架
-命题的发现、以及位置信号给出的弱候选。没有候选提过的簇照样可以 `--apply`。
-
-闸门（由主代理跑，不是你）只核**强候选是否逐条答过、归并有没有漏下成员**，不核归并对不对。
-**它不保证兜住你这一轮**：成员全属旧契约单元的候选一律豁免，迁移过来的长命工作区里整个强候选
-切片都可能在豁免范围内，那一行会写明「本行这次什么都没核」。答全靠你，不靠它报错。
-
-这一轮的产出就是记录本身：`root_causes` 与发现上的 `root_cause_id`。不写 `corrections`
-（`merge` / `distinct` 不属于「判定四档」里的任何一档），也不写复核账本条目；下面「产出」
-一节的三样是单元复核那一轮的。派单时主代理会确认共享记录此刻只有你一个写入者。
+复核时指出已知重复、补充或部分重叠，保留明确 finding ID 与证据。全局比较由 rootcause_reviewer 执行，按独立角色契约交接，不由报告措辞决定去重。收到归因者的事实订正时，沿用本契约撤回复核、订正和重新合入流程；只改归因关系时不撤销事实复核。
 
 ## 产出
 
@@ -180,7 +103,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" \
    **不设行数上限，订正／交接／残余／过期条目一条都不许省**——省掉的那条就是没人去做的那件事。要控体量就压每条的长度，不压条数。明细写在后面的分档小节里。
    需要报告侧特别呈现的，写进同一轮的 `report_todos`（`id` / `instruction` / `status: open`），由 report_writer 闭合。
    **要求合并同源条目、避免重复计数的，别只写成待办**：报告侧能做的呈现就是加一句交叉引用，
-   真正的落点是根因裁决（见上一节）。收口时你会被派回来做这件事，待办里写清是哪几条。
+   真正的落点是根因裁决（见上一节）。向 rootcause_reviewer 交接时写清有关发现、失效点和证据。
 
 ## return 行
 
@@ -188,8 +111,8 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" \
 评审 <单元数> 项: 订正=<a> 交接=<b> 残余=<c> 过期=<d>
 ```
 
-根因裁决那一轮改用这一行：
+## 发现粒度
 
-```
-根因 merge=<a> distinct=<b>, 覆盖发现 <c> 条, 强候选已答 <d>/<e>
-```
+finding 围绕一个具体控制缺陷展开；多个命题可以支撑同一 finding，同一命题也可以对应多个缺陷。按 records.md 用 failure_points 引用决定性失效证据，用 related_findings 保存已知关联，前提、失效与新增影响分别说明。跨单元未知记录写 crosslead，不编造 ID 或越权改写他人产物。
+
+仅串联已有能力时写 chains；仅归纳已有发现时写呈现待办。发现新控制缺陷仍建立候选并复核。复合记录先拆清，不以文件、函数、链标题或字段是否存在推断独立性。

@@ -53,7 +53,7 @@ def author_fixture(workspace, state, index):
     """Write small authored golden artifacts for tests, not production reports."""
     report = workspace / "report"
     findings = {f["id"]: f for f in state["findings"]}
-    reports_by_finding = {}
+    reports_by_finding = {fid: row["path"] for fid, row in index.get("finding_map", {}).items()}
     for task in index["tasks"]:
         path = report / task["path"]
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -91,6 +91,7 @@ def author_fixture(workspace, state, index):
                 rows.extend(["组件把调用方传入的标识用于查询资源；安全边界要求调用主体只能读取自己的资源。", ""])
         path.write_text("\n".join(rows) + "\n", encoding="utf-8")
     ext = [c for c in state.get("chains", []) if c.get("entry_exposure") == "EXT"]
+    required_other_chains = {cid for row in index.get("finding_map", {}).values() for cid in row.get("chain_ids", [])}
     dispositions = {c["id"]: ("needs_evidence" if c.get("status") == "candidate"
                               else "static_trace") for c in ext}
     meta = {"type": "summary", "source_digest": index["source_digest"],
@@ -111,6 +112,12 @@ def author_fixture(workspace, state, index):
                      "证据边界：" + ("候选链；外部入口到任务的环节仍缺证据。"
                                   if chain.get("status") == "candidate"
                                   else "静态路径已定位；没有动态复现结论。"), ""])
+    for fid, location in index.get("finding_map", {}).items():
+        if location["path"].startswith("summary.md#"):
+            rows.extend(['<a id="' + fid + '"></a>', findings[fid]["mechanism"], ""])
+    for chain in state.get("chains", []):
+        if chain["id"] in required_other_chains and chain.get("entry_exposure") != "EXT":
+            rows.extend(["### " + chain["id"] + " " + chain["title"], "", "组合关系及其已知边界。", ""])
     rows.extend(["## " + SUMMARY_HEADINGS[2], "",
                  "运行期入口的网络限制尚未取得；仅以代码证据判断机制。", "",
                  "## " + SUMMARY_HEADINGS[3], "",
@@ -128,7 +135,7 @@ def author_fixture(workspace, state, index):
 
 def run_checks(skill_dir):
     import reporting
-    from report_fixtures import EXPECTED, build_case, change_one_finding, add_large_record, _review
+    from report_fixtures import EXPECTED, build_case, change_one_finding, add_large_record, _review, adjudicate_fixture
     problems = []
     import self_check
     if 'two-stage-reporting' not in {name for name, _ in self_check.CHECKS}:
@@ -337,6 +344,7 @@ def run_checks(skill_dir):
             workspace, state, expected = build_case(tmp, "small", skill_dir)
             eid, observation = add_large_record(state)
             _review(workspace, state)
+            adjudicate_fixture(state)
             reporting.export_package(workspace, state)
             chunks = list((workspace / "report/records").rglob("*.md"))
             assert chunks, "no record shards exported"
@@ -415,6 +423,7 @@ def run_checks(skill_dir):
                     finding["root_cause_id"] = None
                     state["findings"].append(finding)
                 _review(workspace, state)
+                adjudicate_fixture(state)
                 state["report_todos"] = [
                     {"id": "RT-AA01-01", "instruction": "仅调整 F-AA01-012 的呈现", "status": "open"},
                     {"id": "RT-AA01-02", "instruction": "核对F-AA01-01的影响", "status": "open"},
@@ -451,6 +460,7 @@ def run_checks(skill_dir):
                     "description": "验证记录排序不应改变同一来源的任务指纹。",
                     "check_ids": [check["id"]]})
             _review(workspace, state)
+            adjudicate_fixture(state)
             from records import validate
             assert not validate(workspace, state), "hash-seed fixture must remain a valid audit"
             source = Path(tmp) / "source.json"

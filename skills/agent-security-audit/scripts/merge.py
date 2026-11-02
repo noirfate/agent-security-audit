@@ -162,6 +162,13 @@ def validate_partial(state, unit, payload, legacy=False, *, replace=False):
         candidate_state = dict(state, findings=[
             f for f in state.get('findings', []) if id_owner(f['id']) != unit_token(unit['id'])])
     errors += dismissed_errors(candidate_state, payload)
+    from attribution import finding_extension_errors
+    combined = dict(state)
+    for category in ('findings', 'checks', 'evidence'):
+        values = {row['id']: row for row in state.get(category, [])}
+        values.update({row['id']: row for row in payload.get(category, [])})
+        combined[category] = list(values.values())
+    errors += finding_extension_errors(combined, payload.get('findings', []))
     for collection in ('chains', 'scope_notes'):
         rows = payload.get(collection, [])
         if not isinstance(rows, list) or any(not isinstance(r, dict) for r in rows):
@@ -234,6 +241,13 @@ def retract_unit(workspace, state, unit_id, new_findings=None, *, commit=True):
     # record instead. `subject_digest` already records what each review covered, and
     # `records.validate` already refuses a review whose subject moved, so comparing is
     # both available and the thing the guard was reaching for.
+    incoming_ids = {f['id'] for f in new_findings or []}
+    historic = {r['finding_id'] for key in ('reviews', 'withdrawn_reviews', 'finding_dispositions')
+                for r in state.get(key, [])}
+    removed_history = [f['id'] for f in state.get('findings', [])
+                       if id_owner(f['id']) == token and f['id'] in historic and f['id'] not in incoming_ids]
+    if removed_history:
+        raise ValueError('保留已复核发现的历史 ID 及支撑记录；拆分/替代经 reject 后登记 superseded：' + '、'.join(removed_history))
     frozen = frozen_conclusions(state, token, new_findings)
     if frozen:
         raise ValueError('这些发现的复核结论会被改动，先撤回再重做；内容不变的改动不受此限：'
@@ -448,6 +462,8 @@ def merge_unit(workspace, state, unit_id, partial=None, commit=True, *, replace=
             row = {'unit_id': unit_id, 'note': item} if isinstance(item, str) else dict(item, unit_id=unit_id)
             if row not in store:
                 store.append(row)
+    from attribution import sync_root_cause_links
+    sync_root_cause_links(working)
     introduced = sorted(set(validate(workspace, working)) - before)
     if introduced:
         refuse('Merging would break the record, nothing written', introduced)

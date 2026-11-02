@@ -1,6 +1,6 @@
 # 调度规程
 
-本文件只给主代理读。worker、reviewer、merger、queue_critic、report_writer 读 `references/roles/` 下属于自己的那一份（reviewer 还会按需派 verify 子代理，契约同在该目录），不读本文件也不读 SKILL.md：编排协议对它们没有指导作用，只会让它们为不属于自己的机制分心。
+本文件只给主代理读。worker、reviewer、rootcause_reviewer、merger、queue_critic、report_writer 读 `references/roles/` 下属于自己的那一份（reviewer 还会按需派 verify 子代理，契约同在该目录），不读本文件也不读 SKILL.md：编排协议对它们没有指导作用，只会让它们为不属于自己的机制分心。
 
 单目标、小制品可以按 SKILL.md 顺序执行。是否分单元由模型根据职责、依赖与证据边界决定；字节、命中数和目录形状只供参考。
 
@@ -115,10 +115,11 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
   9  写入者落盘并暂停后 snapshot；保存已交付、已核与未完成清单，再释放上下文
 闸门     gate（阶段适用的 G1、G2 与正式任务状态必过；G3 为参考信息）
 三阶段   模型决定 cross_scope → queue_critic 质问 → freeze --phase 3 → 执行 needed 类型
-收口     段级 reviewer 跑 rootcause 读候选、rootcause --apply 落裁决（强候选逐条答，
-         判 distinct 也要带理由；合并呈现类的报告待办在这里落地，不留给报告措辞）
+收口     rootcause --prepare → 按容量 rootcause --dispatch → 主代理启动 rootcause_reviewer
+         → 各写独立结果 → rootcause --collect → 跨文件核对任务（同协议可并发）
+         → 收口 rootcause_reviewer 形成裁决文件 → 主代理 rootcause --apply
          → gate --prepare → report 导出材料 → report_writer 按模板成文并闭合 report_todos
-         → 一名复核终报 → report --check → gate（不带 --prepare）→ validate / sarif / snapshot
+         → 一名复核终报 → report --check → gate（不带 --prepare）→ validate / snapshot
 ```
 
 **目标专属模式留在工作区，不写技能。** 它是这次审计的记录（`target_patterns.json`），
@@ -189,7 +190,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 
 退出码分两个方向：**0 全过；1 读得了但内容没收口（去修记录）；2 读不到或读不懂（去修路径或格式）**。**原样跑，不要接管道**——接了管道退出码是末端命令的，闸门会无声放行。
 
-十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 根因强候选逐条裁决、归并逐成员留路径（成员全属旧契约单元的候选豁免；全部豁免时整行 skip，并在 detail 里写明这一行没核到东西）；G10 两段报告与来源对账完整（按[报告契约](report-format.md)核对分类材料、人工模板、完整发现映射、末尾全量高危清单及 EXT 链；最终交付缺报告即失败，准备时延后）。G9 只在收口前有意义——候选要等全部单元合入才稳定，二阶段中途它照常报「还没裁决」，按行读即可，不必为它停下。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将报告待办与 G10 成文核查留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
+十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 全部当前发现有有效处置、具体比较、唯一归属及闭合依赖（旧数据可读不等于归因通过，返回具体待处理 ID）；G10 两段报告与来源对账完整（按[报告契约](report-format.md)核对分类材料、人工模板、完整发现映射、末尾全量高危清单及 EXT 链；最终交付缺报告即失败，准备时延后）。G9 在最终报告准备时要求闭合；它不阻止二阶段继续执行、三阶段冻结和正常快照。G9 只要求计划呈现落点，report_todos 可以 open；G10 才核实际正文。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将报告待办与 G10 成文核查留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
 
 两条容易读错的：**G4 读的是单元的 `exposure`**（实例上没人填——契约要求填在发现上，单元的由裁决环节填；若按实例判，闸门会永远输出「EXT 实例 0 个」而通过）。**G7 接受带 `needs_evidence` 复核的 `needs_review` 发现**：那是正当判定，它的闭合形式就是「记录了缺什么」；只有毫无复核记录的发现才算悬空。G7 同时核订正条目是否带改前／改后／理由，以及 `report_todos` 是否全部闭合。
 
@@ -221,3 +222,12 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 **受限并发**（有上限，按 `dispatch` 的准入核算分波）、**单执行者**（并行能力不可用或用户未授权）。
 
 降级为单执行者按同一份单元清单顺序跑完：`plan` → 模型确认 / `--apply` → `freeze --phase 1` → `freeze --phase 2` → 逐单元 `dispatch` 并按 brief 审 → 预检与回源复核 → `merge` → 登记复核账本。继续完成需要的跨域核查，再按准备闸门、报告待办、最终闸门与快照的顺序交付。顺序执行保留相同记录与复核要求。
+
+
+## 归因派单与回交
+
+归因任务只位于现有收口环节，按 records.md 的运行协议执行，不加入冻结 units，不改变跨域 confirmed 种子。事实复核由 reviewer 负责；文件组比较、跨文件核对与收口由 rootcause_reviewer 负责。两者各读独立契约。主代理调用脚本生成 brief，使用宿主子代理工具启动并登记代理 ID；dispatch 只记 dispatched，宿主启动确认后才记 running。
+
+归因者可以并发读同一发现，各写自己的 result 文件；manifest、汇总和正式 apply 由主代理顺序调用工具维护。归因任务和 worker/reviewer/verify/report_writer 共用宿主容量。派单时提供实际 active_agent_ids 和 limit；完成一波就用 collect/status 对账。拒绝或失败写明原因，已启动任务先确认停写再释放名额；不明状态不能直接重派。
+
+归因发现事实错误时，主代理交回所属 reviewer：撤回复核、订正 partial、预检和 merge --replace、重新登记复核，再重做受影响归因。未变化的临时结果按来源复用；新增 current finding 必须增量比较。报告作者发现事实或归因矛盾也按同一责任路径回交，不在正文里改判。没有新增依据时保留具体 pending，不反复提交同一失败尝试。

@@ -51,7 +51,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_a
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_audit/example --status
 ```
 
-主代理只做调度与门控：不读候选正文，不亲自建索引，不亲自写终报，每轮末`snapshot`后即可丢弃上下文。各角色的契约在`references/roles/`，worker、reviewer、merger、queue_critic、report_writer 各读属于自己的那一份，不读本文件。轮次、冻结与闸门见[调度规程](references/orchestration.md)。
+主代理只做调度与门控：不读候选正文，不亲自建索引，不亲自写终报，每轮末`snapshot`后即可丢弃上下文。各角色的契约在`references/roles/`，worker、reviewer、rootcause_reviewer、merger、queue_critic、report_writer 各读属于自己的那一份，不读本文件。轮次、冻结与闸门见[调度规程](references/orchestration.md)。
 
 并行分三档，记录、闸门与报告完全相同，只是波数或轮数变多：**全并发**（容量够，按单元类型的分档一波派完）、**受限并发**（有上限，`dispatch` 按已记录的容量核算准入，分波派）、**单执行者**（并行能力不可用或用户未授权，按同一份单元清单顺序跑完）。同时能跑多少个子代理由宿主决定、不由本skill假定，`dispatch` 读环境变量，读不到用宿主默认并把来源记进记录。规程不绑定任何特定客户端的子代理工具。
 
@@ -114,13 +114,13 @@ FM 的 `risk_ids` 提供关联风险索引；单元 brief 展示风险编号、�
 
 候选发现先记为`needs_review`。重新读取原材料，按[记录与复审](references/records.md)准备复核 JSON；分单元产物先 `merge --unit` 合入，再用 `audit.py review --workspace ... --finding F-... --review-file ...` 登记保留、撤销或证据不足的理由。复核记录绑定实际合入的发现、检查与证据内容；内容改变后不能沿用旧复核。使用同一模型复核时如实标注，不宣称独立验证。
 
-全部单元合入并复核完成后，由段级复核者裁决跨单元根因：`audit.py rootcause --workspace ...` 给候选（命题共享与证据位置重合两个信号，各自会误配也会漏，强候选是必须逐条答的下限，不是可以归并的上限），`--apply` 落 `merge` / `distinct` 与理由。归并只写 `root_causes` 与发现上的 `root_cause_id`，不改已复核的主张、机理与定级。
+全部单元及必要跨域增量合入、事实复核有结论后，按[归因任务及提交](references/records.md#归因任务及提交)准备全量 current finding 的比较输入。`rootcause --prepare` 按文件组织任务，主代理用 `rootcause --dispatch` 生成启动材料，派 [rootcause_reviewer](references/roles/rootcause_reviewer.md) 并发读取，各写独立临时结果。`--collect` 汇总并生成跨文件核对任务；收口角色完成比较和处置后，主代理 `--apply` 统一提交。脚本只检索、对账和落盘，不自动判断同源。未归组不等于独立，旧裁决需核对有效性；事实有误仍交回单元 reviewer。
 
 控制确实阻断失效时，关联`not_established`检查中的反证，记录控制有效范围、局限和复测方法。部分有效、未知和待复核分别记录；不适用不代表控制有效。对 Skill 的恶意行为判断与漏洞严重度分开，不按严重度推断作者意图。
 
 核对材料范围、连接边界和模型认领的正式候选都有去向；原始检索命中不要求逐条处置。可以保留明确的证据缺口，不能用“已完成”掩盖未检查部分。每次推进及时保存记录，中断或上下文压缩后从工作区恢复。
 
-报告按[两段式报告](references/report-format.md)执行：机械阶段导出 `report/index.json` 与分类材料，report_writer 按本技能模板直接撰写 summary 和独立漏洞报告。summary 必须独立解释主要发现、包含 EXT 外部入口攻击链，不含修复建议，最后逐条列全当前 High/Critical 的原理与影响。全部当前发现有独立报告或已裁决根因报告映射。`gate --prepare` 只延后报告待办和成文检查，不放宽审计范围要求。
+报告按[两段式报告](references/report-format.md)执行：机械阶段导出 `report/index.json` 与分类材料，report_writer 按本技能模板直接撰写 summary 和独立漏洞报告。summary 必须独立解释主要发现、包含 EXT 外部入口攻击链，不含修复建议，最后逐条列全当前 High/Critical 的原理与影响。独立漏洞视图统一生成计数与写作任务；全部当前发现有明确呈现映射，补充、链、汇总和 pending 不额外计作漏洞。`gate --prepare` 只延后报告待办和成文检查，不放宽审计范围要求。
 
 ```bash
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace /output/agent_audit/example --prepare
@@ -134,4 +134,4 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" snapshot --workspace /output/agent_a
 
 `validate`核对记录内部一致（引用、指纹、状态与判定关系），`gate`核对显式任务和范围声明是否闭合。原始命中不是覆盖分母；脚本通过不证明范围真的被走过。`gate`退出码 1 是内容没收口、2 是读不到或读不懂，原样跑不要接管道。两者都不能证明推理正确。失败时回到原材料修正记录，不能为了通过而删证据或缩小范围。机械材料由记录导出，人工叙述直接按模板写 Markdown；补充事实或改变结论须先修正记录并重新复核。
 
-保存快照前让写入者落盘并暂停；格式 2 的 `workspace/` 保存完整工作区，包括未合入单元、复核记录和运行断点。交付 `report/summary.md`、`report/index.json`、独立漏洞报告与分类材料、`report.sarif.json`、目标知识库和快照路径，简述主要发现及证据边界。报告和 SARIF 均以同一审计记录为依据；未复核和已撤销发现不作为当前 SARIF 告警。框架知识或方法需另行维护时属于独立任务，不作为本次审计的前置条件。
+保存快照前让写入者落盘并暂停；格式 2 的 `workspace/` 保存完整工作区，包括未合入单元、复核记录和运行断点。交付 `report/summary.md`、`report/index.json`、独立漏洞报告与分类材料、目标知识库和快照路径，简述主要发现及证据边界。报告以有效事实与归因为依据，历史文件仍保留在快照中。框架知识或方法需另行维护时属于独立任务，不作为本次审计的前置条件。

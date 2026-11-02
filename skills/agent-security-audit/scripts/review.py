@@ -8,7 +8,8 @@ def subject_digest(state, finding):
     check_ids = set(finding['check_ids'])
     checks = [c for c in state['checks'] if c['id'] in check_ids]
     from audit import check_evidence_ids
-    ids = set(finding['evidence_ids'])
+    from attribution import evidence_refs
+    ids = evidence_refs(finding)
     for c in checks:
         ids.update(check_evidence_ids(c))
     # `root_cause_id` joins the bookkeeping keys: a reviewer judged the claim, the
@@ -48,6 +49,9 @@ def record_review(workspace, state, finding_id, payload):
     if not ids or any(e not in evidence or evidence[e]['status'] != 'current' for e in ids):
         raise ValueError('Review requires current target evidence')
     if payload['decision'] == 'retain':
+        from attribution import evidence_refs
+        if any(eid not in evidence or evidence[eid]['status'] != 'current' for eid in evidence_refs(finding)):
+            raise ValueError('Retaining a finding requires current failure-point and related evidence')
         checks = {c['id']: c for c in state['checks']}
         if not finding['check_ids'] or any(cid not in checks or checks[cid]['status'] != 'complete' or checks[cid]['verdict'] != 'confirmed' for cid in finding['check_ids']):
             raise ValueError('Retaining a finding requires confirmed, completed checks')

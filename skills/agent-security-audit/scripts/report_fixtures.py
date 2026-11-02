@@ -170,6 +170,7 @@ def build_case(tmp_path, case, skill_dir):
         decisions = {row["id"]: ("reject" if i % 2 else "needs_evidence")
                      for i, row in enumerate(state["findings"])}
     _review(workspace, state, decisions)
+    adjudicate_fixture(state)
     from audit import save
     save(workspace, state)
     return workspace, state, deepcopy(EXPECTED[case])
@@ -213,10 +214,34 @@ def main():
         if args.verify_fixture:
             from records import validate
             errors = validate(workspace, state)
+            from reporting import build_tasks
+            if sorted(t['id'] for t in build_tasks(state)) != sorted(expected['reports']):
+                errors.append('Fixture report identities differ from independent expectations')
         print(json.dumps({"case": args.case, "expected": expected,
                           "record_validation_errors": errors}, ensure_ascii=False, indent=2))
         return bool(errors)
 
+
+def adjudicate_fixture(state):
+    """Explicit model verdicts for the hand-authored report cases, not a classifier."""
+    from attribution import decision_digest
+    state['finding_dispositions'] = []
+    owners = {fid: r['id'] for r in state.get('root_causes', []) if r.get('verdict') == 'merge'
+              for fid in r['finding_ids']}
+    for f in state['findings']:
+        if f['status'] != 'current': continue
+        row = {'id': 'FD-' + f['id'], 'finding_id': f['id'], 'kind': 'defect',
+               'by': 'fixture-reviewer', 'reason': '夹具指定的具体控制缺陷及比较结论',
+               'comparison': {'by': 'fixture-reviewer', 'scope': '已核对夹具全部入口和控制位置',
+                              'finding_ids': [x['id'] for x in state['findings']],
+                              'evidence_ids': f['evidence_ids'],
+                              'reason': '按夹具预期分别保留失效实现；同源成员引用同一组',
+                              'conclusion': 'grouped' if f['id'] in owners else 'standalone'}}
+        row['source_digest'] = decision_digest(state, row)
+        state['finding_dispositions'].append(row)
+    for row in state.get('root_causes', []):
+        row['evidence_ids'] = state['findings'][0]['evidence_ids']
+        row['source_digest'] = decision_digest(state, row)
 
 if __name__ == "__main__":
     raise SystemExit(main())

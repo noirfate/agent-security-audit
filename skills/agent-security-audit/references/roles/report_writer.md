@@ -6,7 +6,7 @@
 
 1. `<AUDIT_SKILL_DIR>/references/report-format.md`：目录、来源、计数及两段交付契约。
 2. 本任务对应模板：`<AUDIT_SKILL_DIR>/references/templates/summary.md` 或 `vulnerability.md`。模板与输出映射见 report-format，不另造章节。
-3. `<WORKSPACE>/report/index.json`，再按 task_indexes 找到所负责任务，按其 input_refs 和分类索引的 locations/aliases 读取材料；只输出所需条目到上下文。漏洞作者读取关联发现、检查、证据、根因、有效复核、防护反证和 report_todos；总览作者读取全局统计、主要发现、高危发现以及全部 EXT 链的相关材料。不要为每个任务整读 audit.json。
+3. `<WORKSPACE>/report/index.json`，再按 task_indexes 找到所负责任务，按其 input_refs 和分类索引的 locations/aliases 读取材料；只输出所需条目到上下文。漏洞作者读取关联发现、处置、检查、证据、根因、有效复核、防护反证和 report_todos；总览作者读取全局统计、主要发现、高危发现以及全部 EXT 链的相关材料。不要为每个任务整读 audit.json。
 4. [攻击入口类型](../method.md#attack-entry-types)：统一解释记录中的入口标签。需要核对机理、位置、默认值或可达性时回读目标原材料；定级校准见 `<AUDIT_SKILL_DIR>/references/method.md`，定位与可见性见 `materials.md`。额外方法参考按需读取。
 
 若材料包含未完成审计任务、来源变化或新的主张冲突（包括入口标签与原始来源冲突），给主代理具体 ID 和证据缺口，回到原复核流程。不能在报告中自行改入口标签、通过措辞补成已证结论，不能将缺少链状态当作已闭合。
@@ -34,3 +34,10 @@ summary 独立讲清主要发现和 EXT 入口攻击链，不含修复建议，�
 ```
 成文 <报告ID或summary>；覆盖发现 <ID列表>；呈现待办 <ID列表>；未闭合 <ID与缺口>
 ```
+
+
+## 归因后的呈现
+
+按 index.finding_map_index 读取每条发现的实际落点；独立漏洞由有效归因生成任务。补充记录随对应漏洞保留锚点，chain/summary/pending 在 summary 中保留发现锚点、性质和依据。所有当前 High/Critical 仍逐条出现在末尾四列表，链接到实际落点；它们的行数不等于独立漏洞数。索引中的独立计数、待处理数量与证据边界须清楚说明。归因引用的非 EXT 重要链也要有 CHAIN-ID 章节。
+
+事实矛盾交回 reviewer，归因矛盾交回 rootcause_reviewer，由主代理调度；只改文字不改记录。机械通过不是语义证明。

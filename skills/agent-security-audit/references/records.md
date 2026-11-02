@@ -2,9 +2,11 @@
 
 ## 文件与所有权
 
-工作区包含`audit.json`（目标分析记录）、`report/`（机械材料、索引与按模板撰写的报告）、`report.md`（导航）和`report.sarif.json`（由审计记录生成）、`baselines/<指纹>/`（只读引用知识）和`snapshots/`（只追加历史）。可选动态验证另外生成`dynamic/`固定会话配置与`observations/`观测文件。分单元执行时另有`units/<单元>/`（brief、断点、单元产物与跨范围观察）和可选`surface/`（检索位置与摘要）。合入被拒时原产物留在原路径，错误输出给出原因。初始化和续审都不向框架或安装的skill写入。
+工作区包含`audit.json`（目标分析记录）、`report/`（机械材料、索引与按模板撰写的报告）、`report.md`（导航）、`baselines/<指纹>/`（只读引用知识）和`snapshots/`（只追加历史）。可选动态验证另外生成`dynamic/`固定会话配置与`observations/`观测文件。分单元执行时另有`units/<单元>/`（brief、断点、单元产物与跨范围观察）和可选`surface/`（检索位置与摘要）。合入被拒时原产物留在原路径，错误输出给出原因。初始化和续审都不向框架或安装的skill写入。
 
-目标记录版本为`1.7`，与框架契约版本独立。更早的工作区先执行`refresh`：归档旧记录，新增空集合，不改写历史快照。`1.0`迁移会把发现标为待复核；`1.2`与`1.3`只增加调度集合，`1.4`把两阶段改成三阶段（单元的`stage`上移为`phase`，队列键改名），`1.5`移除读取回执集合`reads`（有界读取那条通路已撤，覆盖记录改为无条件写明`analysis_method`与`limitations`），迁移会丢弃旧回执并报出条数。这几步都保留原有发现状态。`1.6` 新增 `dismissed_candidates`、模型分片确认及 `cross_scope`。`1.7` 只增字段：`root_causes` 与发现上的 `root_cause_id`、覆盖条目的 `no_check_reason`、单元的 `wave`、队列的 `dispatch_capacity`；迁移不改历史判定，旧发现的 `root_cause_id` 为空，不自动归并，旧覆盖条目不因缺 `no_check_reason` 变成未完成。迁移保留旧事实、未知字段与冻结值，用 `legacy_schema_version` / `legacy_freeze_contract` 标记旧契约；不把历史 fp 补造成反证关联，不把旧冻结宣称为新验证。只有指纹未变的旧合入产物可沿用旧计数口径；新写产物必须满足新契约。真正让检查待复核的是材料变化与知识基线变化——**技能指纹只作记录，不参与判定**。
+目标记录版本为`1.8`，与框架契约版本独立。更早的工作区先执行`refresh`：归档旧记录，新增空集合，不改写历史快照。`1.0`迁移会把发现标为待复核；`1.2`与`1.3`只增加调度集合，`1.4`把两阶段改成三阶段（单元的`stage`上移为`phase`，队列键改名），`1.5`移除读取回执集合`reads`（有界读取那条通路已撤，覆盖记录改为无条件写明`analysis_method`与`limitations`），迁移会丢弃旧回执并报出条数。这几步都保留原有发现状态。`1.6` 新增 `dismissed_candidates`、模型分片确认及 `cross_scope`。`1.7` 只增字段：`root_causes` 与发现上的 `root_cause_id`、覆盖条目的 `no_check_reason`、单元的 `wave`、队列的 `dispatch_capacity`；迁移不改历史判定，旧发现的 `root_cause_id` 为空，不自动归并，旧覆盖条目不因缺 `no_check_reason` 变成未完成。迁移保留旧事实、未知字段与冻结值，用 `legacy_schema_version` / `legacy_freeze_contract` 标记旧契约；不把历史 fp 补造成反证关联，不把旧冻结宣称为新验证。只有指纹未变的旧合入产物可沿用旧计数口径；新写产物必须满足新契约。真正让检查待复核的是材料变化与知识基线变化——**技能指纹只作记录，不参与判定**。
+
+`1.8` 新增空的 finding_dispositions、attribution_history、attribution_commits 集合；保留事实、复核、旧根因和冻结值，不自动把未归组发现补成单例。新字段缺失的旧发现仍可参与比较。
 
 工具只依赖Python 3标准库。完整查询用法可运行`scripts/knowledge.py --help`；状态工具用`scripts/audit.py --help`。所有路径参数加引号，名称或文档内容不得拼接成Shell代码。
 
@@ -34,7 +36,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/knowledge.py" --workspace "$AUDIT_WORKSPACE" -
 | `method_notes` | 方法、检索范围与证据限制的字符串列表 |
 | `materials` | 工具生成的材料索引：目标别名、相对路径、大小、指纹、visibility 与 status。用于核对文件分区，不能证明覆盖语义 |
 | `reviews` | 工具生成的发现复核账本；保留处置、理由、反证与被复核内容的指纹 |
-| `root_causes` | 跨单元根因的裁决账本：`id`（`RC-` 开头，不带单元 token——根因按构造跨单元，不经单元产物合入）、`verdict`（`merge` 同源 / `distinct` 看着同源实为不同）、`finding_ids`（至少两条）、`candidates`（这条裁决答的候选 key，可以为空：没有候选提过的簇照样可以归并）、`by`、`reason`。`merge` 另有 `statement`（缺陷机制一句话）、`fix_point`（同一处修复点或同一条契约）与 `member_paths`——**每个成员恰好一条**，只写 `finding_id`、`location`、`difference` 三个键，少一条成员就是丢了一条受影响路径，多一个键会被 `--apply` 拒收；`distinct` 这三项都不写，判断写在 `reason`。只由 `rootcause --apply` 写入，它同时维护发现上的 `root_cause_id`；归并不改发现的主张、机理与定级，因此不触发复核撤回 |
+| `root_causes` | 同源裁决：id（RC- 开头）、verdict（merge/distinct）、finding_ids、candidates、by、reason、evidence_ids；merge 另有 statement、fix_point（具体失效实现）及每成员一条 member_paths（finding_id/location/difference）。distinct 用 comparisons 逐项说明不同失效点。工具绑定 source_digest；retired 组只作历史。 |
+| `finding_dispositions` | 每条发现的归因处置历史，最新条目生效；格式见下。由 rootcause --apply 写入，不来自单元 partial。 |
+| `attribution_history`、`attribution_commits` | 工具维护旧根因版本和正式提交来源、内容指纹及回执依据；不手改，不参与事实复核。 |
 | `observations`、`dynamic_sessions` | 独立动态工具生成的观测索引和固定会话配置引用；不手工伪造请求结果 |
 | `units` | 候选目录分组经模型确认或 plan --apply 提交的划分；object_ids / exposure / depth 由模型决定，附理由；phase 为 2 或 3。`round` 记哪一轮派的，`wave` 记该轮的第几波（正整数或 null，由 `dispatch --wave` 写入）：波次是派单容量的记账单位，不改变单元边界与冻结。被宿主拒掉的派单把单元回滚成 `planned` 并清掉 `wave`，下一波优先派；`dispatch --status` 按轮次与波次对账 |
 | `clusters` | 制品单元的相似性建议；`diff_files`逐条处置，`representative_unit_id`由裁决填写。制品边界以模型确认的 `units[kind=artifact]` 为准，能力和联系回查归属实例、材料及证据。旧 `artifacts` 仅作兼容数据，不再作为制品清单或覆盖分母 |
@@ -148,7 +152,7 @@ ID 一律是`<前缀>-<单元token>-<序号>`，单元`U-SH03`的 token 是`SH03
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" review --workspace "$AUDIT_WORKSPACE" --finding F-实际编号 --review-file /path/to/review.json
 ```
 
-`decision`取`retain/reject/needs_evidence`，分别产生`current/withdrawn/needs_review`状态。工具生成时间和复核指纹；不能手改指纹让过期复核通过。发现、检查或相关证据改变后需重新复核。撤销项仍在报告和历史里，SARIF只导出有效当前发现。
+`decision`取`retain/reject/needs_evidence`，分别产生`current/withdrawn/needs_review`状态。工具生成时间和复核指纹；不能手改指纹让过期复核通过。发现、检查或相关证据改变后需重新复核。撤销项保留历史；变化会使依赖归因和报告过期，不能只更新指纹。
 
 ## 控制有效性
 
@@ -171,7 +175,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" review --workspace "$AUDIT_WORKSPACE
 
 ## 输出
 
-`report`导出分类材料、索引与SARIF，人工成文按[两段式报告](report-format.md)执行，`report --check` 核对交付；`audit.py sarif`仅导出SARIF。`snapshot` 将完整工作区保存到快照的 `workspace/`，包含未合入的单元产物、断点、复核记录、运行日志、基线与观测；仅排除工作区根 `snapshots/`，避免递归历史。格式 2 清单记录全部相对路径、空目录与文件哈希，旧三文件快照继续校验。SARIF保留对象命题作为规则ID、本地检查独立编号、目标别名和相对路径、证据位置与稳定发现指纹。无源码位置时不编造行号；修复建议只作文本，不生成可自动应用的补丁。
+`report` 导出分类材料与 JSON 索引，人工成文按[两段式报告](report-format.md)执行，`report --check` 核对实际交付。`snapshot` 将完整工作区保存到快照 workspace/，包括未合入产物、复核、归因运行目录、基线与观测，排除根 snapshots/。格式 2 保留全部相对路径、空目录和哈希；旧快照中的历史 SARIF 按原清单读取，不生成或刷新该文件。
 
 发现事实与状态只在 audit.json 维护；模型按模板撰写解释，索引核对来源与完整性。重新导出不覆盖作者稿。校验通过只说明结构和引用一致，语义仍需回源复核。报告显示未完成覆盖与证据缺口；零发现、零检查和全部通过不是同一件事。
 
@@ -184,3 +188,81 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" review --workspace "$AUDIT_WORKSPACE
 5. 完成材料导出和人工撰写后运行 `report --check`、最终 `gate`、`validate`，再 `snapshot`。保存前让所有写入者落盘并暂停写入；符号链接、复制失败或复制期间内容变化会使本次快照失败，未完成目录不会作为完整快照发布。历史目录不覆盖，清单核验新增、缺失与内容变化。未完成审计也可保存，报告保留未完成状态。恢复时先校验快照，将格式 2 的 `workspace/` 复制到空工作区，再校验并核对目标 revision；旧格式只含共享记录与报告，恢复未合入工作仍需原单元目录。
 
 快照记录审计当时的输入位置和指纹；目标材料若已移动或不可读，当前验证会失败，不能把旧路径缺失解释为安全。迁移目标位置后显式更新`targets`并重新核对材料。
+
+## 发现粒度与归因
+
+finding 记录具体观察，current 只表示事实复核保留，不代表全局独立。一个缺陷可以关联多项 check；多个独立控制缺陷应分别记录。mechanism 依次说明已有能力、必要配置或交互、输入到失效点的路径与越界；impact 说明由此新增的能力或损失。
+
+可增量填写以下事实字段；它们进入事实复核指纹。缺字段的旧记录不自动失效，也不自动属于 chain/summary。
+
+- failure_points：对象数组，每项含 evidence_ids、expected_control、observed_failure，可加 symbol。引用实际证据，缺失控制不能编造不存在代码的行号。
+- related_findings：对象数组，每项含 finding_id、relation、reason、evidence_ids。relation 为 possible_same_defect/supplements/overlaps，均只是线索；目标须已存在，不确定时写 crosslead。
+
+正式处置的最小输入为 finding_id、kind、by、reason；rootcause --apply 在当前 base_sha256 匹配后生成历史 ID、时间和 source_digest。不能通过单元 partial 写入处置。
+
+| kind | 必需关联 | 计数与失效 |
+|---|---|---|
+| defect | comparison | 有效同源组计一次；未归组者还须 standalone 比较；标签本身不证明独立 |
+| supplement | target_finding_id | 直接指向有效 defect，随其呈现；目标失效或变成 supplement 时待处理，不自动沿指针传递 |
+| chain | finding_ids、chain_ids | 仅组合已有缺陷/能力；放入链叙述，不另计 |
+| summary | finding_ids、todo_ids | 仅归纳已有发现；放入总览，不另计；呈现待办此时可 open |
+| superseded | finding_ids | 只用于正式 withdrawn 的历史替代映射；替代目标失效需核查，不自动恢复原发现 |
+| pending | reason 中的具体缺口及下一步 | 不计为已确认独立项，仍保留在 current 发现清单和阶段报告 |
+
+comparison 包含 by、scope、reason、conclusion，以及实际比较的 finding_ids/evidence_ids/material_ids（至少一类非空）。conclusion 为 standalone/grouped；distinct 裁决中的 comparisons 使用 distinct。单例须核查有关组件、共享实现、副本、候选和显式关联；无候选不等于无需比较。distinct 的 comparisons 应覆盖全部裁决成员，写清具体差异，不能用同一句抽象契约替代比较。
+
+归因依赖发现事实、检查、证据、材料与有效复核，纯 root_cause_id 更新不撤销事实复核。新增或恢复 current、输入变更、组成员改变会形成具体待处理项；查询只派生有效状态，不写盘。needs_evidence 是合法事实结论，不因没有归因就变成无人处理。所有 current 发现均须有有效处置或 pending；宣称归因完成时 pending 为零。
+
+修改旧根因使用同一 ID；拆分或替代时在提交中列 retire_root_cause_ids，再提交新组及有关成员处置。历史根因、处置、发现与证据保留。旧裁决没有当前来源绑定时是待核线索，不自动变成已去重事实；按证据选择快速核对、补充比较或重新取证。
+
+## 归因任务及提交
+
+路径均相对审计工作区；run 位于 units/_reviews/rootcause/<run-id>/。source.json 是固定审计记录副本，manifest.json 是任务执行状态。每个 tasks/<task-id>/input.json 保存有关原始记录和候选；brief-<attempt>.md 是启动说明，result-<attempt>.json 是唯一临时结果文件。记录副本不冻结目标源码，回源时仍须核对材料指纹。
+
+```bash
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" --prepare
+# --input 可给显式任务打包计划；--packet-bytes 控制默认打包目标，不截断记录
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" --dispatch --run "$RUN" --task "$TASK" --capacity-file /path/to/capacity.json
+# 主代理将返回的 prompt 交宿主子代理工具，启动 rootcause_reviewer
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" --collect --run "$RUN" --returns-file /path/to/returns.json
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" --status --run "$RUN"
+```
+
+capacity-file 为 `{"limit":实际宿主上限,"active_agent_ids":[实际在跑的代理ID]}`。列表包括其他角色；工具同时核对所有归因运行的活动尝试和预留名额，不重复计算同一代理。没有容量文件时不猜测宿主占用。所有主代理写操作串行，同一任务同时只有一个活动尝试。单执行者时顺序完成相同任务与结果契约。
+
+returns-file 为 events 数组。每项给 task_id、attempt、event：started 还需 agent_id；completed 给指定 result_path；rejected/failed 给 reason，已 running 的失败还须 stopped=true，确认原执行者停止。dispatch 只记 dispatched，started 才记 running。重复事件不产生新尝试；未知启动状态先对账，不因没有结果文件自动重派。
+
+临时结果必须覆盖输入 finding_ids，字段如下；列表无条目时用空数组。
+
+```json
+{
+  "run_id": "实际运行ID", "task_id": "实际任务ID", "attempt": 1,
+  "input_digest": "派单提供的完整指纹", "reviewer": "归因执行者",
+  "assessments": [
+    {"finding_id": "实际发现ID", "proposed_kind": "pending", "reason": "待核对的具体问题"}
+  ],
+  "group_proposals": [], "comparisons": [], "cross_file_leads": [],
+  "fact_corrections": [], "open_items": [], "read_dependencies": [], "resolutions": []
+}
+```
+
+group_proposals 每项给 finding_ids、reason 和具体失效证据及成员差异；它们使用任务内编号，不分配正式根因身份。comparisons 每项给 finding_ids、conclusion（same/distinct/grouped/standalone/unresolved）、reason 及 evidence_ids。cross_file_leads、fact_corrections、open_items 每项给 finding_ids、reason、证据引用及明确下一步。补读依据登记 read_dependencies：category、id、sha256；sha256 是 `attribution.fingerprint(attribution.dependency_value(state, ref))`，来源类别为 findings/checks/evidence/materials/reviews/chains/report_todos/root_causes/controls/instances。
+
+collect 只校验、接收和汇总，不裁决语义。reconciliation/worklist.json 列出跨文件候选、重叠组、相反性质、merge/distinct 冲突及缺口，并为核对项生成 C- 开头的任务。按同一 dispatch/collect 协议完成；核对任务读取 input.issue、proposal_refs 及有关证据，仍逐条填写 assessments。文件组成员相同可复用输入，重叠不自动取并集。原始结果留在各自文件；后到结果不覆盖前一份判断。
+
+全部任务完成后，由主代理派 rootcause_reviewer 读取 manifest、worklist 和必要结果，形成 adjudication.json。该文件含 base_sha256（rootcause 查询当前值）、by、run_id、run_digest（worklist JSON 的 attribution.fingerprint）、root_causes、finding_dispositions、resolutions，可有 retire_root_cause_ids。每条 resolution 给 issue_id、resolution（resolved/pending）及 reason；未完成事实订正的成员处置保持 pending。最终文件必须处置本轮全部 current 发现。
+
+```bash
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS"
+python3 "$AUDIT_SKILL_DIR/scripts/audit.py" rootcause --workspace "$WS" --apply /path/to/adjudication.json
+```
+
+主代理为唯一正式写入者。apply 全批试算处置、引用、来源和唯一归属后一次保存 audit.json；成功提交由 attribution_commits 绑定内容，可恢复缺失回执。同一有效内容重复应用幂等，旧结果不能覆盖后续事实。小目标可直接提交同样的正式处置，不要求为了文件管理增加审计单元。仅有旧式 root_causes 的提交可留作历史线索，不满足新归因完成要求。
+
+输入或复核变化后创建新 run，保留旧输入和结果；无变化结果可以按原输入和依赖指纹核对复用，不能只修改 digest。新 current 发现须进入增量比较，原范围未完成时如实保留 pending。临时结果永不直接进入漏洞视图；只有正式处置及有效同源/单例比较参与计数。
+
+归因输入包只带按完整 finding ID 路由的 report_todos；未定向待办保留在 source.json，manifest.global_report_todo_ids 指向这些条目，收口角色统一核查。跨文件核对新发现的线索继续进入最终 worklist，由收口者裁决或保留 pending；不递归自动派出无限核对任务。
+
+单元替换保留已经复核或归因的原 finding ID 及其支撑检查、证据；需要拆分时保留旧条目，经正式 reject 退出 current，再提交 superseded 映射。不能先从 partial 删除旧条目再补历史链接。合入工具从正式 root_causes 恢复归因回链，单元作者不负责分配根因编号。
+
+rootcause 查询中的 candidate_coverage 仅说明候选应答情况，不能代替完整收口；有效计数和待处理项以 attribution.statistics/pending 为准。

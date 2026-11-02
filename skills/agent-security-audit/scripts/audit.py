@@ -20,14 +20,15 @@ import uuid
 
 sys.dont_write_bytecode = True
 from knowledge import SKILL, baseline_dir, digest, load_bundle, objects, read
-SCHEMA_VERSION = '1.7'
+SCHEMA_VERSION = '1.8'
 # Collections added by 1.2. They carry the scheduling layer: how the target was cut
 # into units, which round did what, and what the files alone cannot decide.
 SCHEDULING_COLLECTIONS = ('units', 'clusters', 'artifacts', 'rounds', 'chains', 'primitives',
                          'pending_decisions', 'scope_notes', 'crossleads', 'stale_notes',
                          'route_excluded', 'corrections', 'report_todos',
                          'withdrawn_reviews', 'reconciliations', 'object_scope',
-                         'target_patterns', 'form_gaps', 'retired_unit_ids', 'dismissed_candidates')
+                         'target_patterns', 'form_gaps', 'retired_unit_ids', 'dismissed_candidates',
+                         'finding_dispositions', 'attribution_history', 'attribution_commits')
 EMPTY_QUEUE = {'phase1_frozen': None, 'phase2_rows_frozen': None,
                'phase3_rows_frozen': None, 'phase3_critic': None,
                'census': None, 'partition_confirmed': False,
@@ -38,7 +39,7 @@ EMPTY_QUEUE = {'phase1_frozen': None, 'phase2_rows_frozen': None,
 # Every version this tool will still open. Bumping SCHEMA_VERSION without adding the
 # previous one here turns every existing record into an unrecognized one, refused even
 # by refresh — the migration path cannot run because the guard rejects the record first.
-MIGRATABLE = ('1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6')
+MIGRATABLE = ('1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7')
 # The host's ceiling on subagents running at once, used when the environment sets none.
 # The count is session-global, so the workers, the reviewers and the verify agents a
 # reviewer spawns all draw on the same ceiling, and a launch above it is refused rather
@@ -295,8 +296,6 @@ def archive(workspace, state, label, report=None):
             (payload / 'report.md').write_text(report, encoding='utf-8')
             from records import render_coverage
             (payload / 'coverage-details.md').write_text(render_coverage(state, workspace), encoding='utf-8')
-            from sarif import export_sarif
-            write_json(payload / 'report.sarif.json', export_sarif(state, workspace))
         archived, directories = snapshot_entries(staging)
         write_json(staging / 'manifest.json', {
             'format_version': 2, 'created_at': now(), 'purpose': label,
@@ -824,7 +823,7 @@ def build_parser():
     parser.add_argument('command', choices=['init', 'refresh', 'plan', 'cluster', 'cross',
                                             'surface', 'dispatch', 'seed', 'merge', 'gate',
                                             'validate', 'report', 'snapshot', 'review',
-                                            'sarif', 'propositions', 'recall', 'decide',
+                                            'propositions', 'recall', 'decide',
                                             'note', 'rootcause'])
     parser.add_argument('--workspace', required=True, type=Path)
     parser.add_argument('--name', default='target')
@@ -871,6 +870,14 @@ def build_parser():
     parser.add_argument('--replace', action='store_true',
                         help='merge / review --prepare: trial an atomic replacement; '
                              'changed reviewed conclusions require review withdrawal')
+    parser.add_argument('--dispatch', dest='dispatch_run', action='store_true', help='rootcause: prepare an isolated task launch')
+    parser.add_argument('--collect', action='store_true', help='rootcause: collect independent proposal files')
+    parser.add_argument('--run', help='rootcause: run id')
+    parser.add_argument('--task', help='rootcause: task id')
+    parser.add_argument('--capacity-file', type=Path, help='rootcause: host limit and active_agent_ids')
+    parser.add_argument('--returns-file', type=Path, help='rootcause: started/completed/failed/rejected events')
+    parser.add_argument('--input', type=Path, help='rootcause --prepare: explicit comparison task plan')
+    parser.add_argument('--packet-bytes', type=int, default=160000, help='rootcause prepare: target input packet bytes; never truncate a record')
     parser.add_argument('--unit', action='append', default=[])
     parser.add_argument('--partial', type=Path)
     parser.add_argument('--round', type=int)
@@ -923,8 +930,10 @@ def main():
             raise ValueError('--full and --check cannot be combined')
         if args.partial and args.command not in {'seed', 'merge'}:
             raise ValueError('--partial is only valid with seed and merge')
-        if args.prepare and args.command not in {'review', 'gate'}:
-            raise ValueError('--prepare is only valid with review and gate')
+        if args.prepare and args.command not in {'review', 'gate', 'rootcause'}:
+            raise ValueError('--prepare is only valid with review, gate and rootcause')
+        if (args.dispatch_run or args.collect or args.run or args.task or args.capacity_file or args.returns_file) and args.command != 'rootcause':
+            raise ValueError('归因运行选项只用于 rootcause')
         workspace = workspace_path(args.workspace)
         if args.command != 'init':
             checked = read(workspace / 'audit.json')
@@ -959,8 +968,27 @@ def main():
             # agent confirms a single writer first, exactly as it does for a review.
             from rootcause import apply_adjudication, survey
             state = read(workspace / 'audit.json')
-            result = (apply_adjudication(workspace, state, read(args.apply)) if args.apply
-                      else survey(state))
+            import rootcause_run as runs
+            if sum(bool(v) for v in (args.apply, args.prepare, args.dispatch_run, args.collect, args.status)) > 1:
+                raise ValueError('rootcause 每次只执行一个操作')
+            if args.prepare:
+                result = runs.prepare(workspace, state, args.run,
+                                      read(args.input) if args.input else None, args.packet_bytes)
+            elif args.dispatch_run:
+                result = runs.dispatch(workspace, state, args.run, args.task,
+                                       read(args.capacity_file) if args.capacity_file else None)
+            elif args.collect:
+                result = runs.collect(workspace, state, args.run,
+                                      read(args.returns_file) if args.returns_file else None)
+            elif args.status:
+                result = runs.status(workspace, state, args.run)
+            elif args.apply:
+                payload = read(args.apply)
+                result = apply_adjudication(workspace, state, payload)
+                if payload.get('run_id'):
+                    runs.record_receipt(workspace, payload['run_id'], result)
+            else:
+                result = survey(state)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         if args.command == 'decide':
@@ -1080,10 +1108,6 @@ def main():
                 if errors:
                     print(json.dumps(result, ensure_ascii=False, indent=2))
                     return 1
-                if args.command in {'report', 'snapshot', 'sarif'}:
-                    from sarif import export_sarif
-                    write_json(workspace / 'report.sarif.json', export_sarif(state, workspace))
-                    result['sarif'] = str(workspace / 'report.sarif.json')
                 if args.command == 'report':
                     from reporting import export_package, finalize_package, _inside
                     if args.check_report:
