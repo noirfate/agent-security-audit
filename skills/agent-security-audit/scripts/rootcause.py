@@ -285,10 +285,10 @@ def apply_adjudication(workspace, state, payload):
     if not isinstance(payload, dict):
         raise ValueError('裁决必须是对象')
     allowed = {'base_sha256', 'by', 'root_causes', 'finding_dispositions',
-               'retire_root_cause_ids', 'run_id', 'run_digest', 'resolutions'}
+               'retire_root_cause_ids', 'run_id', 'run_digest', 'resolutions', 'chains'}
     if set(payload) - allowed:
         raise ValueError('未知裁决字段：' + ', '.join(sorted(set(payload) - allowed)))
-    if not payload.get('root_causes') and not payload.get('finding_dispositions') and not payload.get('retire_root_cause_ids'):
+    if not payload.get('root_causes') and not payload.get('finding_dispositions') and not payload.get('retire_root_cause_ids') and not payload.get('chains'):
         raise ValueError('rootcause --apply needs nonempty decisions')
     content_hash = fingerprint(payload)
     commits = state.get('attribution_commits', [])
@@ -350,6 +350,35 @@ def apply_adjudication(workspace, state, payload):
         if rid in existing:
             history.append({'at': now(), 'record': copy.deepcopy(existing[rid])})
         existing[rid] = row
+    incoming_chains = payload.get('chains', [])
+    if not isinstance(incoming_chains, list):
+        raise ValueError('chains 必须为数组')
+    chain_ids = {c['id'] for c in working.get('chains', [])}
+    for chain in incoming_chains:
+        cid = chain.get('id')
+        if not isinstance(chain, dict) or not cid or cid in chain_ids:
+            problems.append('链 ID 缺失或已存在：' + str(cid)); continue
+        chain_ids.add(cid)
+        if not str(chain.get('title', '')).strip():
+            problems.append(str(cid) + ': 链缺少标题')
+        if chain.get('entry_exposure') not in {'EXT', 'ADJ', 'INT'}:
+            problems.append(str(cid) + ': entry_exposure 必须是 EXT/ADJ/INT')
+        steps = chain.get('steps') or []
+        if not isinstance(steps, list) or not steps:
+            problems.append(str(cid) + ': 链缺少步骤')
+        for step in steps:
+            if not str(step.get('description', '')).strip():
+                problems.append(str(cid) + ': 每跳需要衔接论证（step.description：谁触发、必要配置、为何能从上一跳到达）')
+            refs = [step.get(k) for k in ('check_id', 'finding_id') if step.get(k)]
+            if not refs:
+                problems.append(str(cid) + ': 每跳须引用 confirmed 检查或 current 发现'); continue
+            for kind_key, pool, ok in (('check_id', source_maps['checks'], lambda r: r.get('verdict') == 'confirmed' and r.get('status') == 'complete'),
+                                       ('finding_id', source_maps['findings'], lambda r: r.get('status') == 'current')):
+                rid = step.get(kind_key)
+                if rid and (rid not in pool or not ok(pool[rid])):
+                    problems.append(str(cid) + ': 跳引用无效或非 confirmed/current：' + str(rid))
+        working.setdefault('chains', []).append(dict(chain, by=payload.get('by')))
+        source_maps = indexes(working)
     dispositions = payload.get('finding_dispositions', [])
     if not isinstance(dispositions, list):
         raise ValueError('finding_dispositions 必须为数组')

@@ -116,6 +116,8 @@ FM 的 `risk_ids` 提供关联风险索引；单元 brief 展示风险编号、�
 
 全部单元及必要跨域增量合入、事实复核有结论后，按[归因任务及提交](references/records.md#归因任务及提交)准备全量 current finding 的比较输入。`rootcause --prepare` 按文件组织任务，主代理用 `rootcause --dispatch` 生成启动材料，派 [rootcause_reviewer](references/roles/rootcause_reviewer.md) 并发读取，各写独立临时结果。`--collect` 汇总并生成跨文件核对任务；收口角色完成比较和处置后，主代理 `--apply` 统一提交。脚本只检索、对账和落盘，不自动判断同源。未归组不等于独立，旧裁决需核对有效性；事实有误仍交回单元 reviewer。
 
+归因提交后、报告之前执行链推导轮：`rootcause --prepare --synthesis` 按「入口锚正向 / 落点反查 / 既有链接边」三类任务组织输入包（`partial` 计划不要求覆盖全部 current finding），派 [rootcause_reviewer](references/roles/rootcause_reviewer.md) 走查——每跳衔接论证、走不通记无链理由、可接既有链优先声明接边；产物为各任务 `synthesis-<n>.json`（协议名，`--collect` 校验回收）。合规链经 `rootcause --apply` 的 `chains` 通道落盘；接边与无链理由作为账本留在 run 目录，报告的 EXT 链节与残余边界消费它们。链推导不新增独立漏洞计数，揭示的新缺陷仍走正常发现流程。
+
 控制确实阻断失效时，关联`not_established`检查中的反证，记录控制有效范围、局限和复测方法。部分有效、未知和待复核分别记录；不适用不代表控制有效。对 Skill 的恶意行为判断与漏洞严重度分开，不按严重度推断作者意图。
 
 核对材料范围、连接边界和模型认领的正式候选都有去向；原始检索命中不要求逐条处置。可以保留明确的证据缺口，不能用“已完成”掩盖未检查部分。每次推进及时保存记录，中断或上下文压缩后从工作区恢复。

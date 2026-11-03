@@ -1,6 +1,7 @@
 """Pure attribution validity, dependency bindings and the shared vulnerability view."""
 import hashlib
 import json
+import re
 from collections import Counter
 
 KINDS = {'defect', 'supplement', 'chain', 'summary', 'superseded', 'pending'}
@@ -439,3 +440,80 @@ def build_vulnerability_view(state):
                            'supplements': kinds['supplement'], 'chains': kinds['chain'], 'summaries': kinds['summary'],
                            'pending_findings': len(pending), 'report_tasks': len(vulnerabilities),
                            'attribution_complete': not pending}}
+
+
+# ── Chain synthesis support (C1/C3 machinery; retrieval aid, never record fields) ──
+_SOURCE_EXTERNAL = re.compile(
+    r'外部内容|网页|邮件|入站消息|渠道消息|上传|issue|抓取|下载.{0,12}(内容|正文)|第三方.{0,8}(正文|内容|响应)|webhook|外部响应', re.I)
+_SOURCE_SUBVERTED = re.compile(
+    r'模型端点|模型响应|模型输出被|中转|供应商响应|marketplace|registry|市场|依赖安装|安装源|'
+    r'未固定版本|完整性校验|校验关闭|中间人|MITM|端点.{0,8}(改写|劫持|重定向)|镜像|插件宿主|MCP server', re.I)
+_CONDUIT = re.compile(
+    r'写入会话|appendChat|记忆.{0,4}(索引|写入|召回)|物化|落盘|投递|交付|send_file|'
+    r'升格|持久化|写入工作区|保存到|历史写入|改写.{0,8}SKILL', re.I)
+_SINK = re.compile(
+    r'渲染|iframe|srcDoc|markdown.{0,8}(渲染|预览)|预览|eval|exec|Popen|subprocess|'
+    r'下次(启动|加载|会话)|cron|定时|加载|上下文|凭据|system prompt', re.I)
+
+
+def entry_labels(state):
+    """Coarse retrieval labels for chain synthesis; computed per run, never stored."""
+    maps = indexes(state)
+    dispositions = latest_dispositions(state)
+    labels = {}
+    for finding in maps['findings'].values():
+        if finding.get('status') != 'current':
+            continue
+        text = ' '.join(str(finding.get(k) or '') for k in ('title', 'mechanism', 'impact'))
+        row = {'source': None, 'conduit': bool(_CONDUIT.search(text)),
+               'sink': sorted(set(_SINK.findall(text)))}
+        if _SOURCE_SUBVERTED.search(text):
+            row['source'] = 'subverted-trusted'
+        elif _SOURCE_EXTERNAL.search(text):
+            row['source'] = 'external'
+        row['defect'] = dispositions.get(finding['id'], {}).get('kind') == 'defect'
+        labels[finding['id']] = row
+    return labels
+
+
+def synthesis_task_plan(state, max_anchor_task=24):
+    """Build the chain-synthesis run plan: forward anchors, sink lookbacks, edge matching.
+
+    The plan is a retrieval aid; every hop still requires confirmed support and the
+    model writes the walk-through. Anchors prefer defect dispositions with a source
+    label; without any dispositions yet it degrades to source-labelled current findings.
+    """
+    labels = entry_labels(state)
+    maps = indexes(state)
+    anchors = [fid for fid, row in labels.items()
+               if row['source'] and (row['defect'] or not any(r.get('defect') for r in labels.values()))]
+    anchors.sort()
+    tasks, used = [], set()
+    for i in range(0, len(anchors), max_anchor_task):
+        chunk = anchors[i:i + max_anchor_task]
+        used.update(chunk)
+        tasks.append({'kind': 'synthesis-forward', 'finding_ids': chunk,
+                      'reason': '入口锚正向推导：逐跳问往下能走到哪，每跳衔接条件与 confirmed 承载',
+                      'instructions': '对每个入口锚：沿 confirmed 承载逐跳推导到资产/执行/持久化落点；'
+                                      '每跳写衔接论证（谁触发、必要配置、为何能从上一跳到达）；走不通记无链理由；'
+                                      '发现可接既有链时优先声明接边而非重开新链。'})
+    sinks = [fid for fid, row in labels.items() if row['sink'] and fid not in used]
+    sinks.sort()
+    for i in range(0, len(sinks), max_anchor_task):
+        chunk = sinks[i:i + max_anchor_task]
+        used.update(chunk)
+        tasks.append({'kind': 'synthesis-sink', 'finding_ids': chunk,
+                      'reason': '落点反查：列全部可达上游，与正向结果对账',
+                      'instructions': '对每个落点：反查全部可达上游（谁能把内容/能力送到该落点）；'
+                                      '与正向推导结果对账，分歧写明；汇聚型落点逐上游写衔接。'})
+    chains = [c for c in state.get('chains', []) if c.get('entry_exposure')]
+    if len(chains) >= 2:
+        members = sorted({s.get('finding_id') for c in chains for s in c.get('steps', []) if s.get('finding_id')} & set(labels))
+        if members:
+            tasks.append({'kind': 'synthesis-edges', 'finding_ids': members,
+                          'reason': '既有链出口能力 × 入口条件匹配：识别可接边的链对',
+                          'instructions': '读输入包中的全部链；对每对链问「A 的出口能力是否满足 B 的入口条件」；'
+                                          '命中的链对写接边论证（出口姿态、入口前提、衔接步骤），并核对中间跳的 confirmed 承载。'})
+    if not tasks:
+        raise ValueError('没有可推导的锚或落点：先完成归因或确认目标有不可信输入面')
+    return {'partial': True, 'tasks': tasks}

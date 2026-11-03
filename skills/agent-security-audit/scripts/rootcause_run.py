@@ -43,7 +43,7 @@ def load(workspace, run_id):
     return root, manifest, source
 
 
-def packet(state, ids, groups=None, candidate_rows=None, maps=None):
+def packet(state, ids, groups=None, candidate_rows=None, maps=None, kind='analysis', instructions=None):
     from rootcause import candidates
     facts = finding_packet(state, ids, maps)
     selected = set(ids)
@@ -54,6 +54,8 @@ def packet(state, ids, groups=None, candidate_rows=None, maps=None):
                  chains=[r for r in state.get('chains', []) if any(s.get('finding_id') in selected for s in r.get('steps', []))],
                  report_todos=[t for t in state.get('report_todos', [])
                                if selected & set(re.findall(r'(?<![A-Za-z0-9_-])(F-[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])', t.get('instruction', '')))])
+    if kind != 'analysis' or instructions:
+        facts.update(kind=kind, instructions=instructions or '')
     return facts
 
 
@@ -72,8 +74,8 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
     groups = file_groups(state)
     from rootcause import candidates
     candidate_rows, maps = candidates(state), indexes(state)
-    def make(ids, groups=None):
-        return packet(state, ids, groups, candidate_rows, maps)
+    def make(ids, groups=None, kind='analysis', instructions=None):
+        return packet(state, ids, groups, candidate_rows, maps, kind=kind, instructions=instructions)
     tasks = []
     if task_plan is not None:
         if not isinstance(task_plan, dict) or not isinstance(task_plan.get('tasks'), list):
@@ -81,7 +83,10 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
         for row in task_plan['tasks']:
             if not row.get('reason') or not row.get('finding_ids'):
                 raise ValueError('自定义比较任务需要 finding_ids 和 reason')
-            tasks.append(make(row['finding_ids']))
+            if row.get('kind') not in (None, 'analysis'):
+                if not isinstance(row.get('instructions'), str) or not row['instructions'].strip():
+                    raise ValueError('非 analysis 任务需要 instructions')
+            tasks.append(make(row['finding_ids'], row.get('groups'), row.get('kind') or 'analysis', row.get('instructions')))
     else:
         current_groups, current_ids = [], set()
         for group in groups:
@@ -95,8 +100,11 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
             tasks.append(make(current_ids, current_groups))
     current = {f['id'] for f in state['findings'] if f['status'] == 'current'}
     covered = {fid for task in tasks for fid in task['finding_ids']}
-    if covered != current:
+    partial = bool(task_plan and task_plan.get('partial'))
+    if not partial and covered != current:
         raise ValueError('任务必须覆盖全部 current finding 且无额外成员')
+    if partial and not covered <= current:
+        raise ValueError('partial 计划的成员也必须是 current finding')
     manifest = {'version': 1, 'run_id': run_id, 'created_at': now(), 'status': 'prepared',
                 'source_sha256': fingerprint(state), 'base_sha256': digest(state),
                 'finding_ids': sorted(current), 'tasks': {}, 'packet_bytes': packet_bytes,
@@ -112,9 +120,12 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
             tid = 'T%04d' % number
             rel = 'tasks/' + tid + '/input.json'
             write_json(staging / rel, data)
-            manifest['tasks'][tid] = {'id': tid, 'kind': 'analysis', 'finding_ids': data['finding_ids'],
+            manifest['tasks'][tid] = {'id': tid, 'kind': data.get('kind', 'analysis'),
+                                      'finding_ids': data['finding_ids'],
                                       'input_path': rel, 'input_digest': fingerprint(data),
                                       'state': 'planned', 'attempts': [], 'selected_attempt': None}
+            if partial:
+                manifest['partial'] = True
         reuse_results(staging, root.parent, manifest, state)
         write_json(staging / 'manifest.json', manifest)
         staging.rename(root)
@@ -216,7 +227,8 @@ def dispatch(workspace, state, run_id, task_id, capacity):
     if len(ids) + reserved + 1 > limit:
         raise ValueError('宿主容量已满；等待在跑任务返回，不启动新代理')
     n = len(task['attempts']) + 1
-    rel = 'tasks/%s/result-%d.json' % (task_id, n)
+    stem = 'synthesis' if task.get('kind') not in (None, 'analysis', 'reconciliation') else 'result'
+    rel = 'tasks/%s/%s-%d.json' % (task_id, stem, n)
     brief_rel = 'tasks/%s/brief-%d.md' % (task_id, n)
     role = SKILL / 'references/roles/rootcause_reviewer.md'
     prompt = ('# 归因任务\n\n读取角色契约：%s\n\n'
@@ -240,6 +252,37 @@ def dispatch(workspace, state, run_id, task_id, capacity):
 
 def validate_result(state, task, result, attempt, run_id):
     if not isinstance(result, dict): raise ValueError('结果必须为对象')
+    if task.get('kind') not in (None, 'analysis', 'reconciliation'):
+        maps = indexes(state)
+        problems = []
+        proposals = result.get('proposals')
+        if result.get('task_id') != task['id']:
+            problems.append('synthesis 产物 task_id 不匹配')
+        if not isinstance(proposals, list) or not proposals:
+            problems.append('synthesis 产物需要非空 proposals')
+        else:
+            from rootcause import candidates as _unused  # noqa: F401（保持导入一致性）
+            for pr in proposals:
+                if not isinstance(pr, dict) or pr.get('outcome') not in ('chain', 'no_chain', 'edge', 'pending'):
+                    problems.append('proposal 需要 outcome ∈ chain/no_chain/edge/pending'); continue
+                if not str(pr.get('reason', pr.get('anchor', ''))).strip():
+                    problems.append('proposal 需要 anchor 或 reason')
+                chain = pr.get('chain') or {}
+                steps = chain.get('steps') or []
+                if pr.get('outcome') == 'chain' and not steps:
+                    problems.append('chain 提案至少一跳（既有链亦存在合法单跳）')
+                for st in steps:
+                    if not str(st.get('description', '')).strip():
+                        problems.append('每跳需要衔接论证 description')
+                    ref = st.get('check_id') or st.get('finding_id')
+                    if not ref:
+                        problems.append('每跳须引用 confirmed 检查或 current 发现'); continue
+                    if st.get('check_id') and not (st['check_id'] in maps['checks'] and maps['checks'][st['check_id']].get('verdict') == 'confirmed' and maps['checks'][st['check_id']].get('status') == 'complete'):
+                        problems.append('跳引用非 confirmed 检查: ' + str(st.get('check_id')))
+                    if st.get('finding_id') and maps['findings'].get(st.get('finding_id'), {}).get('status') != 'current':
+                        problems.append('跳引用非 current 发现: ' + str(st.get('finding_id')))
+        if problems: raise ValueError('；'.join(problems))
+        return
     allowed = {'run_id','task_id','attempt','input_digest','reviewer','assessments',
                'group_proposals','comparisons','cross_file_leads','fact_corrections',
                'open_items','read_dependencies','resolutions'}
@@ -285,7 +328,7 @@ def _issues(state, results):
         issues[key] = {'id': key, 'kind': kind, 'finding_ids': ids, 'basis': basis}
     by_finding, groups = {}, []
     for tid, result in sorted(results.items()):
-        for row in result['assessments']:
+        for row in result.get('assessments', []):
             by_finding.setdefault(row['finding_id'], []).append((tid, row))
         for group in result.get('group_proposals', []):
             groups.append((tid, set(group['finding_ids'])))
@@ -369,7 +412,8 @@ def collect(workspace, state, run_id, events=None):
     # Cross-file jobs use the same isolated protocol; no graph closure becomes a verdict.
     from rootcause import candidates
     candidate_rows, maps = candidates(source), indexes(source)
-    analyses_ready = all(task['state'] == 'returned' for task in working['tasks'].values() if task['kind'] == 'analysis') and not stale
+    has_analysis = any(task['kind'] == 'analysis' for task in working['tasks'].values())
+    analyses_ready = has_analysis and all(task['state'] == 'returned' for task in working['tasks'].values() if task['kind'] == 'analysis') and not stale
     for issue in issues if analyses_ready else []:
         tid = 'C-' + issue['id'][2:]
         if tid in working['tasks']: continue

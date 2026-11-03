@@ -118,6 +118,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
 收口     rootcause --prepare → 按容量 rootcause --dispatch → 主代理启动 rootcause_reviewer
          → 各写独立结果 → rootcause --collect → 跨文件核对任务（同协议可并发）
          → 收口 rootcause_reviewer 形成裁决文件 → 主代理 rootcause --apply
+         → 归因 apply 后跑链推导轮：--prepare --synthesis（锚/落点/接边三类）→ 派
+           rootcause_reviewer 写 synthesis-<n>.json → --collect 回收 → 合规链经 apply 的
+           chains 通道落盘（接边/无链理由留账本给报告）
          → gate --prepare → report 导出材料 → report_writer 按模板成文并闭合 report_todos
          → 一名复核终报 → report --check → gate（不带 --prepare）→ validate / snapshot
 ```

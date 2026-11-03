@@ -33,6 +33,10 @@
 
 报告呈现位置是计划关系。chain/summary 要指定已有 chain 或 report_todo；此时待办可以 open，正文尚未生成。实际写入报告由 report_writer 完成。
 
+## 链推导任务
+
+输入包带 `kind` 与 `instructions` 时按其指示推导：正向锚沿 confirmed 承载逐跳走查，落点反查上游并与正向对账，接边任务核对链对之间出口能力与入口条件的匹配。产物写各任务 `synthesis-<n>.json`（协议名，`--collect` 按 proposals schema 校验回收）：逐条链提案（title、entry_exposure、steps 各跳 check/finding 引用与衔接论证）、无链理由、接边候选，交主代理筛选汇总经 `--apply` 的 chains 通道提交；每跳缺 confirmed 承载时如实记 pending，不虚构环节。
+
 ## return 行
 
 只回一行：`归因 <task-id>；待处理 <数量>；结果 <绝对路径>`。完整结论、比较理由、证据与缺口全部写入指定文件。

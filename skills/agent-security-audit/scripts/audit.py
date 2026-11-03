@@ -876,7 +876,8 @@ def build_parser():
     parser.add_argument('--task', help='rootcause: task id')
     parser.add_argument('--capacity-file', type=Path, help='rootcause: host limit and active_agent_ids')
     parser.add_argument('--returns-file', type=Path, help='rootcause: started/completed/failed/rejected events')
-    parser.add_argument('--input', type=Path, help='rootcause --prepare: explicit comparison task plan')
+    parser.add_argument('--input', type=Path, help='rootcause --prepare: explicit task plan')
+    parser.add_argument('--synthesis', action='store_true', help='rootcause --prepare: build the chain-synthesis plan')
     parser.add_argument('--packet-bytes', type=int, default=160000, help='rootcause prepare: target input packet bytes; never truncate a record')
     parser.add_argument('--unit', action='append', default=[])
     parser.add_argument('--partial', type=Path)
@@ -932,7 +933,7 @@ def main():
             raise ValueError('--partial is only valid with seed and merge')
         if args.prepare and args.command not in {'review', 'gate', 'rootcause'}:
             raise ValueError('--prepare is only valid with review, gate and rootcause')
-        if (args.dispatch_run or args.collect or args.run or args.task or args.capacity_file or args.returns_file) and args.command != 'rootcause':
+        if (args.dispatch_run or args.collect or args.run or args.task or args.capacity_file or args.returns_file or args.synthesis) and args.command != 'rootcause':
             raise ValueError('归因运行选项只用于 rootcause')
         workspace = workspace_path(args.workspace)
         if args.command != 'init':
@@ -972,8 +973,13 @@ def main():
             if sum(bool(v) for v in (args.apply, args.prepare, args.dispatch_run, args.collect, args.status)) > 1:
                 raise ValueError('rootcause 每次只执行一个操作')
             if args.prepare:
-                result = runs.prepare(workspace, state, args.run,
-                                      read(args.input) if args.input else None, args.packet_bytes)
+                plan = read(args.input) if args.input else None
+                if args.synthesis:
+                    if plan is not None:
+                        raise ValueError('--synthesis 与 --input 不同时使用')
+                    from attribution import synthesis_task_plan
+                    plan = synthesis_task_plan(state)
+                result = runs.prepare(workspace, state, args.run, plan, args.packet_bytes)
             elif args.dispatch_run:
                 result = runs.dispatch(workspace, state, args.run, args.task,
                                        read(args.capacity_file) if args.capacity_file else None)

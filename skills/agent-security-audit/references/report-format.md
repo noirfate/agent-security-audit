@@ -39,7 +39,7 @@
 
 四节按模板顺序排列：主要发现概览、从 EXT 外部入口进入的攻击链、覆盖与结论边界、全部 Critical / High 漏洞。summary 不包含修复建议。读者仅读 summary 就能理解主要发现的入口前提、原理和影响；详情链接仅用于进一步核对。
 
-EXT 链逐条呈现，包括未闭合候选的明确落点。每条以 `### CHAIN-ID 标题` 开头，写出外部主体、入口、必要身份/配置/用户交互、逐跳失效与能力变化、最终资产和影响。EXT 不等于公网匿名访问。元数据 chain_dispositions 必须覆盖索引全部 ext_chains，取 static_trace / partial / needs_evidence；这些值表达本次叙述的证据边界，不是运行时成功标记。原记录仍为 candidate 的链只能写 partial 或 needs_evidence。其他链是否闭合要读证据判断，缺少 status 不能机械判为成立。实测与静态走查分别说明，不因补齐叙述而宣称复现。
+EXT 链分级呈现，包括未闭合候选的明确落点。链推导轮可能产生大量 EXT 链（数十条以上）：**与最终漏洞视图存在成员关联的 EXT 链逐条走查**，每条以 `### CHAIN-ID 标题` 开头，写出外部主体、入口、必要身份/配置/用户交互、逐跳失效与能力变化、最终资产和影响；**无成员关联的 EXT 链以表格批量呈现**（编号、入口、终点、disposition），并在节首说明分组依据。链推导 run 目录中的接边（edge）与无链理由账本是本节与残余边界的直接输入，逐条消费或注明去向。EXT 不等于公网匿名访问。元数据 chain_dispositions 必须覆盖索引全部 ext_chains，取 static_trace / partial / needs_evidence；这些值表达本次叙述的证据边界，不是运行时成功标记。原记录仍为 candidate 的链只能写 partial 或 needs_evidence。其他链是否闭合要读证据判断，缺少 status 不能机械判为成立。实测与静态走查分别说明，不因补齐叙述而宣称复现。
 
 最后一节逐条列出全部 `current` 且 `severity` 为 `critical/high` 的发现。表格固定四列：编号、等级、漏洞原理、影响。编号按 finding_map_index 指向实际呈现位置，漏洞成员用报告锚点，chain/summary/pending 用 summary.md 的发现锚点；每个发现一行，同根因也不省略成员。等级先 critical 后 high，同等级按 EXT、ADJ、INT、未分类，再按 ID 排序，与 index.high_findings 一致。原理与影响各用简洁完整句子，保留决定成立的前提，不用标题或“见详情”代替解释。表格单元格中的竖线写成 `\|`。
 

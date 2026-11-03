@@ -200,6 +200,8 @@ finding 记录具体观察，current 只表示事实复核保留，不代表全�
 
 正式处置的最小输入为 finding_id、kind、by、reason；rootcause --apply 在当前 base_sha256 匹配后生成历史 ID、时间和 source_digest。不能通过单元 partial 写入处置。
 
+`rootcause --apply` 亦接受 `chains`：纯组合链（各段全为既有发现/检查、无新事实）经此通道落盘。每条链需要唯一 `id`、`title`、`entry_exposure`（EXT/ADJ/INT）与非空 `steps`；**每跳必须写衔接论证**（`step.description`：谁触发、必要配置、为何能从上一跳到达）并引用 confirmed 检查或 current 发现——缺论证或引用非 confirmed 的提交整批拒绝。链推导若揭示新缺陷，仍走正常发现流程，不在 apply 里立新 finding。
+
 | kind | 必需关联 | 计数与失效 |
 |---|---|---|
 | defect | comparison | 有效同源组计一次；未归组者还须 standalone 比较；标签本身不证明独立 |
@@ -249,6 +251,8 @@ returns-file 为 events 数组。每项给 task_id、attempt、event：started �
 group_proposals 每项给 finding_ids、reason 和具体失效证据及成员差异；它们使用任务内编号，不分配正式根因身份。comparisons 每项给 finding_ids、conclusion（same/distinct/grouped/standalone/unresolved）、reason 及 evidence_ids。cross_file_leads、fact_corrections、open_items 每项给 finding_ids、reason、证据引用及明确下一步。补读依据登记 read_dependencies：category、id、sha256；sha256 是 `attribution.fingerprint(attribution.dependency_value(state, ref))`，来源类别为 findings/checks/evidence/materials/reviews/chains/report_todos/root_causes/controls/instances。
 
 collect 只校验、接收和汇总，不裁决语义。reconciliation/worklist.json 列出跨文件候选、重叠组、相反性质、merge/distinct 冲突及缺口，并为核对项生成 C- 开头的任务。按同一 dispatch/collect 协议完成；核对任务读取 input.issue、proposal_refs 及有关证据，仍逐条填写 assessments。文件组成员相同可复用输入，重叠不自动取并集。原始结果留在各自文件；后到结果不覆盖前一份判断。
+
+归因完成后可另行运行 `rootcause --prepare --synthesis` 构建链推导任务（入口锚正向、落点反查、既有链接边三类；`partial` 计划不要求覆盖全部 current）。链推导任务的产物文件名为 `synthesis-<n>.json`（按 attempt 递增，区别于 analysis 任务的 `result-<n>.json`），内容为 `proposals` 数组（outcome ∈ chain/no_chain/edge/pending，chain 需逐跳衔接论证并引用 confirmed 检查或 current 发现）；`--collect` 按此 schema 校验回收。合规链经 apply 的 chains 通道提交，接边与无链理由留在 run 目录作为报告输入的账本。
 
 全部任务完成后，由主代理派 rootcause_reviewer 读取 manifest、worklist 和必要结果，形成 adjudication.json。该文件含 base_sha256（rootcause 查询当前值）、by、run_id、run_digest（worklist JSON 的 attribution.fingerprint）、root_causes、finding_dispositions、resolutions，可有 retire_root_cause_ids。每条 resolution 给 issue_id、resolution（resolved/pending）及 reason；未完成事实订正的成员处置保持 pending。最终文件必须处置本轮全部 current 发现。
 
