@@ -88,12 +88,6 @@ def search_call_sites(workspace, state, symbols, call_forms=None, material_ids=N
     return results
 
 
-def count_callers(workspace, state, symbols, call_forms=None):
-    """Compatibility alias returning textual matching-line counts, never real callers."""
-    return {sym: row['match_lines'] for sym, row in
-            search_call_sites(workspace, state, symbols, call_forms).items()}
-
-
 def validate_patterns(workspace, state, payload):
     """Everything a target pattern must carry before it may be registered."""
     from knowledge import baseline_dir, load_bundle, objects

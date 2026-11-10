@@ -10,13 +10,11 @@ import tempfile
 sys.dont_write_bytecode = True
 
 SUMMARY_HEADINGS = (
-    "1. 主要发现概览", "2. 从 EXT 外部入口进入的攻击链",
-    "3. 覆盖与结论边界", "4. 全部 Critical / High 漏洞",
+    "1. 审计对象与关键结论", "2. 全部严重问题", "3. 重要攻击场景", "4. 证据边界",
 )
 VULNERABILITY_HEADINGS = (
-    "1. 基本信息", "2. 组件与安全边界", "3. 漏洞原理与影响",
-    "4. 攻击路径与成立前提", "5. 代码与证据分析",
-    "6. 验证情况与复现方法", "7. 影响范围与结论边界",
+    "1. 问题概述", "2. 组件与安全边界", "3. 触发条件与输入",
+    "4. 漏洞机制与证据", "5. 受影响范围", "6. 验证与复现材料", "7. 结论边界与来源",
 )
 
 
@@ -50,96 +48,110 @@ def rewrite_metadata(path, change):
 
 
 def author_fixture(workspace, state, index):
-    """Write small authored golden artifacts for tests, not production reports."""
+    """Author golden test pages independently of the production renderer."""
     report = workspace / "report"
     findings = {f["id"]: f for f in state["findings"]}
-    reports_by_finding = {fid: row["path"] for fid, row in index.get("finding_map", {}).items()}
     for task in index["tasks"]:
         path = report / task["path"]
         path.parent.mkdir(parents=True, exist_ok=True)
-        for fid in task["finding_ids"]:
-            reports_by_finding[fid] = task["path"]
-        meta = {"type": "vulnerability", "source_digest": task["source_digest"],
-                "finding_ids": task["finding_ids"],
-                "root_cause_id": task.get("root_cause_id"),
-                "todo_ids": task.get("todo_ids", [])}
-        rows = [metadata_line(meta).rstrip(), "", "# 主体与资源归属没有绑定", ""]
+        meta = {"type": "vulnerability", "report_id": task["id"],
+                "source_digest": task["source_digest"], "finding_ids": task["finding_ids"],
+                "vulnerability_ids": task["vulnerability_ids"],
+                "root_cause_id": task.get("root_cause_id"), "todo_ids": task.get("todo_ids", [])}
+        rows = [metadata_line(meta).rstrip(), "", "# " + task["title"], ""]
         for heading in VULNERABILITY_HEADINGS:
             rows.extend(["## " + heading, ""])
             if heading.startswith("1."):
-                rows.extend(["| 项目 | 内容 |", "|---|---|",
-                             "| 发现编号 | " + ", ".join(task["finding_ids"]) + " |",
-                             "| 验证程度 | 静态分析；未执行目标 |", ""])
-            elif heading.startswith("3."):
+                rows.extend(["这份报告综合相关入口，各自的独立失效身份及权限前提保留。", ""])
+            elif heading.startswith("4."):
+                evidence = {row["id"]: row for row in state["evidence"]}
+                materials = state.get("materials", {})
                 for fid in task["finding_ids"]:
                     f = findings[fid]
-                    rows.extend(['<a id="' + fid + '"></a>', "",
-                                 f["mechanism"], "", f["impact"], ""])
-            elif heading.startswith("4."):
-                rows.extend(["入口消息中的标识被传到读取器，读取器使用所选主体访问资源。"
-                             "网络可达、已有令牌和内部会话是不同路径各自的前提。", ""])
+                    rows.extend(['<a id="' + fid + '"></a>', ""])
+                    for eid in f["evidence_ids"]:
+                        row = evidence.get(eid)
+                        material = materials.get((row or {}).get("material_id"))
+                        lines = (row.get("locator") or {}).get("lines") if row else None
+                        if material and lines:
+                            rows.extend(["**文件**：`%s:%d-%d`" % (material["path"], lines[0], lines[1]),
+                                         "", "```text", row["observation"], "```", ""])
+                            break
+                    rows.extend([f["mechanism"], "", f["impact"], ""])
+            elif heading.startswith("3."):
+                rows.extend(["请求中的标识会进入读取器。网络可达、管理令牌与任务会话是不同路径各自的前提。", ""])
             elif heading.startswith("5."):
-                rows.extend(["入口调用点和资源访问器形成所述静态路径。"
-                             "输入格式检查没有提供主体与资源的对应关系。", ""])
+                rows.extend(["只覆盖记录中已确认的入口；共同阅读不会把不同权限前提合成一种。", ""])
             elif heading.startswith("6."):
-                rows.extend(["代码路径已定位；未执行端到端复现。"
-                             "运行期网络策略与安装方式仍需要单独验证。", ""])
+                rows.extend(["已静态定位代码；请求材料未执行。现场网络策略及真实响应没有核验。", ""])
             elif heading.startswith("7."):
-                rows.extend(["本结论限于列出的入口及配置。"
-                             "持有管理令牌与无身份网络访问不能合并成同一攻击前提。", ""])
+                rows.extend(["没有把候选路径当成已闭合链，来源记录中的反证与待定范围继续保留。", ""])
+                for cid, placement in index.get("chain_locations", {}).items():
+                    if placement.get("kind") == "report" and placement.get("target_id") == task["id"]:
+                        rows.extend(['<a id="' + cid + '"></a>', "相关静态链及其已知前提，未做运行验证。", ""])
             else:
-                rows.extend(["组件把调用方传入的标识用于查询资源；安全边界要求调用主体只能读取自己的资源。", ""])
+                rows.extend(["组件接收入站标识并查询资源；安全边界要求调用主体只能读取获准资源。", ""])
         path.write_text("\n".join(rows) + "\n", encoding="utf-8")
-    ext = [c for c in state.get("chains", []) if c.get("entry_exposure") == "EXT"]
-    required_other_chains = {cid for row in index.get("finding_map", {}).values() for cid in row.get("chain_ids", [])}
-    dispositions = {c["id"]: ("needs_evidence" if c.get("status") == "candidate"
-                              else "static_trace") for c in ext}
-    meta = {"type": "summary", "source_digest": index["source_digest"],
-            "todo_ids": [], "chain_dispositions": dispositions}
+
+    high_by_report = {}
+    for vuln in index["high_vulnerabilities"]:
+        high_by_report.setdefault(vuln["report_id"], []).append(vuln)
+    entries = [{"id": "H-" + task["id"], "report_id": task["id"],
+                "vulnerability_ids": sorted(v["id"] for v in high_by_report[task["id"]])}
+               for task in index["tasks"] if task["id"] in high_by_report]
+    dispositions = {c["id"]: ("needs_evidence" if c.get("status") == "candidate" else "static_trace")
+                    for c in state.get("chains", [])}
+    meta = {"type": "summary", "source_digest": index["source_digest"], "todo_ids": [],
+            "summary_entries": entries, "chain_dispositions": dispositions}
     rows = [metadata_line(meta).rstrip(), "", "# 示例组件安全审计摘要", "",
-            "本夹具审计代码中的身份与资源访问关系；未启动目标。", "",
             "## " + SUMMARY_HEADINGS[0], "",
-            "调用方可以选择资源读取主体，包装层未将这一选择绑定到调用者身份。"
-            "影响和入口条件以每条发现的范围为准。", "",
-            "## " + SUMMARY_HEADINGS[1], ""]
-    if not ext:
-        rows.extend(["本记录没有登记 EXT 起点攻击链。", ""])
-    for chain in ext:
-        rows.extend(["### " + chain["id"] + " " + chain["title"], "",
-                     "入口与前提：外部主体向已开放的入口发送标识字段。", "",
-                     "攻击路径：入站标识 → 资源选择器 → 目标资源。", "",
-                     "影响：取得所选主体的资源；各跳受对应发现的权限前提限制。", "",
-                     "证据边界：" + ("候选链；外部入口到任务的环节仍缺证据。"
-                                  if chain.get("status") == "candidate"
-                                  else "静态路径已定位；没有动态复现结论。"), ""])
+            "审计代码中调用身份与资源归属的关系；各入口已有权限不同，未执行目标。", "",
+            "## " + SUMMARY_HEADINGS[1], "",
+            "| 问题 | 等级 | 原理与条件 | 影响 |", "|---|---|---|---|"]
+    for entry in entries:
+        task = next(t for t in index["tasks"] if t["id"] == entry["report_id"])
+        levels = {v["severity"] for v in high_by_report[entry["report_id"]]}
+        level_text = " / ".join(x.title() for x in ("critical", "high") if x in levels)
+        rows.append('| <a id="%s"></a> [%s](%s) | %s | %s | %s |' % (
+            entry["id"], task["title"], task["path"], level_text,
+            "调用主体没有绑定所选资源；每个入口各自保留网络或令牌条件。",
+            "可访问未被授权的资源，具体范围由报告内各独立子问题限定。"))
+    if not entries:
+        rows.extend(["", "没有已确认的 High/Critical 独立缺陷。"])
+    rows.extend(["", "## " + SUMMARY_HEADINGS[2], ""])
+    if not index.get("scenarios"):
+        rows.extend(["没有需要在正文综合解释的已登记场景；其他链保留各自主去向。", ""])
+    chains = {c["id"]: c for c in state.get("chains", [])}
+    for scene in index.get("scenarios", []):
+        rows.extend(['<a id="' + scene["id"] + '"></a>', "", "### " + scene["title"], "",
+                     "调用者最初只控制入口字段；它进入组件后影响资源选择，继而接触目标资产。"
+                     "已有令牌、任务会话等条件须按各分支分别满足，不能互相借用。", ""])
+        for cid in scene["chain_ids"]:
+            chain = chains[cid]
+            rows.extend([cid + "：" + ("候选路径，组件衔接仍缺证据。" if chain.get("status") == "candidate"
+                         else "已有静态调用证据，未执行目标。"), ""])
+    rows.extend(["## " + SUMMARY_HEADINGS[3], "",
+                 "未取得现场网络策略；链描述不提升记录状态。非独立观察和待定项不混入已确认问题数。", ""])
     for fid, location in index.get("finding_map", {}).items():
-        if location["path"].startswith("summary.md#"):
-            rows.extend(['<a id="' + fid + '"></a>', findings[fid]["mechanism"], ""])
-    for chain in state.get("chains", []):
-        if chain["id"] in required_other_chains and chain.get("entry_exposure") != "EXT":
-            rows.extend(["### " + chain["id"] + " " + chain["title"], "", "组合关系及其已知边界。", ""])
-    rows.extend(["## " + SUMMARY_HEADINGS[2], "",
-                 "运行期入口的网络限制尚未取得；仅以代码证据判断机制。", "",
-                 "## " + SUMMARY_HEADINGS[3], "",
-                 "| 编号 | 等级 | 漏洞原理 | 影响 |", "|---|---|---|---|"])
-    high = [f for f in state["findings"] if f["status"] == "current"
-            and f["severity"] in {"critical", "high"}]
-    for f in sorted(high, key=lambda row: ({"critical": 0, "high": 1}[row["severity"]], row["id"])):
-        rows.append("| [%s](%s) | %s | %s | %s |" % (
-            f["id"], reports_by_finding[f["id"]], f["severity"].title(),
-            f["mechanism"], f["impact"]))
-    if not high:
-        rows.extend(["", "当前没有 High 或 Critical 的有效发现。"])
+        if (location.get("path") or "").startswith("summary.md#"):
+            rows.extend(['<a id="' + fid + '"></a>', "归因待定：" + findings[fid]["mechanism"], ""])
     (report / "summary.md").write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
 def run_checks(skill_dir):
     import reporting
-    from report_fixtures import EXPECTED, build_case, change_one_finding, add_large_record, _review, adjudicate_fixture
+    from report_fixtures import (EXPECTED, build_case, change_one_finding, add_large_record,
+                                 _review, adjudicate_fixture, confirm_fixture_plan)
     problems = []
     import self_check
-    if 'two-stage-reporting' not in {name for name, _ in self_check.CHECKS}:
-        problems.append('two-stage reporting is not registered in the full suite')
+    required_checks = {'two-stage-reporting', 'report-plan', 'framework-plan'}
+    missing_checks = required_checks - {name for name, _ in self_check.CHECKS}
+    if missing_checks:
+        problems.append('report workflow checks not registered: ' + ', '.join(sorted(missing_checks)))
+    contract = (Path(skill_dir) / 'references/report-format.md').read_text(encoding='utf-8')
+    versions = re.findall(r'^<!-- report-index-version: (\d+) -->$', contract, re.M)
+    if len(versions) != 1 or int(versions[0]) != reporting.VERSION:
+        problems.append('report index version differs from its contract')
     for name, expected in [('summary', SUMMARY_HEADINGS),
                            ('vulnerability', VULNERABILITY_HEADINGS)]:
         path = Path(skill_dir) / 'references' / 'templates' / (name + '.md')
@@ -149,10 +161,29 @@ def run_checks(skill_dir):
     if tuple(reporting.SUMMARY_HEADINGS) != SUMMARY_HEADINGS or tuple(reporting.VULNERABILITY_HEADINGS) != VULNERABILITY_HEADINGS:
         problems.append('template and validator headings differ')
 
+    # A citation resolves by its shortest unambiguous tail, or not at all. Guessing
+    # matters here and nowhere else: this target ships 267 packages, so `SKILL.md`
+    # and `config.yaml` each name many different files, and picking the first one
+    # reports a confident, wrong line count against a file the author never cited.
+    decoys = {"m1": {"id": "m1", "target_id": "repo", "path": "one/dup.ts"},
+              "m2": {"id": "m2", "target_id": "repo", "path": "two/dup.ts"},
+              "m3": {"id": "m3", "target_id": "repo", "path": "two/only.ts"}}
+    index = reporting._material_suffix_index(decoys)
+    if reporting._resolve_citation("dup.ts", index) is not None:
+        problems.append("an ambiguous citation resolves to a guess instead of nothing")
+    if (reporting._resolve_citation("one/dup.ts", index) or {}).get("id") != "m1":
+        problems.append("a qualified citation does not resolve to its own material")
+    if (reporting._resolve_citation("only.ts", index) or {}).get("id") != "m3":
+        problems.append("an unambiguous basename does not resolve")
+    if reporting._resolve_citation("absent.ts", index) is not None:
+        problems.append("a citation outside the audit resolves to something")
+
     @contextmanager
     def prepared(case):
         with tempfile.TemporaryDirectory(prefix="two-stage-report-test-") as tmp:
             workspace, state, expected = build_case(tmp, case, skill_dir)
+            from records import validate
+            assert not validate(workspace, state), "positive fixture is not a valid audit record"
             index = reporting.export_package(workspace, state)
             author_fixture(workspace, state, index)
             errors = reporting.validate_package(workspace, state)
@@ -169,13 +200,28 @@ def run_checks(skill_dir):
         with prepared(case) as (workspace, state, expected, index):
             actual = sorted(t["id"] for t in index["tasks"])
             assert actual == sorted(expected["reports"]), (actual, expected["reports"])
-            source_current = sorted(fid for task in index["tasks"] for fid in task["finding_ids"])
-            assert source_current == sorted(expected["current"]), source_current
+            assert sorted(index["finding_map"]) == sorted(expected["current"])
+            task_members = [fid for task in index["tasks"] for fid in task["finding_ids"]]
+            assert len(task_members) == len(set(task_members)), "finding has duplicate primary report"
+            identities = [vid for task in index["tasks"] for vid in task["vulnerability_ids"]]
+            assert sorted(identities) == sorted(expected["vulnerabilities"]), identities
+            assert index["statistics"]["report_tasks"] == len(expected["reports"])
+            assert index["statistics"]["attribution"]["independent_vulnerabilities"] == len(identities)
             text = (workspace / "report/summary.md").read_text(encoding="utf-8")
-            last = text.split("## " + SUMMARY_HEADINGS[-1], 1)[1]
-            ids = re.findall(r"^\| \[(F-[^]]+)\]\(", last, re.M)
+            entries = read_metadata(text)["summary_entries"]
+            ids = [vid for entry in entries for vid in entry["vulnerability_ids"]]
             assert sorted(ids) == sorted(expected["high"]), ids
-            assert len(ids) == len(set(ids)), "summary silently duplicated a finding"
+            assert len(ids) == len(set(ids)), "summary silently duplicated an independent defect"
+            section = text.split("## " + SUMMARY_HEADINGS[1], 1)[1].split("## " + SUMMARY_HEADINGS[2], 1)[0]
+            row_ids = re.findall(r'^\| <a id="([^"]+)"></a>', section, re.M)
+            assert row_ids == [e["id"] for e in entries], row_ids
+            assert set(read_metadata(text)["chain_dispositions"]) == {c["id"] for c in state["chains"]}
+            for fid in expected.get("observations", []):
+                assert index["finding_map"][fid]["kind"] == "observation"
+                assert fid not in task_members and index["finding_map"][fid]["path"]
+            for fid in expected.get("pending", []):
+                assert index["finding_map"][fid]["path"] == "summary.md#" + fid
+                assert '<a id="' + fid + '"></a>' in text
 
     for case in EXPECTED:
         test("positive-" + case, lambda case=case: positive(case))
@@ -183,15 +229,23 @@ def run_checks(skill_dir):
     def reject(name, mutate, case="merged"):
         def run():
             with prepared(case) as (workspace, state, expected, index):
+                before_state = deepcopy(state)
+                before_files = {p.relative_to(workspace): p.read_bytes()
+                                for p in workspace.rglob("*") if p.is_file()}
                 mutate(workspace, state, index)
+                after_files = {p.relative_to(workspace): p.read_bytes()
+                               for p in workspace.rglob("*") if p.is_file()}
+                assert state != before_state or after_files != before_files, "mutation had no effect"
                 errors = reporting.validate_package(workspace, state)
                 assert errors, "violating artifact passed"
         test(name, run)
 
-    def table_row(workspace, fid="F-AA01-01"):
+    def table_row(workspace, entry_id=None):
         p = workspace / "report/summary.md"
+        if entry_id is None:
+            entry_id = read_metadata(p.read_text(encoding="utf-8"))["summary_entries"][0]["id"]
         matches = [line for line in p.read_text(encoding="utf-8").splitlines(keepends=True)
-                   if line.startswith("| [" + fid + "](")]
+                   if line.startswith('| <a id="' + entry_id + '"></a>')]
         assert len(matches) == 1, matches
         return p, matches[0]
 
@@ -207,7 +261,7 @@ def run_checks(skill_dir):
 
     def insert_non_current(workspace, state, index):
         p, line = table_row(workspace)
-        extra = "| [F-BB01-01](vulnerabilities/F-AA01-01.md) | High | 该发现仍待取证。 | 影响尚未确定。 |\n"
+        extra = '| <a id="H-NOT-CURRENT"></a> [待取证问题](vulnerabilities/F-AA01-01.md) | High | 该发现仍待取证。 | 影响尚未确定。 |\n'
         replace_once(p, line, line + extra)
     reject("needs-review-is-not-current", insert_non_current, "mixed")
 
@@ -264,11 +318,11 @@ def run_checks(skill_dir):
     def index_hides_required_finding(workspace, state, index):
         p = workspace / "report/index.json"
         stored = json.loads(p.read_text(encoding="utf-8"))
-        assert stored["high_findings"], "fixture has no high finding to remove"
-        before = len(stored["high_findings"])
-        stored["high_findings"].pop()
+        assert stored["high_vulnerabilities"], "fixture has no high identity to remove"
+        before = len(stored["high_vulnerabilities"])
+        stored["high_vulnerabilities"].pop()
         p.write_text(json.dumps(stored, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        assert len(json.loads(p.read_text())["high_findings"]) == before - 1
+        assert len(json.loads(p.read_text())["high_vulnerabilities"]) == before - 1
     reject("audit-record-not-index-is-the-denominator", index_hides_required_finding)
 
     def section_after_table(workspace, state, index):
@@ -276,7 +330,7 @@ def run_checks(skill_dir):
         text = p.read_text(encoding="utf-8")
         p.write_text(text + "\n## 5. 其他说明\n\n一段附加内容。\n", encoding="utf-8")
         assert p.read_text(encoding="utf-8") != text
-    reject("high-table-must-be-last-section", section_after_table)
+    reject("summary-template-has-no-unregistered-section", section_after_table)
 
     def missing_template_section(workspace, state, index):
         task = index["tasks"][0]
@@ -284,10 +338,52 @@ def run_checks(skill_dir):
         replace_once(p, "## " + VULNERABILITY_HEADINGS[5] + "\n", "")
     reject("authored-template-section-is-required", missing_template_section)
 
-    def lose_ext_heading(workspace, state, index):
+    def authored_page(workspace, index):
+        p = workspace / "report" / index["tasks"][0]["path"]
+        return p, p.read_text(encoding="utf-8")
+
+    def strip_code_excerpts(workspace, state, index):
+        p, text = authored_page(workspace, index)
+        assert "```" in text, "positive fixture carries no excerpt to remove"
+        p.write_text(text.replace("```", "~~~"), encoding="utf-8")
+
+    reject("authored-report-needs-a-code-excerpt", strip_code_excerpts)
+
+    def widen_cited_span(workspace, state, index):
+        p, text = authored_page(workspace, index)
+        match = re.search(r"`([^`\n]+):(\d+)-(\d+)`", text)
+        assert match, "positive fixture cites no file:line"
+        widened = "`%s:%s-%d`" % (match.group(1), match.group(2), int(match.group(3)) + 10000)
+        p.write_text(text.replace(match.group(0), widened, 1), encoding="utf-8")
+
+    reject("cited-span-must-sit-inside-an-evidence-locator", widen_cited_span)
+
+    def hide_member_source(workspace, state, index):
+        """Drop the location without leaving a dangling citation.
+
+        Renaming the file instead would leave `elsewhere.txt:1-3` behind, which the
+        locator-span rule catches — and then this case passes while the rule it is
+        meant to pin stays disabled. Measured: that is exactly how the first version
+        of this case went green against a mutant with the member rule switched off.
+        """
+        p, text = authored_page(workspace, index)
+        kept = [line for line in text.splitlines(keepends=True)
+                if not line.startswith("**文件**：")]
+        stripped = "".join(kept)
+        assert stripped != text, "positive fixture carries no file line to drop"
+        for name in sorted({m["path"].rsplit("/", 1)[-1] for m in state["materials"].values()}):
+            stripped = stripped.replace(name, "（位置已抹去）")
+        assert "```" in stripped, "this case must leave the excerpt rule satisfied"
+        assert not re.search(r"`[^`\n]+\.[A-Za-z][A-Za-z0-9]{0,5}:\d+", stripped), \
+            "a surviving file:line would trip the span rule instead of the member rule"
+        p.write_text(stripped, encoding="utf-8")
+
+    reject("every-member-needs-a-source-location", hide_member_source)
+
+    def lose_scene_anchor(workspace, state, index):
         p = workspace / "report/summary.md"
-        replace_once(p, "### CHAIN-AA01-01 ", "### 已隐藏编号 ")
-    reject("ext-chain-missing-from-body", lose_ext_heading, "ext")
+        replace_once(p, '<a id="SCENE-ENTRY"></a>', '')
+    reject("scene-missing-from-body", lose_scene_anchor, "ext")
 
     def promote_candidate(workspace, state, index):
         p = workspace / "report/summary.md"
@@ -297,13 +393,30 @@ def run_checks(skill_dir):
         rewrite_metadata(p, change)
     reject("candidate-is-not-a-closed-chain", promote_candidate, "ext")
 
-    def drift(workspace, state, index):
-        old = index["source_digest"]
-        changed_fid = change_one_finding(workspace, state)
-        assert changed_fid == "F-AA01-01"
-        new_index = reporting.export_package(workspace, state)
-        assert old != new_index["source_digest"], "source change was not reflected in export"
-    reject("updated-evidence-leaves-authored-report-stale", drift)
+    def drift():
+        with prepared("merged") as (workspace, state, expected, index):
+            changed_fid = change_one_finding(workspace, state)
+            assert changed_fid == "F-AA01-01"
+            # record_review legitimately saves audit.json; isolate the export's
+            # side effects only after that authorized record write has finished.
+            before = {p.relative_to(workspace): p.read_bytes() for p in workspace.rglob("*") if p.is_file()}
+            assert reporting.validate_package(workspace, state), "old report accepted changed source"
+            for operation in (lambda: reporting.build_tasks(state),
+                              lambda: reporting.export_package(workspace, state)):
+                try:
+                    operation()
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError("stale/unconfirmed plan was silently refreshed")
+            after = {p.relative_to(workspace): p.read_bytes() for p in workspace.rglob("*") if p.is_file()}
+            assert before == after, "rejected export changed or archived old authored files"
+            adjudicate_fixture(state)
+            confirm_fixture_plan(state)
+            new_index = reporting.export_package(workspace, state)
+            assert index["source_digest"] != new_index["source_digest"]
+            assert reporting.validate_package(workspace, state), "old authored body survived source change"
+    test("updated-source-requires-explicit-reconfirmation", drift)
 
     def regeneration_preserves_authored():
         with prepared("merged") as (workspace, state, expected, index):
@@ -345,12 +458,14 @@ def run_checks(skill_dir):
             eid, observation = add_large_record(state)
             _review(workspace, state)
             adjudicate_fixture(state)
+            confirm_fixture_plan(state)
             reporting.export_package(workspace, state)
             chunks = list((workspace / "report/records").rglob("*.md"))
             assert chunks, "no record shards exported"
             material = "\n".join(p.read_text(encoding="utf-8") for p in chunks)
             assert eid in material
             assert "结束：仍须保留最后一句。" in material, "record tail was cut to satisfy a shard budget"
+            assert json.dumps(observation, ensure_ascii=False) in material, "record content was altered or truncated"
     test("oversize-record-keeps-tail", large_record_is_whole)
 
     def coordinate_id_is_not_a_path():
@@ -433,6 +548,7 @@ def run_checks(skill_dir):
                     {"id": "RT-AA01-06", "instruction": "引用 AF-AA01-01 与 F-AA01-01-extra，不含完整发现 ID。", "status": "open"},
                     {"id": "RT-AA01-07", "instruction": "总览说明证据边界。", "status": "open"},
                 ]
+                confirm_fixture_plan(state)
                 index = reporting.export_package(workspace, state)
                 actual = {t["id"]: t["todo_ids"] for t in index["tasks"]}
                 short_task = "RC-01" if case == "merged" else "F-AA01-01"
@@ -461,6 +577,7 @@ def run_checks(skill_dir):
                     "check_ids": [check["id"]]})
             _review(workspace, state)
             adjudicate_fixture(state)
+            confirm_fixture_plan(state)
             from records import validate
             assert not validate(workspace, state), "hash-seed fixture must remain a valid audit"
             source = Path(tmp) / "source.json"
@@ -480,6 +597,180 @@ def run_checks(skill_dir):
             state["controls"].reverse()
             assert reporting.build_tasks(state) == first, "control inventory order changed task fingerprints"
     test("task-fingerprint-is-process-stable", task_fingerprint_is_process_stable)
+
+    def multi_identity_report():
+        with prepared("grouped") as (workspace, state, expected, index):
+            task = next(t for t in index["tasks"] if t["id"] == "REPORT-ACCESS")
+            assert task["vulnerability_ids"] == ["F-AA01-01", "F-BB01-01"]
+            assert task["root_cause_id"] is None
+            assert index["statistics"]["report_tasks"] == 2
+            assert index["statistics"]["attribution"]["independent_vulnerabilities"] == 4
+            text = (workspace / "report/summary.md").read_text(encoding="utf-8")
+            assert "| Critical / High |" in text
+            assert len(read_metadata(text)["summary_entries"]) == 1
+    test("one-report-retains-several-independent-identities", multi_identity_report)
+
+    def omit_independent_identity(workspace, state, index):
+        p = workspace / "report/summary.md"
+        def change(meta):
+            row = meta["summary_entries"][0]
+            assert len(row["vulnerability_ids"]) == 2
+            row["vulnerability_ids"].pop()
+        rewrite_metadata(p, change)
+    reject("same-report-high-subproblem-cannot-disappear", omit_independent_identity, "grouped")
+
+    def high_coverage_without_grade_or_link_error():
+        with prepared("grouped") as (workspace, state, expected, index):
+            p = workspace / "report/summary.md"
+            original_meta = read_metadata(p.read_text(encoding="utf-8"))
+            assert original_meta["summary_entries"][0]["vulnerability_ids"] == ["F-AA01-01", "F-BB01-01"]
+            def change(meta):
+                meta["summary_entries"][0]["vulnerability_ids"].remove("F-BB01-01")
+            rewrite_metadata(p, change)
+            p, line = table_row(workspace)
+            assert "| Critical / High |" in line
+            replace_once(p, line, line.replace("| Critical / High |", "| Critical |", 1))
+            modified_meta = read_metadata(p.read_text(encoding="utf-8"))
+            assert modified_meta["summary_entries"][0]["vulnerability_ids"] == ["F-AA01-01"]
+            errors = reporting.validate_package(workspace, state)
+            assert len(errors) == 1 and "summary 严重问题覆盖缺失或重复" in errors[0], errors
+    test("high-coverage-independent-of-grade-and-link", high_coverage_without_grade_or_link_error)
+
+    def duplicate_identity_in_metadata(workspace, state, index):
+        p = workspace / "report/summary.md"
+        def change(meta):
+            row = meta["summary_entries"][0]
+            row["vulnerability_ids"].append(row["vulnerability_ids"][0])
+        rewrite_metadata(p, change)
+    reject("duplicate-cross-reference-does-not-create-another-high-identity", duplicate_identity_in_metadata)
+
+    def wrong_entry_owner(workspace, state, index):
+        p = workspace / "report/summary.md"
+        rewrite_metadata(p, lambda meta: meta["summary_entries"][0].update(report_id="REPORT-TASK"))
+    reject("summary-entry-cannot-borrow-another-report-identity", wrong_entry_owner, "grouped")
+
+    def include_low_identity(workspace, state, index):
+        p = workspace / "report/summary.md"
+        rewrite_metadata(p, lambda meta: meta["summary_entries"][0]["vulnerability_ids"].append("F-CC01-02"))
+    reject("low-severity-member-is-not-a-high-summary-identity", include_low_identity, "grouped")
+
+    def wrong_report_metadata(workspace, state, index, field, value):
+        p = workspace / "report" / index["tasks"][0]["path"]
+        rewrite_metadata(p, lambda meta: meta.update({field: value}))
+    reject("report-id-is-bound-to-plan", lambda w, s, i: wrong_report_metadata(w, s, i, "report_id", "REPORT-OTHER"))
+    reject("report-independent-members-are-bound-to-plan",
+           lambda w, s, i: wrong_report_metadata(w, s, i, "vulnerability_ids", []))
+
+    def missing_chain_disposition(workspace, state, index):
+        p = workspace / "report/summary.md"
+        rewrite_metadata(p, lambda meta: meta["chain_dispositions"].pop("CHAIN-BB01-01"))
+    reject("non-ext-chain-also-needs-disposition", missing_chain_disposition, "ext")
+
+    def missing_report_chain_anchor(workspace, state, index):
+        task = next(t for t in index["tasks"] if t["id"] == "F-BB01-01")
+        replace_once(workspace / "report" / task["path"], '<a id="CHAIN-BB01-01"></a>', '')
+    reject("report-placed-chain-needs-body-anchor", missing_report_chain_anchor, "ext")
+
+    def multi_chain_scene_is_legal():
+        with prepared("ext") as (workspace, state, expected, index):
+            body = (workspace / "report/summary.md").read_text(encoding="utf-8")
+            assert '<a id="SCENE-ENTRY"></a>' in body
+            assert "### CHAIN-" not in body, "positive fixture still encodes obsolete per-chain headings"
+            assert not reporting.validate_package(workspace, state)
+    test("multiple-chain-scene-does-not-require-per-chain-headings", multi_chain_scene_is_legal)
+
+    def pending_anchor_missing(workspace, state, index):
+        replace_once(workspace / "report/summary.md", '<a id="F-BB01-01"></a>', '')
+    reject("serious-pending-needs-explicit-boundary-anchor", pending_anchor_missing, "non_independent")
+
+    def observation_masquerades_as_defect(workspace, state, index):
+        p = workspace / "report/summary.md"
+        rewrite_metadata(p, lambda meta: meta["summary_entries"][0]["vulnerability_ids"].append("F-CC01-02"))
+    reject("observation-is-not-independent-defect", observation_masquerades_as_defect, "non_independent")
+
+    def check_only_chain_input():
+        with prepared("check_chain") as (workspace, state, expected, index):
+            chain = next(c for c in state["chains"] if c["id"] == "CHAIN-AA01-02")
+            assert all("finding_id" not in step for step in chain["steps"])
+            for fid in ("F-AA01-01", "F-CC01-01"):
+                task = next(t for t in index["tasks"] if fid in t["finding_ids"])
+                assert "CHAIN-AA01-02" in task["input_refs"].get("chains", [])
+                assert {"CHK-AA01-0001", "CHK-CC01-0001"} <= set(task["input_refs"]["checks"])
+            location = index["chain_locations"]["CHAIN-CC01-02"]
+            assert location["kind"] == "boundary" and location["path"].startswith("records/")
+    test("check-only-chain-keeps-cross-component-inputs", check_only_chain_input)
+
+    def chain_check_without_finding_is_still_writer_input():
+        from report_plan import bind_plan
+        with tempfile.TemporaryDirectory(prefix="report-chain-check-input-") as tmp:
+            workspace, state, expected = build_case(tmp, "check_chain", skill_dir)
+            evidence = deepcopy(next(e for e in state["evidence"] if e["id"] == "E-CC01-002"))
+            evidence["id"] = "E-CC01-003"
+            state["evidence"].append(evidence)
+            check = deepcopy(next(c for c in state["checks"] if c["id"] == "CHK-CC01-0002"))
+            check.update(id="CHK-CC01-0901", evidence_ids=[evidence["id"]])
+            state["checks"].append(check)
+            chain = next(c for c in state["chains"] if c["id"] == "CHAIN-AA01-02")
+            chain["steps"].append({"check_id": check["id"], "note": "没有独立 finding 的衔接控制。"})
+            raw = deepcopy(state["report_plan"])
+            raw.pop("source_digest")
+            for key in ("groups", "scenarios", "chain_placements"):
+                for row in raw[key]:
+                    row.pop("source_digest")
+            state["report_plan"] = bind_plan(state, raw)
+            assert all(check["id"] not in f["check_ids"] for f in state["findings"])
+            index = reporting.export_package(workspace, state)
+            task = next(t for t in index["tasks"] if "F-AA01-01" in t["finding_ids"])
+            assert check["id"] in task["input_refs"]["checks"], "chain-only check omitted from writer inputs"
+            assert evidence["id"] in task["input_refs"]["evidence"], "chain-only evidence omitted from writer inputs"
+    test("chain-check-without-finding-remains-writer-input", chain_check_without_finding_is_still_writer_input)
+
+    def every_finding_body_carries_its_mechanism():
+        with prepared("small") as (workspace, state, expected, index):
+            for finding in state["findings"]:
+                relative = index["locations"]["findings"][finding["id"]].split("#", 1)[0]
+                body = (workspace / "report" / relative).read_text(encoding="utf-8")
+                assert finding["mechanism"] in body
+    test("every-finding-body-carries-its-mechanism", every_finding_body_carries_its_mechanism)
+
+    def withdrawn_source_does_not_publish():
+        from review import record_review
+        with prepared("small") as (workspace, state, expected, index):
+            finding = state["findings"][0]
+            record_review(workspace, state, finding["id"], {
+                "reviewer": "同一模型回源复核（撤回夹具）", "decision": "reject",
+                "rationale": "受影响路径的前提不成立，撤回该发现。",
+                "counterevidence_analysis": "上游控制阻断入口。",
+                "evidence_ids": finding["evidence_ids"][:1], "counterevidence_ids": [],
+            })
+            assert finding["status"] == "withdrawn", "withdrawal mutation did not take effect"
+            before = {p.relative_to(workspace): p.read_bytes() for p in workspace.rglob("*") if p.is_file()}
+            assert reporting.validate_package(workspace, state)
+            try:
+                reporting.export_package(workspace, state)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("withdrawn member silently reused old report plan")
+            after = {p.relative_to(workspace): p.read_bytes() for p in workspace.rglob("*") if p.is_file()}
+            assert before == after, "rejected export archived or changed author artifacts"
+    test("withdrawn-source-rejects-before-author-file-changes", withdrawn_source_does_not_publish)
+
+    def missing_plan_export_is_non_destructive():
+        with prepared("small") as (workspace, state, expected, index):
+            before = {p.relative_to(workspace): p.read_bytes() for p in workspace.rglob("*") if p.is_file()}
+            assert state["report_plan"] is not None
+            state["report_plan"] = None
+            assert reporting.validate_package(workspace, state)
+            try:
+                reporting.export_package(workspace, state)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("missing report plan was silently regenerated")
+            after = {p.relative_to(workspace): p.read_bytes() for p in workspace.rglob("*") if p.is_file()}
+            assert before == after
+    test("missing-plan-export-preserves-existing-package", missing_plan_export_is_non_destructive)
 
     return problems
 

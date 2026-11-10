@@ -1,4 +1,4 @@
-"""Small realistic records for two-stage report tests.
+"""Small source-bound records for attribution and report-organization tests.
 
 This file only creates a caller-owned temporary workspace. It never changes an
 installed skill or the source audit. Fixtures preserve the current record shape
@@ -16,24 +16,27 @@ import sys
 sys.dont_write_bytecode = True
 
 EXPECTED = {
-    "empty": {"current": [], "high": [], "reports": [], "ext": []},
+    "empty": {"current": [], "high": [], "reports": [], "ext": [], "vulnerabilities": []},
     "small": {
         "current": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
         "high": ["F-AA01-01", "F-BB01-01"],
         "reports": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
+        "vulnerabilities": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
         "ext": [],
     },
     "mixed": {
         "current": ["F-AA01-01", "F-CC01-02"],
         "high": ["F-AA01-01"],
         "reports": ["F-AA01-01", "F-CC01-02"],
+        "vulnerabilities": ["F-AA01-01", "F-CC01-02"],
         "ext": [],
         "not_current": ["F-BB01-01", "F-CC01-01"],
     },
     "merged": {
         "current": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
-        "high": ["F-AA01-01", "F-CC01-01"],
+        "high": ["RC-01", "F-CC01-01"],
         "reports": ["RC-01", "F-CC01-01", "F-CC01-02"],
+        "vulnerabilities": ["RC-01", "F-CC01-01", "F-CC01-02"],
         "ext": [],
         "members": {"RC-01": ["F-AA01-01", "F-BB01-01"]},
     },
@@ -41,14 +44,35 @@ EXPECTED = {
         "current": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
         "high": ["F-AA01-01", "F-BB01-01"],
         "reports": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
+        "vulnerabilities": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
         "ext": ["CHAIN-AA01-01", "CHAIN-CC01-01"],
         "candidate": ["CHAIN-CC01-01"],
         "not_ext": ["CHAIN-BB01-01"],
     },
     "zero_current": {
-        "current": [], "high": [], "reports": [], "ext": [],
+        "current": [], "high": [], "reports": [], "ext": [], "vulnerabilities": [],
         "not_current": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
     },
+}
+
+# The shapes preserve the pilot's duplicate-observation / independent-control /
+# check-only-chain distinctions. Identifiers and content are deliberately generic.
+EXPECTED["grouped"] = {
+    "current": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
+    "high": ["F-AA01-01", "F-BB01-01"],
+    "vulnerabilities": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
+    "reports": ["REPORT-ACCESS", "REPORT-TASK"], "ext": [],
+}
+EXPECTED["non_independent"] = {
+    "current": ["F-AA01-01", "F-BB01-01", "F-CC01-01", "F-CC01-02"],
+    "high": ["F-AA01-01"], "vulnerabilities": ["F-AA01-01"],
+    "reports": ["F-AA01-01"], "ext": [],
+    "pending": ["F-BB01-01"], "observations": ["F-CC01-02"],
+    "supplements": ["F-CC01-01"],
+}
+EXPECTED["check_chain"] = {
+    **deepcopy(EXPECTED["small"]), "ext": ["CHAIN-AA01-02"],
+    "candidate": ["CHAIN-AA01-02"],
 }
 
 
@@ -89,7 +113,7 @@ def _give_meaning(state):
         row.update(title=titles[fid], mechanism=mechanisms[fid], impact=impacts[fid],
                    severity=severity, exposure=exposure,
                    severity_reason="按此入口已有的权限前提和证据支持的影响定级。",
-                   responsibility="示例组件维护者", remediation="按调用主体约束资源归属。",
+                   responsibility="示例组件维护者",
                    validation="仅静态走查；未启动目标或执行端到端利用。",
                    residual_risk="运行期入口的网络限制未纳入本夹具。")
     for row in state["checks"]:
@@ -166,11 +190,76 @@ def build_case(tmp_path, case, skill_dir):
                         "check_id": "CHK-BB01-0001", "finding_id": "F-BB01-01",
                         "note": "不应因高影响把 ADJ 改成 EXT。"}]},
         ]
+    elif case == "grouped":
+        state["findings"][1]["mechanism"] = (
+            "另一管理适配器使用独立的读取实现，只检查令牌存在，没有比较资源属主。")
+    elif case == "non_independent":
+        state["findings"][2].update(
+            title="同一读取缺口的附加入口条件", severity="medium",
+            mechanism="另一入口到达已确认的读取器，补足请求字段和条件，没有新增失效实现。",
+            impact="补充已确认读取缺口的影响范围，不增加独立缺陷。")
+        state["findings"][3].update(
+            mechanism="错误响应包含非敏感内部 request_id；当前证据显示它只用于追踪。",
+            impact="已确认的设计观察，当前证据不支持独立安全影响。")
+    elif case == "check_chain":
+        state["chains"] = [
+            {"id": "CHAIN-AA01-02", "entry_exposure": "EXT", "status": "candidate",
+             "title": "外部标识进入跨组件读取与任务路径",
+             "description": "比较材料只通过 check_id 关联；组件衔接仍待取证。",
+             "steps": [{"check_id": "CHK-AA01-0001", "note": "外部读取观察。"},
+                       {"check_id": "CHK-CC01-0001", "note": "任务落点观察，不能省略衔接条件。"}]},
+            {"id": "CHAIN-CC01-02", "entry_exposure": "INT",
+             "title": "只保留在边界索引的内部观察",
+             "steps": [{"check_id": "CHK-CC01-0002", "note": "不增加独立缺陷。"}]},
+        ]
     elif case == "zero_current":
         decisions = {row["id"]: ("reject" if i % 2 else "needs_evidence")
                      for i, row in enumerate(state["findings"])}
     _review(workspace, state, decisions)
     adjudicate_fixture(state)
+    if case == "non_independent":
+        from attribution import decision_digest
+        for row in state["finding_dispositions"]:
+            fid = row["finding_id"]
+            if fid == "F-BB01-01":
+                row.update(kind="pending", reason="失效机制已证实，独立归属比较尚未闭合。")
+                row.pop("comparison", None)
+            elif fid == "F-CC01-01":
+                row.update(kind="supplement", target_finding_id="F-AA01-01",
+                           reason="同一缺口的补充入口材料。")
+                row.pop("comparison", None)
+            elif fid == "F-CC01-02":
+                row.update(kind="observation", evidence_ids=["E-CC01-002"],
+                           reason="已核对为非敏感追踪标识，仅保留设计观察。")
+                row.pop("comparison", None)
+            row["source_digest"] = decision_digest(state, row)
+    if case == "grouped":
+        confirm_fixture_plan(state, groups={
+            "REPORT-ACCESS": ["F-AA01-01", "F-BB01-01"],
+            "REPORT-TASK": ["F-CC01-01", "F-CC01-02"],
+        })
+    elif case == "ext":
+        confirm_fixture_plan(state, scenarios=[{
+            "id": "SCENE-ENTRY", "title": "外部入口的不同条件分支",
+            "chain_ids": ["CHAIN-AA01-01", "CHAIN-CC01-01"],
+            "vulnerability_ids": ["F-AA01-01", "F-BB01-01", "F-CC01-01"],
+            "grouping_reason": "共同说明外部入口，但分别保留已定位路径和待定衔接。",
+        }], chain_placements=[{
+            "chain_id": "CHAIN-BB01-01", "kind": "report", "target_id": "F-BB01-01",
+            "reason": "需要管理令牌的邻接路径随对应技术报告呈现。",
+        }])
+    elif case == "check_chain":
+        confirm_fixture_plan(state, scenarios=[{
+            "id": "SCENE-CROSS", "title": "跨组件条件与证据边界",
+            "chain_ids": ["CHAIN-AA01-02"],
+            "vulnerability_ids": ["F-AA01-01", "F-CC01-01"],
+            "grouping_reason": "通过检查引用关联不同组件，不改变独立缺陷身份。",
+        }], chain_placements=[{
+            "chain_id": "CHAIN-CC01-02", "kind": "boundary", "target_id": None,
+            "reason": "此内部观察只需在机械链边界索引保留。",
+        }])
+    else:
+        confirm_fixture_plan(state)
     from audit import save
     save(workspace, state)
     return workspace, state, deepcopy(EXPECTED[case])
@@ -197,6 +286,29 @@ def change_one_finding(workspace, state):
         "evidence_ids": row["evidence_ids"][:1], "counterevidence_ids": [],
     })
     return row["id"]
+
+
+def confirm_fixture_plan(state, groups=None, scenarios=None, chain_placements=None):
+    """Explicit test-author confirmation; never called implicitly by adjudication.
+
+    The default hand-authored cases retain one report for each known identity.
+    Multi-identity cases pass their intended groups. No production code may use
+    this fixture convenience to silently refresh stale plans or decide grouping.
+    """
+    from attribution import build_vulnerability_view
+    from report_plan import bind_plan
+    view = build_vulnerability_view(state)
+    if groups is None:
+        groups = {v["id"]: [v["id"]] for v in view["vulnerabilities"]}
+    raw = {"version": 1, "groups": [
+        {"id": gid, "title": "示例安全问题 " + gid,
+         "framework_object_ids": [], "vulnerability_ids": list(vids),
+         "grouping_reason": "夹具作者明确指定阅读组织，各独立失效身份分别保留。"}
+        for gid, vids in groups.items()],
+        "scenarios": deepcopy(scenarios or []),
+        "chain_placements": deepcopy(chain_placements or [])}
+    state["report_plan"] = bind_plan(state, raw, view)
+    return state["report_plan"]
 
 
 def main():

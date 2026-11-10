@@ -9,14 +9,14 @@ import shutil
 import tempfile
 from urllib.parse import unquote, urlsplit
 
-VERSION = 2
+VERSION = 3
 SHARD_BYTES = 96 * 1024
 SHARD_RECORDS = 32
-SUMMARY_HEADINGS = ('1. 主要发现概览', '2. 从 EXT 外部入口进入的攻击链',
-                    '3. 覆盖与结论边界', '4. 全部 Critical / High 漏洞')
-VULNERABILITY_HEADINGS = ('1. 基本信息', '2. 组件与安全边界', '3. 漏洞原理与影响',
-                          '4. 攻击路径与成立前提', '5. 代码与证据分析',
-                          '6. 验证情况与复现方法', '7. 影响范围与结论边界')
+SUMMARY_HEADINGS = ('1. 审计对象与关键结论', '2. 全部严重问题',
+                    '3. 重要攻击场景', '4. 证据边界')
+VULNERABILITY_HEADINGS = ('1. 问题概述', '2. 组件与安全边界', '3. 触发条件与输入',
+                          '4. 漏洞机制与证据', '5. 受影响范围',
+                          '6. 验证与复现材料', '7. 结论边界与来源')
 META_PREFIX = '<!-- audit-report: '
 SEVERITIES = ('critical', 'high', 'medium', 'low', 'informational')
 EXPOSURES = ('EXT', 'ADJ', 'INT', 'unknown')
@@ -95,8 +95,12 @@ def _input_maps(state):
 def task_input(state, task, maps=None):
     """Read a bounded dependency packet, preserving original records and caveats."""
     maps = maps or _input_maps(state)
-    findings = [maps['findings'][fid] for fid in task['finding_ids']]
+    from report_plan import related_chains, chain_findings
+    chains = related_chains(state, task['finding_ids'])
+    ids = set(task['finding_ids']) | set(chain_findings(state, chains))
+    findings = [maps['findings'][fid] for fid in sorted(ids) if fid in maps['findings']]
     check_ids = {cid for f in findings for cid in f.get('check_ids', [])}
+    check_ids.update(s['check_id'] for chain in chains for s in chain.get('steps', []) if s.get('check_id') in maps['checks'])
     controls = {c['id']: c for cid in check_ids for c in maps['controls'].get(cid, [])}
     check_ids.update(cid for c in controls.values() for cid in c.get('check_ids', []))
     checks = [maps['checks'][cid] for cid in sorted(check_ids) if cid in maps['checks']]
@@ -115,6 +119,9 @@ def task_input(state, task, maps=None):
             'reviews': reviews, 'controls': [controls[cid] for cid in sorted(controls)],
             'instances': [maps['instances'][iid] for iid in sorted(instance_ids) if iid in maps['instances']],
             'root_cause': maps['root_causes'].get(task.get('root_cause_id')),
+            'root_causes': [maps['root_causes'][rid] for rid in task.get('root_cause_ids', [])],
+            'chains': chains,
+            'report_group': {k: task.get(k) for k in ('id', 'title', 'vulnerability_ids', 'framework_object_ids', 'grouping_reason')},
             'report_todos': [{k: v for k, v in t.items() if k not in {'status', 'reason'}}
                              for t in state.get('report_todos', []) if t['id'] in todo_ids]}
 
@@ -122,27 +129,47 @@ def task_input(state, task, maps=None):
 def build_tasks(state):
     maps = _input_maps(state)
     current = {f['id']: f for f in state.get('findings', []) if f.get('status') == 'current'}
-    from attribution import build_vulnerability_view
-    groups = [(v['id'], v['finding_ids'], v['root_cause_id'])
-              for v in build_vulnerability_view(state)['vulnerabilities']]
+    current_ids = set(current)
+    from attribution import latest_dispositions
+    dispositions = latest_dispositions(state)
+    named = {t['id']: set(re.findall(r'(?<![A-Za-z0-9_-])(F-[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])',
+                                     t.get('instruction', '')))
+             for t in state.get('report_todos', [])}
+    from report_plan import build_report_view
+    view = build_report_view(state)
+    if view['errors']:
+        raise ValueError('；'.join(view['errors']))
+    groups = view['groups']
     tasks = []
-    for rid, members, root_id in groups:
-        rid = _safe_id(rid)
+    for group in groups:
+        rid = _safe_id(group['id'])
+        members, root_id = group['finding_ids'], group['root_cause_id']
         todos = [t['id'] for t in state.get('report_todos', [])
                  if any(re.search(r'(?<![A-Za-z0-9_-])' + re.escape(fid) +
                                   r'(?![A-Za-z0-9_-])', t.get('instruction', ''))
                         for fid in members)]
-        task = {'id': rid, 'path': 'vulnerabilities/' + rid + '.md',
-                'finding_ids': members, 'root_cause_id': root_id, 'todo_ids': todos}
+        task = {**group, 'id': rid, 'finding_ids': members, 'root_cause_id': root_id, 'todo_ids': todos,
+                'handoff_path': 'handoffs/' + rid + '.md'}
         packet = task_input(state, task, maps)
         task['source_digest'] = fingerprint(packet)
         task['input_refs'] = {k: [r['id'] for r in packet[k]]
                               for k in ('findings', 'checks', 'evidence', 'reviews', 'controls', 'instances')}
         task['input_refs']['materials'] = sorted(packet['materials'])
         task['input_refs']['finding_dispositions'] = [r['id'] for r in packet['finding_dispositions']]
-        if root_id:
-            task['input_refs']['root_causes'] = [root_id]
+        task['input_refs']['root_causes'] = task['root_cause_ids']
+        task['input_refs']['chains'] = [c['id'] for c in packet['chains']]
         task['input_refs']['report_todos'] = todos
+        # The packet already knows these; handing over only the id lists makes the
+        # author re-derive them. Measured on one page: it had to read the
+        # dispositions to learn two members were pending and one withdrawn, and
+        # search the finding index to learn two routed todos had no member in this
+        # record set at all. `todo_scope` lists the members rather than counting
+        # them: these instructions often carry a whole cross-unit cluster table —
+        # one named 28 findings — so a single number silently mixes in another
+        # unit's members and sends the author looking for a landing that is not here.
+        task['member_dispositions'] = {fid: dispositions[fid]['kind']
+                                       for fid in members if fid in dispositions}
+        task['todo_scope'] = {tid: sorted(named[tid] & current_ids) for tid in todos}
         tasks.append(task)
     return sorted(tasks, key=lambda t: (min(finding_order(current[fid])[:2] for fid in t['finding_ids']), t['id']))
 
@@ -233,6 +260,109 @@ def _artifact_status(root, path, expected_digest):
         return 'draft' if meta.get('source_digest') == expected_digest else 'stale'
     except (OSError, ValueError, TypeError):
         return 'invalid'
+
+
+def _handoff_errors(root, task_id, expected_digest, state):
+    path = _inside(root, 'handoffs/' + _safe_id(task_id) + '.md')
+    if not path.exists():
+        return []
+    try:
+        body = path.read_text(encoding='utf-8')
+        meta = read_meta(body)
+        if (meta.get('type') != 'report_handoff' or meta.get('task_id') != task_id
+                or not isinstance(meta.get('source_digest'), str)
+                or not re.fullmatch(r'[0-9a-f]{64}', meta['source_digest'])):
+            return ['报告回交元数据无效：' + task_id]
+        if meta['source_digest'] != expected_digest:
+            return ['报告回交来源已变化，须核对并归档原回交：' + task_id]
+        fids = meta.get('finding_ids')
+        known = {f['id'] for f in state.get('findings', [])}
+        if (not isinstance(fids, list) or any(not isinstance(fid, str) or fid not in known for fid in fids)
+                or len(set(fids)) != len(fids) or meta.get('return_to') not in {'reviewer', 'rootcause_reviewer'}
+                or _headings(body) != ['1. 无法成文的主张', '2. 支撑与冲突证据', '3. 回交范围']):
+            return ['报告回交内容契约无效：' + task_id]
+    except (OSError, ValueError, TypeError) as exc:
+        return ['报告回交无法读取：' + task_id + '：' + str(exc)]
+    return ['报告事实或归属回交未闭合：' + task_id + '；见 handoffs/' + task_id + '.md']
+
+
+EXCERPT_LINES = 200
+
+
+def _task_excerpts(workspace, state, tasks):
+    """Ship the cited source with the packet instead of making every author fetch it.
+
+    Measured on one wave of four writers: two timed out, both after the same step —
+    「资料都齐了，写的时候没预算了」— and neither left a file. The packet hands out
+    `input_refs` pointers, so each author resolves target roots, reads the files,
+    slices the locators and then byte-compares its own transcription. The two that
+    finished had each verified a dozen-plus excerpts by hand; nobody asked them to.
+
+    Handing over the text removes that whole leg and, with it, a class of error:
+    an excerpt that was never transcribed cannot be mistranscribed. Authors still
+    read source when they go beyond the record, which is what the citation checks
+    in `_authored_code_errors` are for.
+
+    Not part of `source_digest`: the packet already carries each material's sha256,
+    so a changed file already stales the task. Hashing the extracted text too would
+    only add churn from decoding details.
+    """
+    roots = {row['id']: row['path'] for row in state.get('targets', [])}
+    materials = state.get('materials', {})
+    evidence = {row['id']: row for row in state.get('evidence', [])}
+    blobs, cache = {}, {}
+
+    def lines_of(material):
+        if material['id'] not in cache:
+            path = Path(roots.get(material['target_id'], '')) / material['path']
+            try:
+                from materials import decode
+                cache[material['id']] = decode(path.read_bytes(), material.get('encoding'))[0].splitlines()
+            except (OSError, ValueError, UnicodeDecodeError, LookupError) as exc:
+                cache[material['id']] = str(exc)
+        return cache[material['id']]
+
+    for task in tasks:
+        rows = {}
+        for eid in task['input_refs']['evidence']:
+            row = evidence.get(eid)
+            material = materials.get((row or {}).get('material_id'))
+            locator = (row or {}).get('locator') or {}
+            span = locator.get('lines')
+            # Every cited evidence gets a row, including the ones that cannot be
+            # extracted. Skipping them silently is how the first version of this
+            # shipped: 346 excerpts looked like full coverage while 102 citations —
+            # every section-form locator into an oversized bundle and every .pyc —
+            # had no entry at all, and the only way to notice was to diff the file
+            # against `input_refs.evidence` by hand. An author who cannot tell
+            # "absent" from "nothing to say" re-fetches everything.
+            if not material:
+                rows[eid] = {'unavailable': 'evidence has no material in the record'}
+                continue
+            entry = {'material_id': material['id'], 'path': material['path'],
+                     'target_id': material['target_id'], 'sha256': material['sha256'],
+                     'locator': locator}
+            if span:
+                entry['lines'] = list(span)
+            if not span:
+                entry['unavailable'] = ('定位不是行号（%s），需回源按该定位取材'
+                                        % ('、'.join(locator) or '无 locator'))
+            elif material.get('visibility') != 'text':
+                entry['unavailable'] = material.get('visibility_reason') or 'material is not text'
+            else:
+                body = lines_of(material)
+                if isinstance(body, str):
+                    entry['unavailable'] = body
+                else:
+                    first, last = span[0], min(span[1], span[0] + EXCERPT_LINES - 1)
+                    entry['text'] = '\n'.join(body[first - 1:last])
+                    if last < span[1]:
+                        entry['truncated_after'] = last
+            rows[eid] = entry
+        relative = 'excerpts/' + _safe_id(task['id']) + '.json'
+        task['excerpt_path'] = relative
+        blobs[relative] = json.dumps(rows, ensure_ascii=False, indent=2) + '\n'
+    return blobs
 
 
 def _pack_index(index):
@@ -348,8 +478,18 @@ def export_package(workspace, state):
                     locations[category][rid] = relative + '#' + _anchor_id(rid)
         catalog[category] = cat
     tasks = build_tasks(state)
-    from attribution import build_vulnerability_view
-    view = build_vulnerability_view(state)
+    rendered.update(_task_excerpts(workspace, state, tasks))
+    from report_plan import build_report_view
+    view = build_report_view(state, locations)
+    # The plan already decided where each chain is presented; without this the task
+    # carries only `related_chains(finding_ids)`, which on a real page handed the
+    # author nine chains for four assignments and no way to tell them apart —
+    # while `report --check` demands an anchor for exactly the assigned four.
+    for task in tasks:
+        owned = [cid for cid, place in view['chain_locations'].items()
+                 if place['kind'] == 'report' and place['target_id'] == task['id']]
+        task['chain_ids'] = sorted(owned)
+        task['context_chain_ids'] = sorted(set(task['input_refs']['chains']) - set(owned))
     digest = source_digest(state)
     current = [f for f in state.get('findings', []) if f.get('status') == 'current']
     all_todos = {t['id'] for t in state.get('report_todos', []) if t.get('status') != 'dropped'}
@@ -357,6 +497,8 @@ def export_package(workspace, state):
     index = {'version': VERSION, 'source': '../audit.json', 'source_digest': digest,
              'target_id': state['target_id'], 'catalog': catalog, 'locations': locations, 'aliases': aliases,
              'finding_map': view['finding_map'], 'attribution_pending': view['pending'],
+             'high_vulnerabilities': view['high_vulnerabilities'], 'scenarios': view['scenarios'],
+             'chain_locations': view['chain_locations'],
              'statistics': {'finding_status': dict(Counter(f.get('status') for f in state.get('findings', []))),
                             'current_severity': dict(Counter(f['severity'] for f in current)),
                             'current_exposure': dict(Counter(f.get('exposure') or 'unknown' for f in current)),
@@ -368,15 +510,17 @@ def export_package(workspace, state):
              'ext_chains': [{'id': c['id'], 'title': c['title'], 'status': c.get('status')}
                             for c in state.get('chains', []) if c.get('entry_exposure') == 'EXT'],
              'summary_todo_ids': sorted(all_todos - routed_todos), 'tasks': tasks,
-             'summary_status': _artifact_status(root, 'summary.md', digest)}
+             'summary_handoff_path': 'handoffs/summary.md',
+             'summary_status': 'needs_review' if _handoff_errors(root, 'summary', digest, state) else _artifact_status(root, 'summary.md', digest)}
     for task in index['tasks']:
-        task['writing_status'] = _artifact_status(root, task['path'], task['source_digest'])
+        task['writing_status'] = ('needs_review' if _handoff_errors(root, task['id'], task['source_digest'], state)
+                                  else _artifact_status(root, task['path'], task['source_digest']))
     stored_index, metadata = _pack_index(index)
     rendered.update(metadata)
     # Stage all machine-owned trees. A failed publication restores the previous set.
     with tempfile.TemporaryDirectory(prefix='.report-build-', dir=workspace) as tmp:
         staging = Path(tmp)
-        names = ('records', 'record-index', 'task-index')
+        names = ('records', 'record-index', 'task-index', 'excerpts')
         for name in names:
             (staging / name).mkdir()
         for relative, body in rendered.items():
@@ -428,6 +572,108 @@ def export_package(workspace, state):
     return index
 
 
+def _material_suffix_index(materials):
+    """Every path suffix of every material, so a citation can be resolved by any tail."""
+    index = {}
+    for material in materials.values():
+        parts = material['path'].split('/')
+        for start in range(len(parts)):
+            index.setdefault(tuple(parts[start:]), []).append(material)
+    return index
+
+
+def _resolve_citation(path, index):
+    """Shortest unambiguous tail wins; an ambiguous or unknown path resolves to nothing.
+
+    Neither end of the path works alone. Authors prefix with the target alias
+    (`agentcore/agents/...`) while material paths are target-relative, so the full
+    string misses; and a target shipping 267 packages has many files called
+    `SKILL.md` or `config.yaml`, so the basename picks the wrong one. Guessing is
+    worse than skipping: a wrong material yields a confident, false line count.
+    """
+    parts = path.split('/')
+    for start in range(len(parts)):
+        hits = index.get(tuple(parts[start:]))
+        if hits:
+            return hits[0] if len(hits) == 1 else None
+    return None
+
+
+def _authored_code_errors(relative, body, task, state):
+    """A report a developer cannot act on passes every other check in this file.
+
+    Three structural floors: an excerpt exists, every cited line range really is in
+    that file, and every member is anchored to at least one of its own evidence
+    locators. The middle one is what "不编造源码行号" means mechanically; the last
+    one keeps the page tied to the audited record.
+
+    What it deliberately does NOT require is that every citation sit inside a
+    locator. Measured on two independently written pages: 20 of 44 citations fell
+    outside the record because the author had read adjacent code to explain the
+    mechanism, and all 20 were accurate. Rejecting those would block the better
+    report to catch a rarer error, and would make the template's own demand for
+    code locations nearly unsatisfiable.
+    """
+    problems = []
+    if '```' not in body:
+        problems.append(relative + ': no code excerpt; quote the offending lines')
+    evidence = {row['id']: row for row in state.get('evidence', [])}
+    materials = state.get('materials', {})
+    findings = {row['id']: row for row in state.get('findings', [])}
+    index = _material_suffix_index(materials)
+    roots = {row['id']: row['path'] for row in state.get('targets', [])}
+    counted = {}
+
+    def physical_lines(material):
+        if material['id'] not in counted:
+            try:
+                from materials import physical_line_count
+                counted[material['id']] = physical_line_count(
+                    Path(roots.get(material['target_id'], '')) / material['path'],
+                    material.get('encoding'))
+            except (ImportError, OSError, ValueError, UnicodeDecodeError):
+                counted[material['id']] = None
+        return counted[material['id']]
+
+    cited = []
+    for path, first, last in re.findall(
+            r'([A-Za-z0-9_./*-]+\.[A-Za-z][A-Za-z0-9]{0,15}):(\d+)(?:-(\d+))?', body):
+        first, last = int(first), int(last or first)
+        material = _resolve_citation(path, index)
+        if material is None:
+            continue
+        total = physical_lines(material)
+        if total is not None and last > total:
+            problems.append('%s: cited %s:%d-%d runs past the file (%d lines)'
+                            % (relative, path, first, last, total))
+        else:
+            cited.append((material['path'], first, last))
+    for fid in task['finding_ids']:
+        spans, names = [], set()
+        for eid in findings.get(fid, {}).get('evidence_ids', []):
+            row = evidence.get(eid)
+            material = materials.get((row or {}).get('material_id'))
+            lines = (row.get('locator') or {}).get('lines') if row else None
+            if material:
+                names.add(material['path'].rsplit('/', 1)[-1])
+            if material and lines:
+                spans.append((material['path'], lines[0], lines[1]))
+        if spans:
+            if not any(path == known and start <= first and last <= end
+                       for known, start, end in spans for path, first, last in cited):
+                problems.append(relative + ': member ' + fid
+                                + ' has no citation inside its own evidence')
+        elif names and not any(name in body for name in names):
+            # No line span to anchor to: the evidence is section-form (oversized
+            # bundles, .pyc), which is the record's shape and not the author's doing.
+            # Skipping quietly would read exactly like a member that passed —
+            # measured, 5 of 42 members on a real export were never checked at all —
+            # so the weaker but reachable requirement applies instead: name the file.
+            problems.append(relative + ': member ' + fid
+                            + ' names none of its own materials')
+    return problems
+
+
 def _prose(text):
     lines, fence = [], None
     for line in text.splitlines():
@@ -473,6 +719,88 @@ def _check_links(root, path, text):
     return errors
 
 
+def _summary_errors(state, meta, body, view):
+    """Check real summary landings, not a copied list of raw findings."""
+    errors = []
+    entries = meta.get('summary_entries', [])
+    if not isinstance(entries, list):
+        return ['summary_entries 必须为数组']
+    high = {v['id']: v for v in view['high_vulnerabilities']}
+    groups = {g['id']: g for g in view['groups']}
+    by_id, covered = {}, []
+    for item in entries:
+        if not isinstance(item, dict) or set(item) != {'id', 'report_id', 'vulnerability_ids'}:
+            errors.append('summary_entries 字段必须为 id/report_id/vulnerability_ids'); continue
+        eid = item['id']
+        try:
+            _safe_id(eid)
+        except ValueError:
+            errors.append('summary entry ID 非法'); continue
+        if eid in by_id:
+            errors.append('summary entry ID 重复')
+        by_id[eid] = item
+        vids = item['vulnerability_ids']
+        if not isinstance(vids, list) or not vids or any(not isinstance(v, str) or v not in high for v in vids):
+            errors.append('summary entry 必须引用有效严重缺陷'); continue
+        covered.extend(vids)
+        group = groups.get(item['report_id'])
+        if not group or not set(vids) <= set(group['vulnerability_ids']):
+            errors.append('summary entry 与主报告归属不一致')
+    if set(covered) != set(high) or any(n != 1 for n in Counter(covered).values()):
+        errors.append('summary 严重问题覆盖缺失或重复')
+    prose = _prose(body)
+    middle = prose.split('## ' + SUMMARY_HEADINGS[1], 1)[-1].split('## ' + SUMMARY_HEADINGS[2], 1)[0]
+    rows = []
+    for line in middle.splitlines():
+        if not line.startswith('|'):
+            continue
+        cells = re.split(r'(?<!\\)\|', line)[1:-1]
+        if len(cells) != 4:
+            errors.append('summary 严重问题表必须有四列'); continue
+        first = cells[0].strip()
+        if first in {'问题', '---', ':---', '---:'}:
+            continue
+        match = re.fullmatch(r'<a id="([A-Za-z0-9_.-]+)"></a>\s*\[[^\]]+\]\(([^)]+)\)', first)
+        if not match:
+            errors.append('summary 严重问题行需要实际 entry 锚点与报告链接'); continue
+        eid, target = match.groups()
+        rows.append(eid)
+        entry = by_id.get(eid)
+        if not entry:
+            errors.append('summary 正文含未登记问题行'); continue
+        vids = entry['vulnerability_ids']
+        if not isinstance(vids, list) or any(v not in high for v in vids):
+            continue
+        grades = sorted({high[v]['severity'] for v in vids}, key=SEVERITIES.index)
+        if cells[1].strip().lower().replace(' ', '') != '/'.join(grades):
+            errors.append('summary 等级集合与路径来源不符：' + eid)
+        if not cells[2].strip() or not cells[3].strip():
+            errors.append('summary 原理或影响缺失：' + eid)
+        group = groups.get(entry['report_id'])
+        if group and target.split('#', 1)[0] != group['path']:
+            errors.append('summary 链接不是该问题的主报告：' + eid)
+    if set(rows) != set(by_id) or any(n != 1 for n in Counter(rows).values()):
+        errors.append('summary 实际严重问题行缺失或重复')
+    for fid, row in view['finding_map'].items():
+        if row.get('path') == 'summary.md#' + fid and ('<a id="' + fid + '"></a>') not in prose:
+            errors.append('summary 严重非独立项缺少说明落点：' + fid)
+    for scene in view['scenarios']:
+        if prose.count('<a id="' + scene['id'] + '"></a>') != 1:
+            errors.append('summary 场景落点缺失或重复：' + scene['id'])
+    chains = {c['id']: c for c in state.get('chains', [])}
+    dispositions = meta.get('chain_dispositions', {})
+    if not isinstance(dispositions, dict) or set(dispositions) != set(chains):
+        errors.append('summary 链证据状态必须覆盖全部登记链')
+        dispositions = dispositions if isinstance(dispositions, dict) else {}
+    for cid, chain in chains.items():
+        value = dispositions.get(cid)
+        if value not in {'static_trace', 'partial', 'needs_evidence'}:
+            errors.append('summary 链证据状态无效：' + cid)
+        if chain.get('status') == 'candidate' and value not in {'partial', 'needs_evidence'}:
+            errors.append('summary 候选链被升级：' + cid)
+    return errors
+
+
 def validate_package(workspace, state):
     """Read-only structural closure; cannot certify prose quality or exploitability."""
     try:
@@ -499,8 +827,12 @@ def _validate_package(workspace, state):
     if index.get('ext_chains') != wanted_ext:
         errors.append('Indexed EXT chains differ from the audit record')
     tasks = build_tasks(state)
-    from attribution import build_vulnerability_view
-    view = build_vulnerability_view(state)
+    from report_plan import build_report_view
+    view = build_report_view(state, index.get('locations'))
+    errors.extend(view['errors'])
+    for key in ('high_vulnerabilities', 'scenarios', 'chain_locations'):
+        if index.get(key) != view[key]:
+            errors.append('Report organization differs: ' + key)
     if index.get('finding_map') != view['finding_map'] or index.get('attribution_pending') != view['pending']:
         errors.append('Finding presentation mapping differs from attribution')
     current = [f for f in state.get('findings', []) if f.get('status') == 'current']
@@ -519,7 +851,7 @@ def _validate_package(workspace, state):
         errors.append('Report task IDs do not match current findings/root causes')
     for rid, task in expected.items():
         if any(observed.get(rid, {}).get(k) != task[k]
-               for k in ('path', 'finding_ids', 'root_cause_id', 'source_digest')):
+               for k in ('path', 'finding_ids', 'root_cause_id', 'vulnerability_ids', 'source_digest')):
             errors.append('Report task mapping is stale: ' + rid)
     for category, catalog in index.get('catalog', {}).items():
         for chunk in catalog['files']:
@@ -548,6 +880,8 @@ def _validate_package(workspace, state):
     covered_todos = set()
     authored = [('summary.md', None)] + [(t['path'], t) for t in tasks]
     for relative, task in authored:
+        errors.extend(_handoff_errors(root, task['id'] if task else 'summary',
+                                      task['source_digest'] if task else source_digest(state), state))
         p = _inside(root, relative)
         if not p.is_file():
             errors.append('Missing authored report: ' + relative); continue
@@ -570,62 +904,20 @@ def _validate_package(workspace, state):
         covered_todos.update(meta.get('todo_ids', []))
         errors.extend(_check_links(root, relative, body))
         if task:
-            if sorted(meta.get('finding_ids', [])) != task['finding_ids'] or meta.get('root_cause_id') != task['root_cause_id']:
+            if (sorted(meta.get('finding_ids', [])) != task['finding_ids']
+                    or meta.get('root_cause_id') != task['root_cause_id']
+                    or meta.get('report_id') != task['id']
+                    or sorted(meta.get('vulnerability_ids', [])) != sorted(task['vulnerability_ids'])):
                 errors.append(relative + ': source finding/root-cause mapping differs')
             for fid in task['finding_ids']:
                 if ('<a id="' + fid + '"></a>') not in body:
                     errors.append(relative + ': member anchor missing: ' + fid)
+            for cid, place in view['chain_locations'].items():
+                if place['kind'] == 'report' and place['target_id'] == task['id'] and ('<a id="' + cid + '"></a>') not in body:
+                    errors.append(relative + ': chain anchor missing: ' + cid)
+            errors.extend(_authored_code_errors(relative, body, task, state))
             continue
-        # Only the last section is the complete inventory. An incidental ID elsewhere
-        # in the narrative cannot make a missing final-table row pass.
-        marker = '## ' + SUMMARY_HEADINGS[-1]
-        tail = _prose(body).split(marker, 1)[-1]
-        entries = []
-        task_for = {fid: row['path'] for fid, row in view['finding_map'].items()}
-        for fid, row in view['finding_map'].items():
-            if row['path'].startswith('summary.md#') and ('<a id="' + fid + '"></a>') not in body:
-                errors.append('summary.md: finding presentation anchor missing: ' + fid)
-        required_chains = {cid for row in view['finding_map'].values() for cid in row.get('chain_ids', [])}
-        for cid in required_chains:
-            if len(re.findall(r'^### ' + re.escape(cid) + r'(?: |$)', _prose(body), re.M)) != 1:
-                errors.append('summary.md: attributed chain landing missing: ' + cid)
-        lookup = {f['id']: f for f in high_findings(state)}
-        for line in tail.splitlines():
-            if not line.startswith('|'):
-                continue
-            cells = re.split(r'(?<!\\)\|', line)[1:-1]
-            if len(cells) != 4:
-                errors.append('summary.md: high-finding table must have four columns'); continue
-            match = re.fullmatch(r'\s*\[(F-[A-Za-z0-9_.-]+)\]\(([^)]+)\)\s*', cells[0])
-            if not match:
-                if cells[0].strip() not in {'编号', '---', ':---', '---:'}:
-                    errors.append('summary.md: malformed high-finding ID row')
-                continue
-            fid, target = match.groups(); entries.append(fid)
-            finding = lookup.get(fid)
-            if not finding:
-                errors.append('summary.md: non-current or below-high row: ' + fid); continue
-            if cells[1].strip().lower() != finding['severity']:
-                errors.append('summary.md: severity differs: ' + fid)
-            if not cells[2].strip() or not cells[3].strip():
-                errors.append('summary.md: mechanism/impact missing: ' + fid)
-            wanted = task_for.get(fid, '')
-            if target != wanted and not (wanted.startswith('vulnerabilities/') and target == wanted.split('#', 1)[0]):
-                errors.append('summary.md: wrong finding report link: ' + fid)
-        if entries != [f['id'] for f in high_findings(state)]:
-            errors.append('summary.md: final high/critical rows are missing, duplicated, extra or out of order')
-        ext = {c['id']: c for c in state.get('chains', []) if c.get('entry_exposure') == 'EXT'}
-        dispositions = meta.get('chain_dispositions', {})
-        if set(dispositions) != set(ext):
-            errors.append('summary.md: EXT chain disposition IDs differ')
-        for cid, chain in ext.items():
-            if len(re.findall(r'^### ' + re.escape(cid) + r'(?: |$)', _prose(body), re.M)) != 1:
-                errors.append('summary.md: EXT chain heading missing or duplicated: ' + cid)
-            disposition = dispositions.get(cid)
-            if disposition not in {'static_trace', 'partial', 'needs_evidence'}:
-                errors.append('summary.md: invalid EXT chain disposition: ' + cid)
-            if chain.get('status') == 'candidate' and disposition not in {'partial', 'needs_evidence'}:
-                errors.append('summary.md: candidate chain promoted without a record decision: ' + cid)
+        errors.extend(_summary_errors(state, meta, body, view))
     expected_paths = {t['path'] for t in tasks}
     if (root / 'vulnerabilities').exists():
         actual_paths = {str(p.relative_to(root)) for p in (root / 'vulnerabilities').rglob('*.md')}
@@ -652,5 +944,8 @@ def finalize_package(workspace, state):
     for relative, body in metadata.items():
         _atomic_text(_inside(root, relative), body)
     _atomic_text(root / 'index.json', json.dumps(stored_index, ensure_ascii=False, indent=2) + '\n')
+    notes = root / 'notes'
     return {'valid': True, 'errors': [], 'reports': len(index['tasks']),
-            'high_findings': len(index['high_findings']), 'ext_chains': len(index['ext_chains'])}
+            'high_findings': len(index['high_findings']), 'ext_chains': len(index['ext_chains']),
+            'notes': sorted(str(p.relative_to(root)) for p in notes.glob('*.md'))
+                     if notes.is_dir() else []}

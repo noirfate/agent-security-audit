@@ -37,8 +37,8 @@ def summary(state, workspace):
     inaccessible = [mid for mid in present if state['materials'][mid].get('access_error')]
     enumeration_errors = [r for r in state['inventory_exclusions'] if r['reason'].startswith('enumeration_failed')]
     observations = state.get('observations', [])
-    from attribution import build_vulnerability_view
-    attribution = build_vulnerability_view(state)['statistics']
+    from report_plan import build_report_view
+    attribution = build_report_view(state)['statistics']
     return {
         'attribution': attribution,
         'materials': len(present), 'materials_without_completed_coverage': len(present - accounted),
@@ -130,7 +130,7 @@ def _validate(workspace, state):
         require(len(result) == len(rows), 'Duplicate ids: ' + name)
         require(all(isinstance(k, str) and k for k in result), 'Invalid ids: ' + name)
         return result
-    require(state['schema_version'] == SCHEMA_VERSION, 'Unsupported target schema; run refresh to migrate')
+    require(state['schema_version'] == SCHEMA_VERSION, 'Unsupported target schema')
     # The skill fingerprint is recorded as provenance, not judged. It hashed every file
     # in the skill, so editing one line of prose put every finished check back into
     # review — while what actually decides whether a conclusion still holds is the
@@ -363,6 +363,15 @@ def _validate(workspace, state):
                 tid + ': invalid report todo status')
         require(row.get('status') != 'dropped' or bool(row.get('reason')),
                 tid + ': a dropped report todo needs its reason')
+    seen_findings = {f['id'] for f in state['findings']}
+    for row in state.get('fact_disputes', []):
+        did = str(row.get('id'))
+        require(bool(row.get('reason')), did + ': a dispute needs its reason')
+        require(row.get('status') in {'open', 'resolved'}, did + ': invalid dispute status')
+        require(bool(row.get('runs')), did + ': a dispute records the runs it survived')
+        require(bool(row.get('finding_ids'))
+                and all(fid in seen_findings for fid in row['finding_ids']),
+                did + ': a dispute points at known findings')
     for row in state.get('pending_decisions', []):
         did = str(row.get('id'))
         require(bool(row.get('question')), did + ': a decision needs its question')
@@ -373,9 +382,6 @@ def _validate(workspace, state):
             token = id_owner(row['id'])
             require(not token or not unit_index or ('U-' + token) in unit_index,
                     row['id'] + ': id carries an unknown unit token')
-    legacy_units = {unit['id'] for unit in state.get('units', [])
-                    if unit.get('legacy_schema_version')}
-    legacy_contract = bool((state.get('queue') or {}).get('legacy_freeze_contract'))
     for unit in state['coverage']:
         require(unit['status'] in {'not_started', 'in_progress', 'reviewed', 'excluded', 'needs_review'}, unit['id'] + ': invalid coverage status')
         require(bool(unit['material_ids']), unit['id'] + ': empty coverage unit')
@@ -402,12 +408,7 @@ def _validate(workspace, state):
             # check at all, so「逐行阅读了 15 个文件」counted toward the coverage
             # denominator with nothing to trace it to — including the file a missed
             # command injection was sitting in.
-            # Grandfathered per unit, not per row: the 1.7 migration promised not to touch
-            # historical verdicts, and tagging the rows themselves would make `merge`
-            # refuse a replay, since it compares whole-row content digests.
-            owner = id_owner(unit['id'])
-            older = (('U-' + owner) in legacy_units if owner else legacy_contract)
-            require(older or bool(unit.get('check_ids'))
+            require(bool(unit.get('check_ids'))
                     or bool(str(unit.get('no_check_reason') or '').strip()),
                     unit['id'] + ': reviewed coverage needs a proposition destination — '
                                  'the checks it produced, or no_check_reason for why '
@@ -421,6 +422,7 @@ def _validate(workspace, state):
         require(not (isinstance(scope, list) and set(scope) <= SCOPES),
                 row['id'] + ": a control's scope is prose about where the guarantee holds, "
                             'not the evidence-kind array used on checks')
+    line_counts = {}
     for eid, row in evidence.items():
         require(row['kind'] in SCOPES, eid + ': invalid evidence kind')
         require(row['status'] in {'current', 'needs_review'}, eid + ': invalid evidence status')
@@ -452,14 +454,14 @@ def _validate(workspace, state):
                 path = material_path(state, mat)
                 require(digest(path) == row['sha256'], eid + ': file changed')
                 if locator.get('lines'):
-                    from materials import MAX_BYTES, decode, recovered_view
-                    with path.open('rb') as handle:
-                        source_text, _ = decode(handle.read(MAX_BYTES + 1), row.get('encoding'))
-                    if row.get('view', 'original') == 'recovered':
-                        candidate = recovered_view(source_text)
-                        require(bool(candidate), eid + ': recovered view no longer available')
-                        source_text = candidate['text'] if candidate else ''
-                    require(locator['lines'][1] <= len(source_text.splitlines()), eid + ': line beyond end of material')
+                    from materials import physical_line_count
+                    key = (row['material_id'], row['sha256'], row.get('encoding'), row.get('view', 'original'))
+                    try:
+                        if key not in line_counts:
+                            line_counts[key] = physical_line_count(path, row.get('encoding'), key[-1] == 'recovered')
+                        require(locator['lines'][1] <= line_counts[key], eid + ': line beyond end of material')
+                    except (OSError, UnicodeError, ValueError, TypeError) as exc:
+                        require(False, eid + ': text view unavailable: ' + str(exc))
     for cid, check in checks.items():
         bid = check['baseline_id']
         data = baseline(bid)
@@ -585,8 +587,21 @@ def _validate(workspace, state):
         # path-shaped, because bare substrings misfire: `nix` matches 「Unix 域」 and
         # `.github` matches `api.github.com`. Mentioning an excluded component to say it
         # was NOT used is correct, so the co-located marker is what makes it legitimate.
-        for key in ('title', 'mechanism', 'impact', 'severity_reason', 'remediation', 'responsibility', 'validation'):
+        for key in ('title', 'mechanism', 'impact', 'severity_reason', 'responsibility',
+                    'validation', 'actor', 'boundary', 'capability_delta'):
             require(bool(finding.get(key)), fid + ': missing ' + key)
+        # Attribution has to answer「谁越过了哪条边界、具体哪里失效、因此多了什么能力」
+        # for every finding it compares. Leaving that in prose means re-deriving it
+        # once per round: measured, 0 of 982 findings carried failure_points and the
+        # attribution round parked 88 of 153 as pending, 42 on the same question.
+        if finding['status'] == 'current':
+            points = finding.get('failure_points') or []
+            require(bool(points), fid + ': a current finding needs its failure_points')
+            for point in points:
+                require(isinstance(point, dict)
+                        and all(bool(point.get(k)) for k in
+                                ('expected_control', 'observed_failure', 'evidence_ids')),
+                        fid + ': a failure point needs expected_control, observed_failure and evidence')
         require(bool(finding['check_ids']) and bool(finding['evidence_ids']), fid + ': missing supporting records')
         cause = finding.get('root_cause_id')
         require(cause is None or isinstance(cause, str),
@@ -732,7 +747,6 @@ def render_coverage(state, workspace):
         ('枚举排除', state.get('inventory_exclusions', [])),
         ('材料可见性', state.get('materials', {})),
         ('检索形态缺口', state.get('form_gaps', [])),
-        ('旧契约来源', state.get('contract_history', [])),
     ]
     for title, rows in sections:
         body = json.dumps(rows, ensure_ascii=False, indent=2)
@@ -831,7 +845,7 @@ def render_report(state, workspace, full=False):
                 '检查项：' + text(', '.join(finding['check_ids'])) + '；证据：' + text(', '.join(finding['evidence_ids'])) + '。', '',
                 '框架对象：' + text(', '.join(sorted(object_ids)) or '目标本地职责') + '；目录标签（分类参考）：' + text(', '.join(sorted(risk_ids)) or '未映射，本地检查独立判定') + '。', '',
                 '责任方：' + text(finding['responsibility']), '',
-                '修复：' + text(finding['remediation']), '', '验证说明：' + text(finding['validation']), '',
+                '验证说明：' + text(finding['validation']), '',
                 '剩余风险：' + text(finding.get('residual_risk', '未另行记录')), '']
         for review in state.get('reviews', []):
             if review['finding_id'] == finding['id']:
@@ -875,7 +889,7 @@ def render_report(state, workspace, full=False):
             '材料 %d；未完成覆盖 %d；尚未建立的框架检查 %d；涉及对象 %d，不涉及 %d。'
             % (counts['materials'], counts['materials_without_completed_coverage'],
                counts['framework_checks_not_planned'], len(declared), len(ruled_out)),
-            '单元、方法、局限、可见性及旧契约来源见[完整覆盖明细](coverage-details.md)。', '']
+            '单元、方法、局限与可见性见[完整覆盖明细](coverage-details.md)。', '']
     from propositions import render as render_propositions
     out += ['', render_propositions(state, detail=full)]
     if state.get('corrections'):

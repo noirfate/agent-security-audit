@@ -5,7 +5,7 @@ description: 审计 AI Agent 的设计、源码、配置、Skill 与 MCP，按�
 
 # Agent安全审计
 
-直接分析用户指定的目标，交付有证据、范围与修复建议的审计报告，并保存可供复审的目标知识库。使用随包框架定位对象与已知风险，同时从目标的资产、权限和能力寻找框架之外的问题。
+直接分析用户指定的目标，交付面向开发者的问题报告和面向 leader 的严重问题摘要，写清证据、条件与影响，不要求修复方案；保存可供复审的目标知识库。使用随包框架定位对象与已知风险，同时从目标的资产、权限和能力寻找框架之外的问题。
 
 ## 边界与输入
 
@@ -53,7 +53,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" dispatch --workspace /output/agent_a
 
 主代理只做调度与门控：不读候选正文，不亲自建索引，不亲自写终报，每轮末`snapshot`后即可丢弃上下文。各角色的契约在`references/roles/`，worker、reviewer、rootcause_reviewer、merger、queue_critic、report_writer 各读属于自己的那一份，不读本文件。轮次、冻结与闸门见[调度规程](references/orchestration.md)。
 
-并行分三档，记录、闸门与报告完全相同，只是波数或轮数变多：**全并发**（容量够，按单元类型的分档一波派完）、**受限并发**（有上限，`dispatch` 按已记录的容量核算准入，分波派）、**单执行者**（并行能力不可用或用户未授权，按同一份单元清单顺序跑完）。同时能跑多少个子代理由宿主决定、不由本skill假定，`dispatch` 读环境变量，读不到用宿主默认并把来源记进记录。规程不绑定任何特定客户端的子代理工具。
+分单元工作默认按宿主可用容量并发执行。并行分为**全并发**（容量够，按单元类型分档一波派完）与**受限并发**（`dispatch` 按实际容量分波）。只有宿主不具备子代理能力或用户明确要求单执行者时，才按同一份单元清单顺序执行。临时使用额度耗尽不触发单执行者降级，也不改小并发上限。保存已完成产物和未完成范围，额度恢复后按可用容量继续并发，主代理不接管分析或写作。三种执行方式的记录、闸门与报告相同。同时能跑多少个子代理由宿主决定、不由本skill假定，`dispatch` 读环境变量，读不到用宿主默认并把来源记进记录。规程不绑定任何特定客户端的子代理工具。
 
 ## 执行流程
 
@@ -114,7 +114,7 @@ FM 的 `risk_ids` 提供关联风险索引；单元 brief 展示风险编号、�
 
 候选发现先记为`needs_review`。重新读取原材料，按[记录与复审](references/records.md)准备复核 JSON；分单元产物先 `merge --unit` 合入，再用 `audit.py review --workspace ... --finding F-... --review-file ...` 登记保留、撤销或证据不足的理由。复核记录绑定实际合入的发现、检查与证据内容；内容改变后不能沿用旧复核。使用同一模型复核时如实标注，不宣称独立验证。
 
-全部单元及必要跨域增量合入、事实复核有结论后，按[归因任务及提交](references/records.md#归因任务及提交)准备全量 current finding 的比较输入。`rootcause --prepare` 按文件组织任务，主代理用 `rootcause --dispatch` 生成启动材料，派 [rootcause_reviewer](references/roles/rootcause_reviewer.md) 并发读取，各写独立临时结果。`--collect` 汇总并生成跨文件核对任务；收口角色完成比较和处置后，主代理 `--apply` 统一提交。脚本只检索、对账和落盘，不自动判断同源。未归组不等于独立，旧裁决需核对有效性；事实有误仍交回单元 reviewer。
+全部单元及必要跨域增量合入、事实复核有结论后，按[归因任务及提交](references/records.md#归因任务及提交)准备全量 current finding 的比较输入。`rootcause --prepare` 按固定知识框架组织跨文件比较；返回 routing_required 时派 rootcause_reviewer 补全主主题选择，再用 --prepare --input 生成任务，不要求用户逐项分类。主代理用 `rootcause --dispatch` 生成启动材料，派 [rootcause_reviewer](references/roles/rootcause_reviewer.md) 按 owner_finding_ids 认领、context_finding_ids 比较，各写独立结果。`--collect` 只将明确关系与冲突收为正式核对项；收口后由主代理 `--apply` 统一提交。脚本只检索、对账和落盘，不自动判断同源。未归组不等于独立，旧裁决需核对有效性；事实有误仍交回单元 reviewer。
 
 归因提交后、报告之前执行链推导轮：`rootcause --prepare --synthesis` 按「入口锚正向 / 落点反查 / 既有链接边」三类任务组织输入包（`partial` 计划不要求覆盖全部 current finding），派 [rootcause_reviewer](references/roles/rootcause_reviewer.md) 走查——每跳衔接论证、走不通记无链理由、可接既有链优先声明接边；产物为各任务 `synthesis-<n>.json`（协议名，`--collect` 校验回收）。合规链经 `rootcause --apply` 的 `chains` 通道落盘；接边与无链理由作为账本留在 run 目录，报告的 EXT 链节与残余边界消费它们。链推导不新增独立漏洞计数，揭示的新缺陷仍走正常发现流程。
 
@@ -122,7 +122,7 @@ FM 的 `risk_ids` 提供关联风险索引；单元 brief 展示风险编号、�
 
 核对材料范围、连接边界和模型认领的正式候选都有去向；原始检索命中不要求逐条处置。可以保留明确的证据缺口，不能用“已完成”掩盖未检查部分。每次推进及时保存记录，中断或上下文压缩后从工作区恢复。
 
-报告按[两段式报告](references/report-format.md)执行：机械阶段导出 `report/index.json` 与分类材料，report_writer 按本技能模板直接撰写 summary 和独立漏洞报告。summary 必须独立解释主要发现、包含 EXT 外部入口攻击链，不含修复建议，最后逐条列全当前 High/Critical 的原理与影响。独立漏洞视图统一生成计数与写作任务；全部当前发现有明确呈现映射，补充、链、汇总和 pending 不额外计作漏洞。`gate --prepare` 只延后报告待办和成文检查，不放宽审计范围要求。
+归因与链核查后由 rootcause_reviewer 提出 report_plan，经主代理 --apply 绑定来源：独立缺陷身份来自唯一归因视图，报告分组和攻击场景只组织阅读。报告按[两段式报告](references/report-format.md)执行：机械阶段导出 `report/index.json` 与分类材料，report_writer 按模板写完整开发者报告和 leader 摘要。summary 覆盖全部有效 High/Critical 独立缺陷，并解释重要攻击场景中每次能力变化；同源多路由集中呈现，不逐 finding 重复。全部 current 发现及 chains 有明确去向，supplement/chain/summary/observation/pending 不额外计作漏洞。`gate --prepare` 只延后报告待办和成文检查，不放宽审计范围要求。
 
 ```bash
 python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace /output/agent_audit/example --prepare

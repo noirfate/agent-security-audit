@@ -106,8 +106,11 @@ def root_cause_fixture(tmp):
     def finding(fid, check_ids, evidence_ids, severity='high'):
         return {'id': fid, 'check_ids': check_ids, 'title': 't ' + fid, 'mechanism': 'm',
                 'evidence_ids': evidence_ids, 'impact': 'i', 'severity': severity,
-                'severity_reason': 'sr', 'remediation': 'rem', 'responsibility': 'resp',
+                'severity_reason': 'sr', 'responsibility': 'resp',
                 'validation': 'v', 'residual_risk': 'rr', 'exposure': 'EXT',
+                'actor': 'a', 'boundary': 'b', 'capability_delta': 'cd',
+                'failure_points': [{'expected_control': 'ec', 'observed_failure': 'of',
+                                    'evidence_ids': evidence_ids[:1]}],
                 'status': 'current'}
     state['findings'] = [
         finding('F-AA01-01', ['CHK-AA01-0001'], ['E-AA01-001', 'E-AA01-002', 'E-AA01-003']),
@@ -128,7 +131,6 @@ def root_cause_fixture(tmp):
         row['instance_ids'] = ['INST-' + row['id'].split('-')[1]]
         if row['failure_mode_id'] is None:
             row['local_definition'] = {'statement': '本地命题', 'requirement': '本地要求'}
-    state['queue'].pop('legacy_freeze_contract', None)
     audit.save(workspace, state)
     # Through the real ledger, so the digest binds the finding as it actually is: these
     # checks then also show that grouping a reviewed finding does not stale its review.
@@ -219,6 +221,111 @@ def schema_literal():
                 bad.append('%s:%d %s' % (path.name, number, line.strip()))
     return bad and ['compares the target schema against a literal instead of '
                     'audit.SCHEMA_VERSION: ' + '; '.join(bad)]
+
+
+@check('record-field-vocabulary')
+def record_field_vocabulary():
+    """The record layer names one set of finding fields, not three.
+
+    `remediation` outlived its contract as three disagreeing halves: the full report
+    still rendered it, the role contracts still gave it a language rule, and the
+    schema section called it optional-for-old-records. Each half read as live on its
+    own. Both directions are checked here: a field the report renders has to be
+    documented, and a field a contract gives a rule for has to be one records.py
+    actually handles.
+    """
+    source = read_text(SCRIPTS / 'records.py')
+    parts = read_text(SKILL / 'references' / 'records.md').split('\n## 发现与报告', 1)
+    if len(parts) != 2:
+        return ['references/records.md no longer has a 发现与报告 section to check against']
+    documented = parts[1].split('\n## ', 1)[0]
+    problems = []
+    for name in sorted(set(re.findall(r"finding(?:\.get\(|\[)'([a-z_]+)'", source))):
+        if '`' + name + '`' not in documented:
+            problems.append('the full report renders finding.' + name
+                             + ', which 发现与报告 does not document')
+    rules = []
+    for relative in ('records.md', 'roles/worker.md', 'roles/reviewer.md'):
+        for line in read_text(SKILL / 'references' / relative).splitlines():
+            if '叙述字段' in line:
+                rules.append((relative, re.findall(r'`([a-z_]+)`', line)))
+    if len(rules) != 3:
+        problems.append('expected three 叙述字段 language rules, found %d; the check now '
+                        'covers fewer files than it was written for' % len(rules))
+    for relative, names in rules:
+        for name in names:
+            if not re.search(r"['\"]" + name + r"['\"]", source):
+                problems.append(relative + ' gives a language rule for ' + name
+                                 + ', a field records.py no longer handles')
+    return problems
+
+
+@check('report-group-size-cap')
+def report_group_size_cap():
+    """One number caps a report group, both validation paths hold it, both docs say it.
+
+    A group is one report, so the cap decides how many separate defects land on one
+    page. Measured: a 12-identity group produced a report nobody could navigate, and the
+    run whose groups topped out at 6 produced four that passed every rule. The proposal
+    path is where the author hears about it and the binding path is what actually holds;
+    守住一边另一边就是一轮白跑的往返。
+    """
+    import ast
+    import report_plan
+    cap = report_plan.MAX_GROUP_IDENTITIES
+    source = read_text(SCRIPTS / 'report_plan.py')
+    problems = []
+    holders = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.FunctionDef) and any(
+                isinstance(inner, ast.Name) and inner.id == 'MAX_GROUP_IDENTITIES'
+                for inner in ast.walk(node)):
+            holders.add(node.name)
+    for name in ('_normalize', 'validate_proposal'):
+        if name not in holders:
+            problems.append('report_plan.%s does not hold the group size cap' % name)
+    for relative in ('records.md', 'roles/rootcause_reviewer.md'):
+        if ('一组最多 %d 个身份' % cap) not in read_text(SKILL / 'references' / relative):
+            problems.append('%s does not state the group cap %d' % (relative, cap))
+    return problems
+
+
+@check('the-notes-outlet-has-a-reader')
+def the_notes_outlet_has_a_reader():
+    """report/notes has a writer, a named reader and a mechanical surface, not just a path.
+
+    An outlet nothing consumes is a sink: the author pays to write it and the fact dies
+    there. Measured: three facts worth a record change existed only in writer return
+    messages and were gone at the next context compaction. So all three sides are asked
+    for — report-format.md routes it to a reader, report_writer.md says when to write
+    one, and `report --check` lists what is sitting there.
+    """
+    problems = []
+    fmt = read_text(SKILL / 'references' / 'report-format.md')
+    if 'report/notes/' not in fmt:
+        problems.append('report-format.md does not declare report/notes/')
+    reader = next((line for line in fmt.splitlines()
+                   if line.startswith('summary 作者读取')), '')
+    if 'report/notes/' not in reader:
+        problems.append('report-format.md declares report/notes/ but routes it to no reader')
+    if 'report/notes/' not in read_text(SKILL / 'references' / 'roles' / 'report_writer.md'):
+        problems.append('report_writer.md does not say when to write a note')
+    if "root / 'notes'" not in read_text(SCRIPTS / 'reporting.py'):
+        problems.append('report --check does not list what is in the notes outlet')
+    return problems
+
+
+@check('every-check-says-why-it-exists')
+def every_check_says_why_it_exists():
+    """Every check carries a first line saying what it is for.
+
+    The docstring is not decoration here: `--list` prints it, and a check whose reason
+    nobody wrote down is the one that gets deleted during the next cleanup because it
+    looks like scaffolding. Measured: one of the 53 had none, and `--list` died on it
+    with an IndexError, so the checks after it were never listed at all.
+    """
+    return ['%s has no docstring, so nothing says why it exists' % name
+            for name, function in CHECKS if not (function.__doc__ or '').strip()]
 
 
 @check('id-prefix-table')
@@ -575,51 +682,34 @@ def collections_documented():
     return problems
 
 
-@check('schema-version-ladder')
-def schema_version_ladder():
-    """Every record version the documents still name is one this release can open.
+@check('record-version-named-once')
+def record_version_named_once():
+    """records.md states the one record version this release opens; no other doc names one.
 
-    `MIGRATABLE` is what `refresh` accepts, and the guard rejects anything outside it
-    plus `SCHEMA_VERSION` before the migration path gets a chance to run. So bumping the
-    version without extending the ladder turns every existing workspace into an
-    unrecognized record — refused even by the one command that exists to migrate it.
-    Nothing was watching that pair.
+    There is no migration ladder: a record is `SCHEMA_VERSION` or it is refused. So any
+    version literal in the documents is a claim about the contract in force, and a bump
+    makes that sentence false while it still reads as if it were true. Measured:
+    report_writer.md said 「不宣称已按 1.6 验证」, which after a bump told the writer not to
+    claim the one contract the record legitimately carried. The lookbehind excludes
+    letters, so framework object ids like `A1.2` are not versions. That records.md
+    states the version at all is `collections-documented`'s; this one owns where else it
+    may appear.
     """
     import audit
-    doc = read_text(SKILL / 'references' / 'records.md')
-    openable = set(audit.MIGRATABLE) | {audit.SCHEMA_VERSION}
     problems = []
-    if audit.SCHEMA_VERSION in audit.MIGRATABLE:
-        problems.append('the current version is also listed as migratable from: '
-                        + audit.SCHEMA_VERSION)
-    ordered = sorted(audit.MIGRATABLE, key=lambda v: [int(part) for part in v.split('.')])
-    if list(audit.MIGRATABLE) != ordered:
-        problems.append('MIGRATABLE is not in ascending order: ' + ', '.join(audit.MIGRATABLE))
-    # Only the versions the page itself still names. The other direction is not a defect:
-    # a version no document mentions may stay openable.
-    stranded = sorted(set(re.findall(r'`([0-9]+\.[0-9]+)`', doc)) - openable)
+    doc = read_text(SKILL / 'references' / 'records.md')
+    stranded = sorted(set(re.findall(r'`([0-9]+\.[0-9]+)`', doc)) - {audit.SCHEMA_VERSION})
     if stranded:
-        problems.append('records.md names versions refresh would refuse: ' + ', '.join(stranded))
-    major, minor = (int(part) for part in audit.SCHEMA_VERSION.split('.'))
-    if minor and ('%d.%d' % (major, minor - 1)) not in openable:
-        problems.append('the version right below %s cannot be opened, so every existing '
-                        'record would be unrecognized' % audit.SCHEMA_VERSION)
-    # A version named in any other document always means 「the contract in force」, and
-    # the next bump makes that sentence false while it still reads as if it were true.
-    # Measured: report_writer.md said 「不宣称已按 1.6 验证」, which after the bump told the
-    # writer not to claim the one contract a migrated record legitimately carries. The
-    # lookbehind also excludes letters, so framework object ids like `A1.2` are not
-    # versions. records.md is the single place that states it.
+        problems.append('records.md names record versions this release refuses: '
+                        + ', '.join(stranded))
+    pattern = r'(?<![0-9A-Za-z.])%s(?![0-9])' % re.escape(audit.SCHEMA_VERSION)
     for path in [SKILL / 'SKILL.md'] + sorted((SKILL / 'references').rglob('*.md')):
         if path.name == 'records.md':
             continue
-        text = read_text(path)
-        named = sorted(version for version in openable
-                       if re.search(r'(?<![0-9A-Za-z.])%s(?![0-9])' % re.escape(version), text))
-        if named:
-            problems.append('%s writes the record contract version (%s) into prose; only '
+        if re.search(pattern, read_text(path)):
+            problems.append('%s writes the record contract version into prose; only '
                             'records.md states it, everything else says 「当前记录契约」'
-                            % (path.name, ', '.join(named)))
+                            % path.name)
     return problems
 
 
@@ -791,12 +881,6 @@ def record_shape_rules():
          lambda s: s['coverage'].append(dict(reviewed, id='COV-AA01-02',
                                              material_ids=list(s['materials'])[:1],
                                              no_check_reason='纯二进制资源，不产生命题结论')),
-         'proposition destination'),
-        ('coverage a unit wrote before the rule existed',
-         lambda s: (s['units'].append(new_unit('U-AA01', 'repo_shard', 't', mapping_note='n',
-                                               legacy_schema_version='1.6')),
-                    s['coverage'].append(dict(reviewed, id='COV-AA01-03',
-                                              material_ids=list(s['materials'])[:1]))),
          'proposition destination'),
         ('a complete merge whose members link back',
          lambda s: (s.update(root_causes=[dict(cause)]),
@@ -1097,8 +1181,6 @@ def rootcause_closure():
         def g9(): return next(r for r in evaluate(workspace, state, prepare_report=True) if r['id'] == 'G9')
         if g9()['status'] != 'fail' or len(g9()['work_items']) != 4:
             problems.append('G9 must list every unclassified current finding')
-        for unit in state['units']: unit['legacy_schema_version'] = '1.7'
-        if g9()['status'] != 'fail': problems.append('legacy marker bypassed attribution')
         linked(state, [copy.deepcopy(MERGE)])
         adjudicate_fixture(state)
         if g9()['status'] != 'pass': problems.append('valid grouping and singleton comparisons did not close G9')
@@ -1552,17 +1634,6 @@ def cohesion_not_size_decides_a_unit():
     return ['retired pack mutated the state'] if state != before else []
 
 
-@check('the-cross-unit-exception-holds-everywhere')
-def the_cross_unit_exception_holds_everywhere():
-    """Cross units own no index; absent optional indexes create no obligations."""
-    from surface import reconcile
-    from units import new_unit
-    state = {'units': [new_unit('U-CX01', 'cross', 'fixture', cross_type='goal'),
-                       new_unit('U-SH01', 'repo_shard', 'fixture')]}
-    rows = reconcile(Path('/nonexistent'), state)
-    return [] if len(rows) == 1 and rows[0]['status'] == 'ok' else ['optional index treated as a required task']
-
-
 @check('the-validator-does-not-mutate')
 def the_validator_does_not_mutate():
     """`_check_scope` collects errors; it must not fold anything into the record.
@@ -1617,6 +1688,248 @@ def the_key_list_matches_the_code():
             problems.append('%s omits keys the code accepts: %s' % (name, '、'.join(missing)))
         if stray:
             problems.append('%s lists keys the code rejects: %s' % (name, '、'.join(stray)))
+    return problems
+
+
+@check('single-reviewer-per-segment')
+def single_reviewer_per_segment():
+    """One reviewer per segment, said the same way in the table and in the contract.
+
+    `units/_review_<轮次>.md` is one file per round and no script reads or writes it,
+    so nothing structural stops two reviewers from overwriting each other's section —
+    and the main agent reads only that section, so a lost entry is work nobody does.
+    The hazard came from the capacity table: its first two rows count agents and the
+    reviewer row counted units per batch, in the same column, which reads as
+    "dispatch N reviewers". Both sides now have to say "one", and this is the only
+    thing holding them together.
+    """
+    protocol = read_text(SKILL / 'references' / 'orchestration.md')
+    contract = read_text(SKILL / 'references' / 'roles' / 'reviewer.md')
+    problems = []
+    if '| reviewer | **1 个**' not in protocol:
+        problems.append('the capacity table no longer states one reviewer per segment')
+    if '本段唯一的 reviewer' not in contract:
+        problems.append('the reviewer contract no longer states it is the only one')
+    return problems
+
+
+@check('shared-judgement-standard')
+def shared_judgement_standard():
+    """The four questions live in one place and every role that needs them points at it.
+
+    Measured on 128 adjudicated findings: 55 of them turned on one judgement — whether a
+    capability the operator already has still counts as a defect. With no shared wording
+    each run re-derived it and parked the result as pending, so the same question was
+    answered dozens of times and never stored. Three contracts now cite the section by
+    title; a renamed heading would leave them pointing at nothing, and nothing else here
+    would notice.
+    """
+    title = '本就够得着的能力，什么时候仍是缺陷'
+    problems = []
+    if ('### ' + title) not in read_text(SKILL / 'references' / 'method.md'):
+        problems.append('method.md no longer defines the shared judgement standard')
+    for role in ('worker', 'reviewer', 'rootcause_reviewer'):
+        if title not in read_text(SKILL / 'references' / 'roles' / (role + '.md')):
+            problems.append(role + ' no longer points at the shared judgement standard')
+    return problems
+
+
+@check('fact-disputes-outlive-the-run')
+def fact_disputes_outlive_the_run():
+    """A pending finding has an open dispute, and a repeated one is visible as repeated.
+
+    Before this the worklist lived only in the run directory: apply consumed it, the
+    next run built a fresh one, and the same dispute came back looking new. Measured
+    on one real closure, 53 of 78 issues were repeats and only the model knew — it
+    wrote the previous id into prose no script reads. Both halves are asserted here
+    because either alone is passable: recording disputes nobody checks against the
+    pending set, or checking a set nothing ever fills.
+    """
+    import gate, records, audit
+    problems = []
+    source = read_text(SCRIPTS / 'gate.py')
+    if '没有对应的公开争点' not in source:
+        problems.append('G9 no longer ties pending findings to an open dispute')
+    if "len(row.get('runs', [])) > 1" not in source:
+        problems.append('G9 no longer surfaces disputes that outlived a round')
+    if 'fact_disputes' not in audit.SCHEDULING_COLLECTIONS:
+        problems.append('the record has no place to keep disputes')
+    if "state.get('fact_disputes', [])" not in read_text(SCRIPTS / 'records.py'):
+        problems.append('disputes are never validated')
+    if 'def record_disputes' not in read_text(SCRIPTS / 'rootcause_run.py'):
+        problems.append('nothing carries disputes out of the run directory')
+    return problems
+
+
+@check('cited-source-ships-with-the-task')
+def cited_source_ships_with_the_task():
+    """The packet hands over the cited source, not just pointers to it.
+
+    Measured on one wave of four report writers: two timed out at the same step —
+    material gathered, nothing written — because each author had to resolve target
+    roots, read the files, slice every locator and then byte-compare its own
+    transcription. The two that finished had verified a dozen-plus excerpts by hand
+    without being asked. Shipping the text removes that leg and the mistranscription
+    class with it, so the contract has to keep pointing authors at it.
+    """
+    source = read_text(SCRIPTS / 'reporting.py')
+    problems = []
+    if 'def _task_excerpts' not in source:
+        problems.append('the export no longer extracts the cited source')
+    if "'excerpts'" not in source:
+        problems.append('the excerpt tree is not published with the other machine-owned trees')
+    if 'excerpt_path' not in read_text(SKILL / 'references' / 'roles' / 'report_writer.md'):
+        problems.append('the writer contract no longer points at the shipped excerpts')
+    if 'truncated_after' not in read_text(SKILL / 'references' / 'report-format.md'):
+        problems.append('the contract no longer says how a shortened excerpt is marked')
+    return problems
+
+
+@check('pending-reason-points-at-a-record')
+def pending_reason_points_at_a_record():
+    """A pending reason names a record, because prose is what the next round inherits.
+
+    Measured on one closure: 0 of 88 pending reasons named an evidence or check id and
+    53 of 78 issues came back as repeats — the same question re-derived because the
+    previous answer pointed at nothing. Every pending finding has checks or evidence of
+    its own, so the requirement is answerable by construction rather than aspirational.
+    """
+    source = read_text(SCRIPTS / 'rootcause_run.py')
+    problems = []
+    if '待定理由须点名具体证据或检查' not in source:
+        problems.append('a pending assessment may again be filed with unanchored prose')
+    if "a['proposed_kind'] == 'pending'" not in source:
+        problems.append('the citation rule no longer singles out pending assessments')
+    contract = read_text(SKILL / 'references' / 'roles' / 'rootcause_reviewer.md')
+    if 'evidence_id 或 check_id' not in contract:
+        problems.append('the attribution contract no longer asks for the citation')
+    return problems
+
+
+@check('every-cited-evidence-has-an-excerpt-row')
+def every_cited_evidence_has_an_excerpt_row():
+    """Absent and "nothing to extract" must not look the same in the excerpt file.
+
+    The first version skipped any evidence whose locator was not line-based. On a real
+    export that read as 346 excerpts and zero unavailable — full coverage, apparently —
+    while 102 citations had no row at all: every section-form locator into an oversized
+    bundle and every .pyc. The author found out by diffing the file against
+    `input_refs.evidence` by hand, then re-fetched that whole slice from source.
+    """
+    source = read_text(SCRIPTS / 'reporting.py')
+    problems = []
+    if "rows[eid] = {'unavailable'" not in source:
+        problems.append('evidence with no material is dropped instead of reported')
+    if '定位不是行号' not in source:
+        problems.append('a non-line locator is dropped instead of reported')
+    if 'for eid in task[\'input_refs\'][\'evidence\']:' not in source:
+        problems.append('the excerpt file is no longer keyed on every cited evidence')
+    return problems
+
+
+@check('authors-land-in-sections')
+def authors_land_in_sections():
+    """The contract tells authors when to land, and which checks they need not redo.
+
+    Six dispatches: four stopped at the same sentence — material gathered, about to
+    write — and left no file at all. The same task, told to land section by section,
+    produced 4618 bytes immediately and finished at 49KB passing every rule. Shipping
+    the excerpts did not change the outcome and neither did a smaller task; one-shot
+    output was the only variable. The second half is the other measured sink: one
+    author spent its budget hand-verifying line numbers that `report --check` already
+    verifies mechanically, because nothing told it so.
+    """
+    contract = read_text(SKILL / 'references' / 'roles' / 'report_writer.md')
+    problems = []
+    if '先落骨架' not in contract:
+        problems.append('the writer contract no longer requires landing in sections')
+    if '不要再手工逐条核对行号' not in contract:
+        problems.append('the contract no longer says the line checks are mechanical')
+    if '先落元数据与七个二级标题的骨架' not in read_text(SKILL / 'references' / 'report-format.md'):
+        problems.append('the report contract no longer carries the incremental rule')
+    return problems
+
+
+@check('the-packet-carries-the-plans-decisions')
+def the_packet_carries_the_plans_decisions():
+    """Decisions the plan already made travel with the task instead of being re-derived.
+
+    Four measured instances of one shape. A page's author read the dispositions to learn
+    two members were pending and one withdrawn; searched the finding index to learn two
+    routed todos had no member in this record set; got nine chains for four assignments
+    with no way to tell them apart, while `report --check` demanded anchors for exactly
+    the four; and the report-organization reviewer received 66 of 69 chains while its
+    plan was validated against all 69. Each time the answer existed upstream and only
+    the id list was handed down.
+    """
+    reporting = read_text(SCRIPTS / 'reporting.py')
+    runs = read_text(SCRIPTS / 'rootcause_run.py')
+    problems = []
+    for token, what in (("task['member_dispositions']", 'member dispositions'),
+                        ("task['todo_scope']", 'todo landing scope'),
+                        ("task['chain_ids'] = sorted(owned)", 'assigned chains'),
+                        ("task['context_chain_ids']", 'context chains')):
+        if token not in reporting:
+            problems.append('the writing task no longer carries ' + what)
+    if "facts['chains'] = list(state.get('chains', []))" not in runs:
+        problems.append('report-organization is packed with a filtered chain set again')
+    return problems
+
+
+@check('findings-carry-what-attribution-consumes')
+def findings_carry_what_attribution_consumes():
+    """A finding states who, which boundary, what was gained — not just prose.
+
+    Attribution compares findings on exactly these axes, and with only a ~600-character
+    `mechanism` to read it re-derives them every round. Measured: 0 of 982 findings
+    carried `failure_points`, and the attribution round parked 88 of 153 as pending with
+    42 of those turning on one boundary question. `actor` and `boundary` are what the
+    first two of method.md's four questions are asked against, so a finding without them
+    cannot be judged against the shared standard at all.
+    """
+    source = read_text(SCRIPTS / 'records.py')
+    contract = read_text(SKILL / 'references' / 'records.md')
+    problems = []
+    for field in ('actor', 'boundary', 'capability_delta'):
+        if "'" + field + "'" not in source:
+            problems.append('a finding may again omit ' + field)
+        if '`' + field + '`' not in contract:
+            problems.append('records.md no longer defines ' + field)
+    if 'a current finding needs its failure_points' not in source:
+        problems.append('failure_points is optional again')
+    if 'expected_control' not in source:
+        problems.append('a failure point may again omit what the control should have been')
+    return problems
+
+
+@check('every-subcommand-imports-cleanly')
+def every_subcommand_imports_cleanly():
+    """Each script resolves the names it imports from its siblings.
+
+    `review --prepare` crashed with ImportError for a whole session's worth of edits
+    while the suite stayed green: no check exercised that entry point, and a deleted
+    helper was still imported in five places. Resolving every cross-module import is
+    cheap and catches exactly the class the suite had no eyes on — a command that is
+    broken from its first line.
+    """
+    import ast
+    problems = []
+    names = {path.stem for path in SCRIPTS.glob('*.py')}
+    for path in sorted(SCRIPTS.glob('*.py')):
+        tree = ast.parse(read_text(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.module not in names:
+                continue
+            try:
+                module = __import__(node.module)
+            except Exception as exc:                      # a sibling that cannot load
+                problems.append('%s imports %s which does not load: %s'
+                                % (path.name, node.module, exc))
+                continue
+            for alias in node.names:
+                if alias.name != '*' and not hasattr(module, alias.name):
+                    problems.append('%s imports %s from %s, which does not define it'
+                                    % (path.name, alias.name, node.module))
     return problems
 
 
@@ -1699,8 +2012,23 @@ def knowledge_bundle():
 
 @check('attribution-workflow')
 def attribution_workflow():
+    """Attribution state, concurrent proposals and report integration, 45 behavioral cases."""
     from attribution_check import run_checks
     return run_checks()
+
+
+@check('report-plan')
+def report_plan_contract():
+    """Reading groups retain independent identities, evidence and real landings."""
+    from report_plan_check import run_checks
+    return run_checks(SKILL)
+
+
+@check('framework-plan')
+def framework_plan_contract():
+    """Topic ownership and explicit run protocols retain every required source."""
+    from framework_plan_check import run_checks
+    return run_checks(SKILL)
 
 
 def main(argv=None):
@@ -1709,7 +2037,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.list:
         for name, function in CHECKS:
-            print('%-24s %s' % (name, (function.__doc__ or '').strip().splitlines()[0]))
+            # Listing names must not be the thing that decides a missing docstring is
+            # fatal: `every-check-says-why-it-exists` judges that on the full run, and a
+            # crash here would hide every check after the offending one.
+            summary = ((function.__doc__ or '').strip().splitlines() or [''])[0]
+            print('%-24s %s' % (name, summary))
         return 0
     rows, failed = [], 0
     advisory = {'role-contracts', 'vocabulary-documented', 'primitive-table',

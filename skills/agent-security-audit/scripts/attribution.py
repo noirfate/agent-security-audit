@@ -4,7 +4,7 @@ import json
 import re
 from collections import Counter
 
-KINDS = {'defect', 'supplement', 'chain', 'summary', 'superseded', 'pending'}
+KINDS = {'defect', 'supplement', 'chain', 'summary', 'superseded', 'pending', 'observation'}
 SEVERITIES = ('critical', 'high', 'medium', 'low', 'informational')
 RELATIONS = {'possible_same_defect', 'supplements', 'overlaps'}
 
@@ -224,6 +224,9 @@ def disposition_errors(state, row, maps=None):
         errors += comparison_errors(state, row.get('comparison'), str(fid), maps=maps)
         if (row.get('comparison') or {}).get('conclusion') not in {'standalone', 'grouped'}:
             errors.append(str(fid) + ': defect 需要 standalone/grouped 比较')
+    elif kind == 'observation':
+        if not row.get('evidence_ids'):
+            errors.append(str(fid) + ': observation 需要判定依据的证据引用')
     elif kind == 'supplement':
         if row.get('target_finding_id') not in maps['findings'] or row.get('target_finding_id') == fid:
             errors.append(str(fid) + ': supplement 必须直接指向另一条发现')
@@ -360,10 +363,10 @@ def build_vulnerability_view(state):
                 fail(fid, '组成发现已撤回或尚未事实复核')
     # A standalone label is insufficient while a known comparison is unanswered.
     # Compare component representatives, retaining every member's source binding.
-    from rootcause import candidates
+    from rootcause import comparison_candidates
     distinct = [r for r in state.get('root_causes', []) if r.get('verdict') == 'distinct'
                 and r.get('status') != 'retired' and r.get('source_digest') == decision_digest(state, r, maps)]
-    for candidate in candidates(state):
+    for candidate in comparison_candidates(state):
         members = [fid for fid in candidate['finding_ids'] if fid in active and active[fid]['kind'] == 'defect']
         partitions = {}
         for fid in members:
@@ -400,8 +403,7 @@ def build_vulnerability_view(state):
     mapping = {}
     for vuln in vulnerabilities:
         for fid in vuln['finding_ids']:
-            mapping[fid] = {'kind': 'defect', 'vulnerability_id': vuln['id'],
-                            'path': 'vulnerabilities/' + vuln['id'] + '.md#' + fid}
+            mapping[fid] = {'kind': 'defect', 'vulnerability_id': vuln['id']}
     for fid, row in active.items():
         if fid in pending: continue
         if row['kind'] == 'supplement':
@@ -410,14 +412,13 @@ def build_vulnerability_view(state):
                 fail(fid, '补充目标没有有效漏洞'); continue
             vuln = next(v for v in vulnerabilities if v['id'] == target['vulnerability_id'])
             vuln['finding_ids'].append(fid)
-            mapping[fid] = {'kind': 'supplement', 'vulnerability_id': vuln['id'],
-                            'path': 'vulnerabilities/' + vuln['id'] + '.md#' + fid}
-        elif row['kind'] in {'chain', 'summary'}:
+            mapping[fid] = {'kind': 'supplement', 'vulnerability_id': vuln['id']}
+        elif row['kind'] in {'chain', 'summary', 'observation'}:
             mapping[fid] = {'kind': row['kind'], 'vulnerability_id': None,
-                            'path': 'summary.md#' + fid, 'chain_ids': row.get('chain_ids', []),
+                            'chain_ids': row.get('chain_ids', []),
                             'todo_ids': row.get('todo_ids', [])}
     for fid in pending:
-        mapping[fid] = {'kind': 'pending', 'vulnerability_id': None, 'path': 'summary.md#' + fid}
+        mapping[fid] = {'kind': 'pending', 'vulnerability_id': None}
     for fid, row in latest.items():
         if fid in current or row.get('kind') != 'superseded': continue
         if (maps['findings'].get(fid, {}).get('status') != 'withdrawn'
@@ -438,7 +439,7 @@ def build_vulnerability_view(state):
             'statistics': {'current_findings': len(current), 'independent_vulnerabilities': len(vulnerabilities),
                            'high_vulnerabilities': sum(v['severity'] in {'critical', 'high'} for v in vulnerabilities),
                            'supplements': kinds['supplement'], 'chains': kinds['chain'], 'summaries': kinds['summary'],
-                           'pending_findings': len(pending), 'report_tasks': len(vulnerabilities),
+                           'pending_findings': len(pending), 'observations': kinds['observation'],
                            'attribution_complete': not pending}}
 
 

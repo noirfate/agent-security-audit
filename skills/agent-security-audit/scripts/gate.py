@@ -134,13 +134,12 @@ def evaluate(workspace, state, prepare_report=False):
         declared = queue.get(key)
         actual = len([u for u in units if u['phase'] == phase])
         if declared is None:
-            if phase == 2 or actual or not queue.get('legacy_freeze_contract'):
-                frozen.append('%s阶段未冻结（现有 %d 行）' % ('二三'[phase - 2], actual))
+            frozen.append('%s阶段未冻结（现有 %d 行）' % ('二三'[phase - 2], actual))
         elif declared != actual:
             frozen.append('%s阶段冻结值 %d != 现有行数 %d' % ('二三'[phase - 2], declared, actual))
     if queue.get('phase3_rows_frozen') is not None and not queue.get('phase3_critic'):
         frozen.append('phase3_critic 为空：质问环节没做过')
-    if queue.get('phase3_rows_frozen') is not None and not queue.get('legacy_freeze_contract'):
+    if queue.get('phase3_rows_frozen') is not None:
         from units import CROSS_TYPES
         present_types = {u.get('cross_type') for u in units if u['kind'] == 'cross'}
         for kind in CROSS_TYPES:
@@ -154,8 +153,6 @@ def evaluate(workspace, state, prepare_report=False):
                      # from the old two-stage vocabulary, so G6 — the row a reader checks
                      # the frozen counts against — reported phase 3's four rows as phase
                      # two's, one phase out of step with the record it certifies.
-                     ('旧契约 %s 冻结，未按新契约验证；' % queue['legacy_freeze_contract']
-                      if queue.get('legacy_freeze_contract') else '') +
                      '二阶段 %s 行、三阶段 %s 行，与冻结值一致'
                      % (queue.get('phase2_rows_frozen'), queue.get('phase3_rows_frozen'))
                      if not frozen else '；'.join(frozen)))
@@ -256,11 +253,23 @@ def evaluate(workspace, state, prepare_report=False):
     # Effective attribution covers every current finding; candidate counts are only retrieval statistics.
     from attribution import build_vulnerability_view
     view = build_vulnerability_view(state)
+    stuck = []
+    for row in state.get('fact_disputes', []):
+        if row.get('status') == 'open' and len(row.get('runs', [])) > 1:
+            stuck.append('%s（%d 轮未闭合，涉及 %s）'
+                         % (row['id'], len(row['runs']), '、'.join(row['finding_ids'][:3])))
+    covered = {fid for row in state.get('fact_disputes', []) if row.get('status') == 'open'
+               for fid in row.get('finding_ids', [])}
+    orphan = [row['finding_id'] for row in view['pending'] if row['finding_id'] not in covered]
     cause_problems = [row['finding_id'] + ': ' + '；'.join(row['reasons']) for row in view['pending']]
+    if orphan:
+        cause_problems.append('%d 条待定没有对应的公开争点，回交无人认领：%s'
+                              % (len(orphan), '、'.join(orphan[:4])))
     detail = '；'.join(cause_problems) if cause_problems else '有效处置、具体比较、唯一归属及来源闭合'
     rows.append(_row('G9', ROWS[8], not cause_problems, detail))
     rows[-1]['work_items'] = view['pending']
     rows[-1]['historical_issues'] = view['historical_issues']
+    rows[-1]['repeated_disputes'] = stuck
 
     # Preparation deliberately precedes authored Markdown. Final delivery checks the
     # actual files against audit records; a self-reported completion flag is insufficient.
@@ -270,7 +279,7 @@ def evaluate(workspace, state, prepare_report=False):
         from reporting import validate_package
         report_errors = validate_package(workspace, state)
         detail = ('；'.join(report_errors[:3]) + '（共 %d 项，运行 report --check 查看）' % len(report_errors)
-                  if report_errors else '分类材料、人工报告、来源映射、全量高危清单及 EXT 链对账通过')
+                  if report_errors else '分类材料、报告组织、来源映射、严重独立身份与全部链去向对账通过')
         rows.append(_row('G10', ROWS[9], not report_errors, detail))
     return rows
 

@@ -84,17 +84,6 @@ def _check_scope(payload, state, unit, errors):
             errors.append('check %s: baseline_id must be the pinned baseline' % record['id'])
 
 
-def legacy_product(workspace, unit, payload, path=None):
-    """Only an unchanged, previously merged legacy product retains its old count meaning."""
-    if not unit.get('legacy_schema_version') or not unit.get('partial_sha256'):
-        return False
-    path = Path(path) if path else Path(workspace) / 'units' / unit['id'] / 'partial.json'
-    try:
-        return (hashlib.sha256(path.read_bytes()).hexdigest() == unit['partial_sha256']
-                and read(path) == payload)
-    except (OSError, ValueError):
-        return False
-
 
 def dismissed_errors(state, payload=None):
     """Candidate identity and explicit countercheck associations, never semantic falsity."""
@@ -122,12 +111,12 @@ def dismissed_errors(state, payload=None):
     return errors
 
 
-def validate_partial(state, unit, payload, legacy=False, *, replace=False):
+def validate_partial(state, unit, payload, *, replace=False):
     errors = []
     if not isinstance(payload, dict):
         return ['product is not a JSON object']
     from audit import SCHEMA_VERSION
-    if not legacy and payload.get('schema_version') not in (None, SCHEMA_VERSION):
+    if payload.get('schema_version') not in (None, SCHEMA_VERSION):
         errors.append('new product requires current schema_version ' + SCHEMA_VERSION)
     unknown = sorted(set(payload) - ALLOWED_KEYS)
     if unknown:
@@ -185,7 +174,7 @@ def validate_partial(state, unit, payload, legacy=False, *, replace=False):
                 errors.append(collection + ': cannot claim another unit as owner')
     from units import completion_errors
     errors += completion_errors(unit, payload)
-    if not legacy and payload.get('return_line'):
+    if payload.get('return_line'):
         from review_prepare import RETURN_RE
         match = RETURN_RE.search(payload['return_line'])
         if match and int(match.group(3)) != len({r['id'] for r in payload.get('dismissed_candidates') or []}):
@@ -315,7 +304,7 @@ def merge_unit(workspace, state, unit_id, partial=None, commit=True, *, replace=
         raise ValueError('%s (%d problems): %s'
                          % (headline, len(problems), '; '.join(problems[:3])))
 
-    errors = validate_partial(state, unit, payload, legacy=legacy_product(workspace, unit, payload, path), replace=replace)
+    errors = validate_partial(state, unit, payload, replace=replace)
     if errors:
         refuse('Product refused', errors)
     # Everything below works on a copy, and the record is written only if merging did
@@ -366,6 +355,14 @@ def merge_unit(workspace, state, unit_id, partial=None, commit=True, *, replace=
                 conflicts.append('%s %s already merged with different content' % (collection, rid))
     if conflicts:
         refuse('Product conflicts with records already merged', conflicts)
+    if replace:
+        # Existing review digests bind collection order. A replacement must not
+        # move unchanged shared checks/evidence behind another unit's records.
+        # Preserve old positions; Python's stable sort keeps new rows appended.
+        for collection in COLLECTIONS + ('chains',):
+            order = {row['id']: n for n, row in enumerate(state.get(collection, []))}
+            working.get(collection, []).sort(
+                key=lambda row: (row['id'] not in order, order.get(row['id'], 0)))
     for note in payload.get('method_notes', []):
         if note not in working['method_notes']:
             working['method_notes'].append(note)

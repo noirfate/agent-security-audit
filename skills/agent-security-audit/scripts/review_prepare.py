@@ -12,9 +12,9 @@ RETURN_RE = re.compile(r'候选\s*(\d+)\s*\(confirmed=(\d+),\s*fp=(\d+),\s*unclo
 
 def _mechanical(workspace, state, unit, payload, *, replace=False):
     """Everything whose answer is fixed by the files. Returns a list of problems."""
-    from merge import validate_partial, would_introduce, legacy_product
+    from merge import validate_partial, would_introduce
     problems = []
-    problems += ['产物结构：' + p for p in validate_partial(state, unit, payload, legacy=legacy_product(workspace, unit, payload), replace=replace)]
+    problems += ['产物结构：' + p for p in validate_partial(state, unit, payload, replace=replace)]
     if problems:
         return problems                      # a refused product has nothing to review
 
@@ -45,10 +45,9 @@ def _mechanical(workspace, state, unit, payload, *, replace=False):
         if total != kept + false_positive:
             problems.append('return 行：候选 %d 应等于发现数 %d 加 fp=%d'
                             % (total, kept, false_positive))
-        if not legacy_product(workspace, unit, payload):
-            dismissed = payload.get('dismissed_candidates') or []
-            if false_positive != len({r['id'] for r in dismissed}):
-                problems.append('return 行：fp 必须等于 dismissed_candidates 中的独立候选号数量')
+        dismissed = payload.get('dismissed_candidates') or []
+        if false_positive != len({r['id'] for r in dismissed}):
+            problems.append('return 行：fp 必须等于 dismissed_candidates 中的独立候选号数量')
     for row in payload.get('findings') or []:
         if row.get('status') != 'needs_review':
             problems.append('发现状态：%s 是 %s，候选必须从 needs_review 起'
@@ -100,7 +99,6 @@ def evidence_leads(state, payload):
 
 def _worklist(workspace, state, unit, payload):
     """Render full semantic context without prose or evidence truncation."""
-    from merge import legacy_product
     evidence = {e['id']: e for e in state.get('evidence') or []}
     evidence.update({e['id']: e for e in payload.get('evidence') or []})
     checks = {c['id']: c for c in state.get('checks') or []}
@@ -109,8 +107,6 @@ def _worklist(workspace, state, unit, payload):
              '已核对结构、引用、指纹、行号、显式任务状态与计数一致性。',
              '未核对语义：scope 是否合理、证据是否足够、反证是否相关、措辞含义和定级均由复核者判断。',
              '这是导航材料；可读取 partial.json、共享记录及原始材料。以下保留检查记录、可选分析笔记与原证据。', '']
-    if legacy_product(workspace, unit, payload):
-        lines += ['旧契约产物：历史 fp 仅为原始自报数，未补造候选到反证的关联；未按新契约验证。', '']
     lines += ['## 撤下候选的明确关联', '',
               '不得用无关 not_established 检查凑数；核对每个候选与所引反证的语义关系。', '']
     for row in payload.get('dismissed_candidates') or []:

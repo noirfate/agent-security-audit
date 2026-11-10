@@ -54,6 +54,13 @@ class AttributionTests(unittest.TestCase):
 
     def view(self): return a.build_vulnerability_view(self.state)
 
+    def relate(self):
+        f = self.state['findings'][0]
+        f['related_findings'] = [{'finding_id': self.ids[1], 'relation': 'possible_same_defect',
+                                  'reason': '夹具明确登记的待比较共享控制', 'evidence_ids': f['evidence_ids']}]
+        from report_fixtures import _review
+        _review(self.ws, self.state)
+
     def test_legacy_no_implicit_singletons(self):
         view = self.view()
         self.assertEqual(0, len(view['vulnerabilities']))
@@ -131,7 +138,8 @@ class AttributionTests(unittest.TestCase):
         rows[1] = decision(self.state, self.ids[1], 'summary', finding_ids=[self.ids[2]], todo_ids=['TODO-AA01'])
         approve(self.ws, self.state, rows)
         self.assertEqual(2, len(self.view()['vulnerabilities']))
-        self.assertEqual('summary.md#' + self.ids[0], self.view()['finding_map'][self.ids[0]]['path'])
+        self.assertEqual(['CHAIN-AA01-01'], self.view()['finding_map'][self.ids[0]]['chain_ids'])
+        self.assertNotIn('path', self.view()['finding_map'][self.ids[0]])
         self.assertTrue(self.view()['statistics']['attribution_complete'])
         # A finding also used in a chain remains an independent defect.
         self.assertEqual('defect', self.view()['finding_map'][self.ids[2]]['kind'])
@@ -155,6 +163,33 @@ class AttributionTests(unittest.TestCase):
         self.assertEqual('withdrawn', f['status'])
         self.assertTrue(self.view()['historical_issues'])
         self.assertEqual('withdrawn', f['status'])
+
+    def test_chain_updates_bind_previous_source_and_keep_history(self):
+        chain = {'id': 'CHAIN-AA01-UPDATE', 'title': '已有静态路径', 'entry_exposure': 'ADJ',
+                 'steps': [{'finding_id': self.ids[0], 'description': '在已记录身份前提下进入读取器。'}]}
+        approve(self.ws, self.state, chains=[chain])
+        original = copy.deepcopy(next(c for c in self.state['chains'] if c['id'] == chain['id']))
+        changed = dict(original, title='已收窄前提的静态路径')
+        reviews = copy.deepcopy(self.state['reviews'])
+        before = (self.ws / 'audit.json').read_bytes()
+        invalid = {'base_sha256': rc.digest(self.state), 'by': 'chain-reviewer',
+                   'chain_updates': [{'previous_sha256': '0' * 64, 'chain': changed}]}
+        with self.assertRaisesRegex(ValueError, '链订正来源'):
+            rc.apply_adjudication(self.ws, self.state, invalid)
+        self.assertEqual(before, (self.ws / 'audit.json').read_bytes())
+        invalid['chain_updates'][0]['previous_sha256'] = a.fingerprint(original)
+        invalid['chain_updates'][0]['chain'] = dict(changed, steps=[None])
+        with self.assertRaisesRegex(ValueError, '每跳必须为对象'):
+            rc.apply_adjudication(self.ws, self.state, invalid)
+        self.assertEqual(before, (self.ws / 'audit.json').read_bytes())
+        payload = {'base_sha256': rc.digest(self.state), 'by': 'chain-reviewer',
+                   'chain_updates': [{'previous_sha256': a.fingerprint(original), 'chain': changed}]}
+        result = rc.apply_adjudication(self.ws, self.state, payload)
+        self.assertEqual(1, result['updated_chains'])
+        self.assertEqual(reviews, self.state['reviews'])
+        self.assertEqual(1, sum(c['id'] == chain['id'] for c in self.state['chains']))
+        self.assertTrue(any(h.get('record') == original for h in self.state['attribution_history']))
+        self.assertTrue(rc.apply_adjudication(self.ws, self.state, payload)['replayed'])
 
     def test_pending_does_not_hide_high_findings(self):
         from reporting import export_package, high_findings
@@ -216,6 +251,7 @@ class AttributionTests(unittest.TestCase):
         return runs.collect(self.ws,self.state,run,[{'task_id':tid,'attempt':attempt['n'],'event':'completed','result_path':str(root/attempt['result_path'])}])
 
     def test_parallel_overlapping_jobs_and_capacity(self):
+        self.relate()
         plan={'tasks':[{'finding_ids':self.ids[:3],'reason':'共享入口'}, {'finding_ids':self.ids[2:],'reason':'同文件不同控制'}]}
         before=(self.ws/'audit.json').read_bytes()
         run=runs.prepare(self.ws,self.state,task_plan=plan)['run_id']
@@ -325,6 +361,154 @@ class AttributionTests(unittest.TestCase):
         self.assertTrue(any(set(identity['input']['finding_ids'])<=set(g['finding_ids']) for g in groups))
 
 
+    def _collect_dependency_jobs(self):
+        """复用现有四发现夹具；T0001 只主认领首项，显式补读末项。"""
+        plan = {'tasks': [
+            {'finding_ids': self.ids[:1], 'reason': '第一项的独立分析'},
+            {'finding_ids': self.ids[1:], 'reason': '其余项的独立分析'},
+        ]}
+        run = runs.prepare(self.ws, self.state, task_plan=plan)['run_id']
+        self.launch(run, 'T0001')
+        root, manifest, _ = runs.load(self.ws, run)
+        task = manifest['tasks']['T0001']
+        attempt = task['attempts'][-1]
+        dependency = {'category': 'findings', 'id': self.ids[-1]}
+        dependency['sha256'] = a.fingerprint(a.dependency_value(self.state, dependency))
+        data = proposal(run, task, attempt)
+        data['read_dependencies'] = [dependency]
+        result_path = root / attempt['result_path']
+        audit.write_json(result_path, data)
+        packet = runs.task_input(root, task)
+        self.assertNotIn(dependency['id'], packet['finding_ids'])
+        self.assertEqual([], runs.stale_reasons(self.state, packet))
+        self.assertEqual([], a.dependency_errors(self.state, [dependency]))
+        return run, root, result_path, dependency
+
+    def _change_collect_dependency(self, finding_id):
+        """走真实复核账本改变来源；不改冻结 source 或任何已提交结果。"""
+        withdraw_review(self.ws, self.state, finding_id, '夹具：源事实订正')
+        row = next(f for f in self.state['findings'] if f['id'] == finding_id)
+        before = row['impact']
+        row['impact'] = before + '；经事实复核收窄的影响'
+        self.assertNotEqual(before, row['impact'])
+        record_review(self.ws, self.state, finding_id, {
+            'reviewer': '同一模型回源复核（回归夹具）；非独立动态验证',
+            'decision': 'retain', 'rationale': '夹具源事实已订正',
+            'counterevidence_analysis': '用于确认依赖漂移，不修改目标源码',
+            'evidence_ids': row['evidence_ids'][:1], 'counterevidence_ids': [],
+        })
+        self.assertEqual([], a.fact_errors(self.state, row))
+
+    def test_collect_stopped_receipt_survives_stale_returned_read_dependency(self):
+        run, root, first_path, dependency = self._collect_dependency_jobs()
+        runs.collect(self.ws, self.state, run, [
+            {'task_id': 'T0001', 'attempt': 1, 'event': 'completed'},
+        ])
+        self.launch(run, 'T0002')
+        runs.collect(self.ws, self.state, run, [
+            {'task_id': 'T0002', 'attempt': 1, 'event': 'started',
+             'agent_id': 'fixture-running-agent'},
+        ])
+        accepted_before = first_path.read_bytes()
+        source_before = (root / 'source.json').read_bytes()
+        _, before_manifest, _ = runs.load(self.ws, run)
+        first_attempt_before = copy.deepcopy(before_manifest['tasks']['T0001']['attempts'][0])
+
+        self._change_collect_dependency(dependency['id'])
+        first_packet = runs.task_input(root, before_manifest['tasks']['T0001'])
+        # 必须先证明只改变补读来源，不能让普通输入过期掩盖回归靶点。
+        self.assertEqual([], runs.stale_reasons(self.state, first_packet))
+        self.assertNotEqual(dependency['sha256'],
+                            a.fingerprint(a.dependency_value(self.state, dependency)))
+        self.assertTrue(a.dependency_errors(self.state, [dependency]))
+        audit_before = (self.ws / 'audit.json').read_bytes()
+
+        summary = runs.collect(self.ws, self.state, run, [
+            {'task_id': 'T0002', 'attempt': 1, 'event': 'failed',
+             'reason': '执行者已停止，来源已改变', 'stopped': True},
+        ])
+        _, manifest, _ = runs.load(self.ws, run)
+        second = manifest['tasks']['T0002']
+        self.assertEqual('planned', second['state'])
+        self.assertEqual('failed', second['attempts'][0]['state'])
+        self.assertEqual('执行者已停止，来源已改变', second['attempts'][0]['reason'])
+        self.assertIsNone(second['selected_attempt'])
+        self.assertNotIn('result_sha256', second['attempts'][0])
+        self.assertIn('T0001', summary['stale_tasks'])
+        self.assertNotIn('T0001', summary['result_refs'])
+        self.assertIn('T0001', summary['missing_analysis_tasks'])
+        self.assertEqual(first_attempt_before, manifest['tasks']['T0001']['attempts'][0])
+        self.assertEqual('returned', manifest['tasks']['T0001']['state'])
+        state_view = runs.status(self.ws, self.state, run)
+        self.assertEqual(0, state_view['in_flight'])
+        first_view = next(t for t in state_view['tasks'] if t['task_id'] == 'T0001')
+        self.assertEqual('stale', first_view['effective_state'])
+        self.assertTrue(first_view['stale_reasons'])
+        self.assertEqual(accepted_before, first_path.read_bytes())
+        self.assertEqual(source_before, (root / 'source.json').read_bytes())
+        self.assertEqual(audit_before, (self.ws / 'audit.json').read_bytes())
+        persisted = json.loads((root / 'reconciliation/worklist.json').read_text())
+        self.assertEqual(summary, persisted)
+
+    def test_collect_changed_read_dependency_rejects_new_completion(self):
+        run, root, result_path, dependency = self._collect_dependency_jobs()
+        runs.collect(self.ws, self.state, run, [
+            {'task_id': 'T0001', 'attempt': 1, 'event': 'started',
+             'agent_id': 'fixture-new-result-agent'},
+        ])
+        self._change_collect_dependency(dependency['id'])
+        _, manifest, _ = runs.load(self.ws, run)
+        packet = runs.task_input(root, manifest['tasks']['T0001'])
+        self.assertEqual([], runs.stale_reasons(self.state, packet))
+        self.assertTrue(a.dependency_errors(self.state, [dependency]))
+        files = [root / 'manifest.json', root / 'source.json', result_path,
+                 root / 'reconciliation/worklist.json', self.ws / 'audit.json']
+        before = {p: p.read_bytes() for p in files}
+        # 新成功产物必须拒收；生命周期修复不能把依赖错误吞掉。
+        with self.assertRaisesRegex(ValueError, '依赖已变或不存在'):
+            runs.collect(self.ws, self.state, run, [
+                {'task_id': 'T0001', 'attempt': 1, 'event': 'completed'},
+            ])
+        self.assertEqual(before, {p: p.read_bytes() for p in files})
+        _, after, _ = runs.load(self.ws, run)
+        self.assertEqual('running', after['tasks']['T0001']['state'])
+        self.assertIsNone(after['tasks']['T0001']['selected_attempt'])
+
+    def test_collect_changed_packet_rejects_new_completion(self):
+        run, root, result_path, _ = self._collect_dependency_jobs()
+        self._change_collect_dependency(self.ids[0])
+        _, manifest, _ = runs.load(self.ws, run)
+        packet = runs.task_input(root, manifest['tasks']['T0001'])
+        self.assertTrue(runs.stale_reasons(self.state, packet))
+        before = (root / 'manifest.json').read_bytes()
+        result_before = result_path.read_bytes()
+        source_before = (root / 'source.json').read_bytes()
+        with self.assertRaisesRegex(ValueError, '任务输入已经过期'):
+            runs.collect(self.ws, self.state, run, [
+                {'task_id': 'T0001', 'attempt': 1, 'event': 'completed'},
+            ])
+        self.assertEqual(before, (root / 'manifest.json').read_bytes())
+        self.assertEqual(result_before, result_path.read_bytes())
+        self.assertEqual(source_before, (root / 'source.json').read_bytes())
+
+    def test_collect_unchanged_dependencies_accept_completion(self):
+        run, root, result_path, dependency = self._collect_dependency_jobs()
+        result_before = result_path.read_bytes()
+        source_before = (root / 'source.json').read_bytes()
+        audit_before = (self.ws / 'audit.json').read_bytes()
+        summary = runs.collect(self.ws, self.state, run, [
+            {'task_id': 'T0001', 'attempt': 1, 'event': 'completed'},
+        ])
+        self.assertEqual([], summary['stale_tasks'])
+        self.assertIn('T0001', summary['result_refs'])
+        _, manifest, _ = runs.load(self.ws, run)
+        self.assertEqual('returned', manifest['tasks']['T0001']['state'])
+        self.assertEqual(1, manifest['tasks']['T0001']['selected_attempt'])
+        self.assertEqual([], a.dependency_errors(self.state, [dependency]))
+        self.assertEqual(result_before, result_path.read_bytes())
+        self.assertEqual(source_before, (root / 'source.json').read_bytes())
+        self.assertEqual(audit_before, (self.ws / 'audit.json').read_bytes())
+
     def test_cli_prepare_dispatch_collect_status_and_report(self):
         import subprocess
         def command(*args):
@@ -363,13 +547,16 @@ class AttributionTests(unittest.TestCase):
         self.assertEqual('pass',gates['G9']['status'])
         self.assertEqual('skip',gates['G10']['status'])
         self.assertEqual('fail',next(r for r in evaluate(self.ws,self.state) if r['id']=='G10')['status'])
+        from report_fixtures import confirm_fixture_plan
+        confirm_fixture_plan(self.state, scenarios=[{'id': 'SCENE-ACCESS', 'title': '有条件的访问路径',
+            'chain_ids': ['CHAIN-AA01-01'], 'vulnerability_ids': [self.ids[2]], 'grouping_reason': '保留已有能力的组合关系'}])
         index = reporting.export_package(self.ws,self.state)
         author_fixture(self.ws,self.state,index)
         self.assertEqual([],reporting.validate_package(self.ws,self.state))
         summary = self.ws/'report/summary.md'
-        body=summary.read_text();broken=body.replace('<a id="'+self.ids[0]+'"></a>','')
+        body=summary.read_text();broken=body.replace('<a id="SCENE-ACCESS"></a>','')
         self.assertNotEqual(body,broken);summary.write_text(broken)
-        self.assertTrue(any('anchor' in e for e in reporting.validate_package(self.ws,self.state)))
+        self.assertTrue(any('场景落点' in e for e in reporting.validate_package(self.ws,self.state)))
 
     def test_received_result_cannot_be_replaced_by_completion_event(self):
         run=runs.prepare(self.ws,self.state)['run_id'];self.launch(run,'T0001');self.finish(run,'T0001')
@@ -378,31 +565,26 @@ class AttributionTests(unittest.TestCase):
         audit.write_json(p,data)
         with self.assertRaises(ValueError):runs.collect(self.ws,self.state,run,[{'task_id':'T0001','attempt':1,'event':'completed'}])
 
-    def test_migration_keeps_facts_and_does_not_infer_dispositions(self):
-        original=copy.deepcopy(self.state['findings'])
-        self.state['schema_version']=audit.MIGRATABLE[-1]
-        for key in ('finding_dispositions','attribution_history','attribution_commits'):self.state.pop(key,None)
-        audit.save(self.ws,self.state)
-        migrated=audit.refresh(self.ws,self.state)
-        self.assertTrue(migrated['schema_migrated'])
-        self.assertEqual(audit.SCHEMA_VERSION,self.state['schema_version'])
-        self.assertEqual(original,self.state['findings'])
-        self.assertEqual([],self.state['finding_dispositions'])
-        self.assertEqual(4,self.view()['statistics']['pending_findings'])
-
     def test_old_authored_reports_are_archived_without_rewriting(self):
         import reporting
         from reporting_check import author_fixture
         approve(self.ws,self.state)
+        from report_fixtures import confirm_fixture_plan
+        confirm_fixture_plan(self.state)
         index=reporting.export_package(self.ws,self.state);author_fixture(self.ws,self.state,index)
         before={p.name:p.read_bytes() for p in (self.ws/'report/vulnerabilities').glob('*.md')}
         withdraw_review(self.ws,self.state,self.ids[0],'新证据需要核对')
+        with self.assertRaises(ValueError): reporting.export_package(self.ws,self.state)
+        self.assertEqual(before, {p.name:p.read_bytes() for p in (self.ws/'report/vulnerabilities').glob('*.md')})
+        approve(self.ws,self.state)
+        confirm_fixture_plan(self.state)
         index=reporting.export_package(self.ws,self.state)
         surviving={p.name:p.read_bytes() for p in (self.ws/'report/vulnerabilities').glob('*.md')}
         archived=[p.read_bytes() for p in (self.ws/'report/legacy/vulnerabilities').glob('*.md')]
         for name,body in before.items():self.assertTrue(surviving.get(name)==body or body in archived)
 
     def test_known_candidates_cannot_be_closed_with_self_only_comparison(self):
+        self.relate()
         rows=[decision(self.state,fid) for fid in self.ids]
         for row in rows:row['comparison']['finding_ids']=[row['finding_id']]
         with self.assertRaises(ValueError):approve(self.ws,self.state,rows)
@@ -441,22 +623,15 @@ class AttributionTests(unittest.TestCase):
         with self.assertRaises(ValueError):approve(self.ws,self.state,rows)
         self.assertEqual(before,(self.ws/'audit.json').read_bytes())
 
-    def test_legacy_three_file_snapshot_still_loads(self):
-        folder=Path(self.tmp.name)/'legacy';folder.mkdir()
-        for name,body in [('audit.json','{}'),('report.md','# historical'),('report.sarif.json','{}')]:
-            (folder/name).write_text(body)
-        audit.write_json(folder/'manifest.json',{'files':{p.name:audit.digest(p) for p in folder.iterdir()},
-                                                'baseline_ids':[self.state['framework']['baseline_id']]})
-        self.assertEqual({'audit.json','report.md','report.sarif.json'},set(audit.snapshot_manifest(folder)['files']))
-
     def test_reconciliation_new_leads_reach_final_worklist(self):
+        self.relate()
         run=runs.prepare(self.ws,self.state)['run_id'];self.launch(run,'T0001');self.finish(run,'T0001')
         root,m,_=runs.load(self.ws,run)
         tid=next(tid for tid,t in m['tasks'].items() if t['kind']=='reconciliation')
         self.launch(run,tid)
         summary=self.finish(run,tid,lambda data:data['open_items'].append({'finding_ids':[data['assessments'][0]['finding_id']],
                                                                          'reason':'跨文件核查新增缺口'}))
-        self.assertTrue(any(i['kind']=='open_items' and i['basis']['item']['reason']=='跨文件核查新增缺口' for i in summary['issues']))
+        self.assertTrue(any(i['kind']=='open_items' and any(b['item']['reason']=='跨文件核查新增缺口' for b in i['basis']) for i in summary['issues']))
         self.assertIn(tid,summary['result_refs'])
         count=len(runs.load(self.ws,run)[1]['tasks'])
         runs.collect(self.ws,self.state,run)
@@ -523,6 +698,104 @@ class AttributionTests(unittest.TestCase):
         self.assertEqual(old_reviews,self.state['reviews'])
         self.assertEqual([],self.view()['pending'])
 
+
+    def test_replacement_preserves_shared_review_order_and_still_rejects_content_changes(self):
+        from merge import merge_unit, COLLECTIONS
+        from units import id_owner
+        from review import subject_digest
+        shared = self.state['findings'][2]
+        shared['check_ids'] = ['CHK-CC01-0001', 'CHK-AA01-0001', 'CHK-BB01-0001']
+        shared['evidence_ids'] = ['E-CC01-001', 'E-AA01-001', 'E-BB01-001']
+        unit = next(u for u in self.state['units'] if u['id'] == 'U-AA01')
+        partial = self.ws / 'stable-replacement.json'
+        for verdict in ('retain', 'reject'):
+            record_review(self.ws, self.state, shared['id'], {
+                'reviewer': 'shared-source-reviewer', 'decision': verdict,
+                'rationale': '夹具分别验证保留与拒绝账本的顺序稳定性。',
+                'counterevidence_analysis': '主张本身没有随单元替换变化。',
+                'evidence_ids': shared['evidence_ids'], 'counterevidence_ids': []})
+            product = {'unit_id': unit['id'], 'schema_version': audit.SCHEMA_VERSION,
+                       'progress': {'files_done': len(unit['material_ids'])},
+                       'dimensions': {key: {'state': 'done', 'reason': '已核对'} for key in unit['dimensions']}}
+            for name in COLLECTIONS:
+                product[name] = [copy.deepcopy(r) for r in self.state.get(name, []) if id_owner(r.get('id')) == 'AA01']
+            for finding in product['findings']:
+                finding['status'] = 'needs_review'
+            if not any(e['id'] == 'E-AA01-004' for e in product['evidence']):
+                product['evidence'].append(dict(copy.deepcopy(product['evidence'][0]), id='E-AA01-004', observation='新旁证不改变既有主张。'))
+            old_order = {key: [r['id'] for r in self.state[key]] for key in ('checks', 'evidence')}
+            old_reviews = copy.deepcopy(self.state['reviews'])
+            before_digest = subject_digest(self.state, shared)
+            audit.write_json(partial, product)
+            try:
+                merge_unit(self.ws, self.state, unit['id'], partial, replace=True)
+            except ValueError as exc:
+                self.fail('unchanged shared review was refused: ' + str(exc))
+            shared = next(f for f in self.state['findings'] if f['id'] == shared['id'])
+            self.assertEqual(before_digest, subject_digest(self.state, shared))
+            self.assertEqual(old_reviews, self.state['reviews'])
+            self.assertEqual('current' if verdict == 'retain' else 'withdrawn', shared['status'])
+            for key, ids in old_order.items():
+                self.assertEqual(ids, [r['id'] for r in self.state[key] if r['id'] in ids])
+            self.assertEqual('E-AA01-004', self.state['evidence'][-1]['id'])
+        original = copy.deepcopy(self.state)
+        original_bytes = (self.ws / 'audit.json').read_bytes()
+        changed = next(e for e in product['evidence'] if e['id'] == 'E-AA01-001')
+        changed['observation'] += ' 实际事实内容变化。'
+        audit.write_json(partial, product)
+        with self.assertRaisesRegex(ValueError, 'Reviewed subject changed'):
+            merge_unit(self.ws, self.state, unit['id'], partial, replace=True)
+        self.assertEqual(original, self.state)
+        self.assertEqual(original_bytes, (self.ws / 'audit.json').read_bytes())
+
+    def test_large_material_line_locators_use_bounded_reads_and_physical_lines(self):
+        from pathlib import Path
+        from materials import physical_line_count, decode, MAX_BYTES
+        from records import validate
+        from report_fixtures import _review
+        material = self.state['materials'][self.state['evidence'][0]['material_id']]
+        path = audit.material_path(self.state, material)
+        text = 'value = 1\n' * 500000
+        self.assertGreater(len(text.encode()), MAX_BYTES)
+        path.write_text(text)
+        material.update(sha256=audit.digest(path), size=path.stat().st_size, visibility='oversized')
+        for evidence in self.state['evidence']:
+            if evidence['material_id'] == material['id']:
+                evidence['sha256'] = material['sha256']
+        self.state['evidence'][0]['locator'] = {'lines': [500000, 500000]}
+        _review(self.ws, self.state)
+        original_open = Path.open
+        reads = []
+        class Bounded:
+            def __init__(self, handle): self.handle = handle
+            def __enter__(self): return self
+            def __exit__(self, *args): return self.handle.__exit__(*args)
+            def __getattr__(self, name): return getattr(self.handle, name)
+            def read(self, size=-1):
+                if size < 0 or size > MAX_BYTES + 1:
+                    raise AssertionError('material read must remain bounded')
+                reads.append(size)
+                return self.handle.read(size)
+        def opened(which, *args, **kwargs):
+            handle = original_open(which, *args, **kwargs)
+            return Bounded(handle) if which == path else handle
+        with patch.object(Path, 'open', opened):
+            self.assertEqual([], validate(self.ws, self.state))
+        self.assertTrue(reads)
+        with self.assertRaisesRegex(ValueError, 'bounded decoding size'):
+            decode(text.encode())
+        self.state['evidence'][0]['locator']['lines'] = [500001, 500001]
+        _review(self.ws, self.state)
+        self.assertTrue(any('line beyond end of material' in e for e in validate(self.ws, self.state)))
+        probe = self.ws / 'line-probe.txt'
+        for value, encoding, expected in [('alpha\u2028beta\nlast', 'utf-8', 2),
+                                           ('a\r\nb\rc\n', 'utf-8', 3),
+                                           ('甲\n乙', 'utf-16', 2), ('', 'utf-8', 0)]:
+            probe.write_bytes(value.encode(encoding))
+            self.assertEqual(expected, physical_line_count(probe))
+        probe.write_bytes(b'abc\x00def')
+        with self.assertRaisesRegex(ValueError, 'Binary control'):
+            physical_line_count(probe)
 
     def test_query_separates_candidate_coverage_from_effective_attribution(self):
         value=rc.survey(self.state)

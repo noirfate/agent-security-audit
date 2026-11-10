@@ -20,7 +20,7 @@ import uuid
 
 sys.dont_write_bytecode = True
 from knowledge import SKILL, baseline_dir, digest, load_bundle, objects, read
-SCHEMA_VERSION = '1.8'
+SCHEMA_VERSION = '1.9'
 # Collections added by 1.2. They carry the scheduling layer: how the target was cut
 # into units, which round did what, and what the files alone cannot decide.
 SCHEDULING_COLLECTIONS = ('units', 'clusters', 'artifacts', 'rounds', 'chains', 'primitives',
@@ -28,18 +28,13 @@ SCHEDULING_COLLECTIONS = ('units', 'clusters', 'artifacts', 'rounds', 'chains', 
                          'route_excluded', 'corrections', 'report_todos',
                          'withdrawn_reviews', 'reconciliations', 'object_scope',
                          'target_patterns', 'form_gaps', 'retired_unit_ids', 'dismissed_candidates',
-                         'finding_dispositions', 'attribution_history', 'attribution_commits')
+                         'finding_dispositions', 'attribution_history', 'attribution_commits',
+                         'fact_disputes')
 EMPTY_QUEUE = {'phase1_frozen': None, 'phase2_rows_frozen': None,
                'phase3_rows_frozen': None, 'phase3_critic': None,
                'census': None, 'partition_confirmed': False,
                'partition_reason': '', 'cross_scope': {},
                'dispatch_capacity': None}
-# Older target records this release still knows how to migrate. Anything outside this
-# set plus SCHEMA_VERSION is refused rather than guessed at.
-# Every version this tool will still open. Bumping SCHEMA_VERSION without adding the
-# previous one here turns every existing record into an unrecognized one, refused even
-# by refresh — the migration path cannot run because the guard rejects the record first.
-MIGRATABLE = ('1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7')
 # The host's ceiling on subagents running at once, used when the environment sets none.
 # The count is session-global, so the workers, the reviewers and the verify agents a
 # reviewer spawns all draw on the same ceiling, and a launch above it is refused rather
@@ -215,7 +210,7 @@ def snapshot_entries(root, exclude_history=False):
 
 
 def snapshot_manifest(directory):
-    """Verify a complete archive; accept the original three-file format as history."""
+    """Verify a complete archive."""
     from pathlib import PurePosixPath
     directory = Path(directory)
     actual, directories = snapshot_entries(directory)
@@ -225,10 +220,9 @@ def snapshot_manifest(directory):
     if not isinstance(manifest, dict) or not isinstance(manifest.get('files'), dict):
         raise ValueError('Invalid snapshot manifest: ' + directory.name)
     files = manifest['files']
-    version = manifest.get('format_version', 1)
-    if version not in (1, 2):
-        raise ValueError('Unknown snapshot format: ' + str(version))
-    required = 'workspace/audit.json' if version == 2 else 'audit.json'
+    if manifest.get('format_version') != 2:
+        raise ValueError('Unknown snapshot format: ' + str(manifest.get('format_version')))
+    required = 'workspace/audit.json'
     if required not in files:
         raise ValueError('Invalid snapshot file list: missing ' + required)
     for name, sha in files.items():
@@ -236,10 +230,8 @@ def snapshot_manifest(directory):
         if (relative.is_absolute() or '..' in relative.parts or '\\' in name
                 or relative.as_posix() != name or name in ('', '.', 'manifest.json')):
             raise ValueError('Invalid snapshot path: ' + name)
-        if version == 2 and (not relative.parts or relative.parts[0] != 'workspace'):
+        if not relative.parts or relative.parts[0] != 'workspace':
             raise ValueError('Invalid snapshot payload path: ' + name)
-        if version == 1 and name not in {'audit.json', 'report.md', 'report.sarif.json'}:
-            raise ValueError('Invalid legacy snapshot file list: ' + name)
         if not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):
             raise ValueError('Invalid snapshot digest: ' + name)
     if set(actual) != set(files) | {'manifest.json'}:
@@ -247,7 +239,7 @@ def snapshot_manifest(directory):
         extra = sorted(set(actual) - set(files) - {'manifest.json'})
         raise ValueError('Snapshot changed: %s; missing=%s unlisted=%s'
                          % (directory.name, missing, extra))
-    if version == 2 and manifest.get('directories') != sorted(directories):
+    if manifest.get('directories') != sorted(directories):
         raise ValueError('Snapshot directory list changed: ' + directory.name)
     for name, sha in files.items():
         if digest(actual[name]) != sha:
@@ -351,7 +343,7 @@ def initialize(workspace, name, target_specs, excludes):
         'exclusions': exclusions, 'inventory_exclusions': skipped, 'materials': mats,
         'instances': [], 'connections': [], 'assets': [], 'controls': [], 'attackers': [],
         'hypotheses': [], 'coverage': [], 'evidence': [], 'checks': [], 'findings': [],
-        'method_notes': [], 'pending_framework': None,
+        'method_notes': [], 'pending_framework': None, 'report_plan': None,
         'reviews': [], 'observations': [], 'dynamic_sessions': [], 'root_causes': [],
         **{key: [] for key in SCHEDULING_COLLECTIONS}, 'queue': {**EMPTY_QUEUE, 'cross_scope': {}},
     }
@@ -401,70 +393,6 @@ def refresh(workspace, state, adopt=False):
             owner = units_by_token.get(id_owner(row['id']))
             if owner:
                 row['unit_id'] = owner
-    previous = state['schema_version']
-    migrated = previous != SCHEMA_VERSION
-    if migrated:
-        archive(workspace, state, 'before-schema-migration')
-        state['schema_version'] = SCHEMA_VERSION
-        for key in ('reviews', 'observations', 'dynamic_sessions',
-                    'root_causes') + SCHEDULING_COLLECTIONS:
-            state.setdefault(key, [])
-        state.setdefault('queue', dict(EMPTY_QUEUE))
-        # Keep old facts and freeze states without pretending they passed 1.7.
-        state.setdefault('contract_history', []).append({
-            'from': previous, 'to': SCHEMA_VERSION, 'at': now(),
-            'note': 'Legacy conclusions/fp counts retained; no candidate associations or semantic decisions inferred'})
-        queue = state['queue']
-        queue['legacy_freeze_contract'] = previous
-        queue.setdefault('partition_confirmed', False)
-        queue.setdefault('cross_scope', {})
-        # 1.7 adds fields only. An unrecorded dispatch capacity stays None rather than
-        # defaulting to a number: the ceiling belongs to the host and moves with its
-        # version and environment, so a guessed one would read as a measured one.
-        queue.setdefault('dispatch_capacity', None)
-        for unit in state.get('units', []):
-            unit.setdefault('legacy_schema_version', previous)
-            unit.setdefault('wave', None)
-        # Obsolete hit-count obligations do not survive as work. Other answers remain.
-        state['pending_decisions'] = [d for d in state.get('pending_decisions', [])
-                                      if d.get('kind') != 'oversized_unit']
-        # 1.5 removed the bounded-read path, so read receipts have no validator, no
-        # renderer and no writer. Dropping them is the migration: leaving them would keep
-        # rows nothing checks in a record whose own version says they do not exist.
-        # Their one load-bearing use — "state what you actually read" — moved to the
-        # unconditional `analysis_method`/`limitations` on a reviewed coverage row.
-        dropped_reads = len(state.pop('reads', []) or [])
-        if previous in {'1.0', '1.1', '1.2', '1.3'}:
-            # Two stages became three phases: the reconnaissance and locating work that
-            # used to sit inside `plan` is now a phase with its own products and gate.
-            # Unit stages shift up by one because phase 1 owns no units, and the old
-            # stage-1 row count becomes phase 2's — it counted the same set of units.
-            for unit in state.get('units', []):
-                if 'phase' not in unit:
-                    unit['phase'] = {1: 2, 2: 3}.get(unit.pop('stage', 1), 2)
-            queue = state.setdefault('queue', {})
-            was_stage1 = queue.pop('stage1_rows_frozen', None)
-            was_stage2 = queue.pop('stage2_rows_frozen', None)
-            was_critic = queue.pop('stage2_critic', None)
-            working = [u for u in state.get('units', []) if u['kind'] != 'cross']
-            queue.setdefault('phase1_frozen',
-                             {'units': len(working),
-                              'object_scope': len(state.get('object_scope') or []),
-                              'spots': sum(u.get('surface_hits') or 0 for u in working)}
-                             if was_stage1 is not None else None)
-            queue.setdefault('phase2_rows_frozen', was_stage1)
-            queue.setdefault('phase3_rows_frozen', was_stage2)
-            queue.setdefault('phase3_critic', was_critic)
-        if previous == '1.0':
-            # 1.0 predates the read receipts and the review ledger, so its conclusions
-            # were never held to them. 1.1 records keep their findings: 1.2 and 1.3 only
-            # add scheduling collections, and the skill fingerprint below already flags
-            # the checks for re-review. Adding a collection is what a version bump is
-            # for — the keys are created here and nowhere else, so a new collection that
-            # does not move the version never reaches an existing record, and the rules
-            # reading it stay silent instead of failing.
-            for f in state['findings']:
-                f['status'] = 'needs_review'
     from vcs import dirty as _dirty, revision as _revision
     for target in state['targets']:
         target['revision'] = _revision(target['path'])
@@ -529,9 +457,7 @@ def refresh(workspace, state, adopt=False):
         state['framework'] = available
     save(workspace, state)
     return {'changed_materials': sorted(changed), 'checks_needing_review': invalidated,
-            'pending_framework': state['pending_framework'], 'adopted': adopt and framework_changed,
-            'schema_migrated': migrated,
-            'dropped_read_receipts': dropped_reads if migrated else 0}
+            'pending_framework': state['pending_framework'], 'adopted': adopt and framework_changed}
 
 
 def new_check(cid, instance, mode, baseline):
@@ -886,7 +812,7 @@ def build_parser():
                         help='dispatch: which wave of this round these units are, recorded '
                              'on each unit so the schedule survives a context reset')
     parser.add_argument('--full', action='store_true',
-                        help='report: also export the legacy full-record view for inspection')
+                        help='report: also export the full-record view for inspection')
     parser.add_argument('--check', dest='check_report', action='store_true',
                         help='report: validate authored reports and update their index')
     parser.add_argument('--route', action='store_true')
@@ -938,10 +864,8 @@ def main():
         workspace = workspace_path(args.workspace)
         if args.command != 'init':
             checked = read(workspace / 'audit.json')
-            if checked.get('schema_version') not in set(MIGRATABLE) | {SCHEMA_VERSION}:
+            if checked.get('schema_version') != SCHEMA_VERSION:
                 raise ValueError('Unsupported target knowledge schema')
-            if checked.get('schema_version') != SCHEMA_VERSION and args.command != 'refresh':
-                raise ValueError('Run refresh to migrate the old target schema')
         if args.command == 'gate':
             # One implementation, three exit codes, both entry points identical:
             # 0 passed, 1 read fine but not closed, 2 could not read or parse.
@@ -1042,10 +966,8 @@ def main():
             result = initialize(workspace, args.name, args.target, args.exclude)
         else:
             state = read(workspace / 'audit.json')
-            if state.get('schema_version') not in set(MIGRATABLE) | {SCHEMA_VERSION}:
+            if state.get('schema_version') != SCHEMA_VERSION:
                 raise ValueError('Unsupported target knowledge schema')
-            if state['schema_version'] in MIGRATABLE and args.command != 'refresh':
-                raise ValueError('Run refresh to migrate the old target schema')
             if args.command == 'refresh':
                 result = refresh(workspace, state, args.adopt_framework)
             elif args.command == 'plan':

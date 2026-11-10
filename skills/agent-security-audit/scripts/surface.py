@@ -306,30 +306,6 @@ def load_hits(workspace, unit_id):
     return read(path)
 
 
-def reconcile(workspace, state):
-    """Inspect optional annotations. Open or absent search results create no tasks."""
-    rows = []
-    for unit in state.get('units', []):
-        if unit['kind'] == 'cross':
-            continue
-        payload = load_hits(workspace, unit['id'])
-        if payload is None:
-            rows.append({'unit': unit['id'], 'indexed': None, 'disposed': 0,
-                         'open': None, 'status': 'ok', 'index_status': 'not_built'})
-            continue
-        spots = payload.get('spots') or []
-        disposed = [s for s in spots if s['disposition'] != 'open']
-        undecided = [s['id'] for s in spots if s['disposition'] == 'open']
-        missing_reason = [s['id'] for s in spots
-                          if s['disposition'] in {'not_instance', 'out_of_scope'} and not s['reason']]
-        rows.append({'unit': unit['id'], 'indexed': payload['total'],
-                     'disposed': len(disposed), 'open': len(undecided),
-                     'open_ids': undecided[:5], 'missing_reason': missing_reason[:5],
-                     'recorded_progress': unit['progress']['hits_disposed'],
-                     'status': 'ok' if not missing_reason else 'incomplete'})
-    return rows
-
-
 def _dispose(payload, unit_id, dispositions):
     """Validate the conclusions and fold them into the slice. No disk, no decision."""
     index = {spot['id']: spot for spot in payload.get('spots') or []}

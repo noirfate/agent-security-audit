@@ -97,8 +97,9 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
      每波收口读一次 audit.py dispatch --status（按轮次与波次给 dispatched / returned /
      outstanding / deferred），对不上就按上一行处理——不要靠记忆对账，上下文一压缩就没了
   3  audit.py review --prepare --unit …；机械项不过就交回修正，再交付
-  4  为已交付且预检通过的单元启动或复用 reviewer（契约 roles/reviewer.md）
+  4  为已交付且预检通过的单元启动或**复用同一个** reviewer（契约 roles/reviewer.md）
      给本批单元清单、已有判定摘要和未完成范围，主代理只读更新后的判定摘要
+     一段只派一个 reviewer，它自己分批；容量表那一行给的是每批的单元数，不是 reviewer 个数
      其他 worker 可并行处理不同单元；同一产物一次只允许一个角色写入
      按判定处理：
        订正 -> reviewer 修改产物并留 corrections；已登记复核的发现先 review --withdraw，再修改
@@ -115,14 +116,25 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" recall --workspace "$WS" --status
   9  写入者落盘并暂停后 snapshot；保存已交付、已核与未完成清单，再释放上下文
 闸门     gate（阶段适用的 G1、G2 与正式任务状态必过；G3 为参考信息）
 三阶段   模型决定 cross_scope → queue_critic 质问 → freeze --phase 3 → 执行 needed 类型
-收口     rootcause --prepare → 按容量 rootcause --dispatch → 主代理启动 rootcause_reviewer
+收口     rootcause --prepare → 必要时模型补主题主归属并 --input 重提 → 按容量 rootcause --dispatch → 主代理启动 rootcause_reviewer
          → 各写独立结果 → rootcause --collect → 跨文件核对任务（同协议可并发）
          → 收口 rootcause_reviewer 形成裁决文件 → 主代理 rootcause --apply
-         → 归因 apply 后跑链推导轮：--prepare --synthesis（锚/落点/接边三类）→ 派
-           rootcause_reviewer 写 synthesis-<n>.json → --collect 回收 → 合规链经 apply 的
+         → 回边：apply 把未闭合争点写进 fact_disputes。按它们的 finding 所属单元
+           回派 reviewer 批次做事实订正，再建增量 run 重做受影响归因；
+           `runs` 长度 >1 的争点是已经重复提过的，优先处置——不处置它下一轮还会原样回来
+         → 归因 apply 后跑链推导轮：--prepare --synthesis（锚/落点/接边三类）→ 按容量
+           rootcause --dispatch 分波派 rootcause_reviewer 写 synthesis-<n>.json
+           → --collect 回收 → 合规链经 apply 的
            chains 通道落盘（接边/无链理由留账本给报告）
-         → gate --prepare → report 导出材料 → report_writer 按模板成文并闭合 report_todos
-         → 一名复核终报 → report --check → gate（不带 --prepare）→ validate / snapshot
+         → 报告组织轮：写 tasks 计划（每项 kind: report-organization，finding_ids
+           合起来覆盖全部 current，可分片）→ rootcause --prepare --input <计划>
+           → --dispatch 派 rootcause_reviewer → --collect → 主代理 --apply report_plan
+         → gate --prepare（G9 未闭合不停在这里，见闸门一节的阶段报告）
+         → report 导出材料 → 按容量分波派 report_writer，一人一份报告、各写独立文件，
+           summary 要读全部报告所以最后单独派 → 各自交回已落实的 report_todos
+         → 一名复核终报，连 report/notes/ 下的正文外事实一起读，需要改记录的转成
+           reviewer 的事实订正 → report --check（结果的 notes 列出当前有哪些）
+           → gate（不带 --prepare）→ validate / snapshot
 ```
 
 **目标专属模式留在工作区，不写技能。** 它是这次审计的记录（`target_patterns.json`），
@@ -193,7 +205,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 
 退出码分两个方向：**0 全过；1 读得了但内容没收口（去修记录）；2 读不到或读不懂（去修路径或格式）**。**原样跑，不要接管道**——接了管道退出码是末端命令的，闸门会无声放行。
 
-十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 全部当前发现有有效处置、具体比较、唯一归属及闭合依赖（旧数据可读不等于归因通过，返回具体待处理 ID）；G10 两段报告与来源对账完整（按[报告契约](report-format.md)核对分类材料、人工模板、完整发现映射、末尾全量高危清单及 EXT 链；最终交付缺报告即失败，准备时延后）。G9 在最终报告准备时要求闭合；它不阻止二阶段继续执行、三阶段冻结和正常快照。G9 只要求计划呈现落点，report_todos 可以 open；G10 才核实际正文。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将报告待办与 G10 成文核查留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
+十条：G1 分区；G2 文件与六维度的声明完成；G3 原始索引参考行（skip）；G4 EXT 单元与检查归属；G5 跨边界连接归属；G6 冻结与 cross_scope 一致；G7 正式检查、发现和显式对账任务闭合；G8 覆盖记录与材料分母一致；G9 全部当前发现有有效处置、具体比较、唯一归属及闭合依赖（旧数据可读不等于归因通过，返回具体待处理 ID）；G10 两段报告与来源对账完整（按[报告契约](report-format.md)核对分类材料、人工模板、完整发现映射、全部严重独立身份、报告分组、攻击场景与全部链去向；最终交付缺报告即失败，准备时延后）。G9 分两个时点：**`gate --prepare` 退 1 不是叫你停下**，它只是让你看清还差什么——此时照常往下走，交付的是阶段报告；**终版 `gate`（不带 --prepare）仍要求 G9 闭合**，未闭合就不是全量交付。它在任何时点都不阻止二阶段继续执行、三阶段冻结和正常快照。此时照常提交 report_plan、照常 `report` 导出、照常成文，交付的是**阶段报告**——summary 必须把全部 pending 列进明确标注的未决范围，正文不得宣称全量完成。结构错误（`structural_errors` 非空）才是真的停。G9 只要求计划呈现落点，report_todos 可以 open；G10 才核实际正文。一阶段不要求索引；二阶段核对 G1、G2 与交接归属。`gate --prepare` 仅将报告待办与 G10 成文核查留给 report_writer，输出 `purpose: report_preparation` 和 `pending_report_todos`；报告完成后不带该选项运行最终 gate，全部适用项必须通过。
 
 两条容易读错的：**G4 读的是单元的 `exposure`**（实例上没人填——契约要求填在发现上，单元的由裁决环节填；若按实例判，闸门会永远输出「EXT 实例 0 个」而通过）。**G7 接受带 `needs_evidence` 复核的 `needs_review` 发现**：那是正当判定，它的闭合形式就是「记录了缺什么」；只有毫无复核记录的发现才算悬空。G7 同时核订正条目是否带改前／改后／理由，以及 `report_todos` 是否全部闭合。
 
@@ -206,7 +218,7 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 同时能跑多少个子代理由宿主定，不由本skill假定。`dispatch` 按**记录里已有的值 → 环境变量
 `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` → 宿主默认**的顺序解析，把结果连来源写进
 `queue.dispatch_capacity`，并在派单前核**本波待派数 + 仍在 `dispatched` 的单元数 ≤ limit − reserve**。
-这个计数是会话级全局的：worker、reviewer 以及 reviewer 自己派的 verify 子代理共用同一个额度，
+这个计数是会话级全局的：worker、reviewer 以及 reviewer 自己派的 verify 子代理共用同一组并发名额，
 所以 `reserve` 要留得住复核侧的 fan-out——没有它，第一个被拒的会是 reviewer 派出的 verify，
 而那份契约里一个字都没提预算。
 
@@ -216,21 +228,24 @@ python3 "$AUDIT_SKILL_DIR/scripts/audit.py" gate --workspace "$WS"
 |---|---:|---|
 | `repo_shard` / `artifact` / `residual` worker | 6 | 要读大量源码、各写独立产物，200+ 文件的单元尤其 |
 | `cross` 单元 | 10–13 | 同构、独立，主要读共享记录与已有产物 |
-| reviewer | 1–5 个单元/批 | 同一根因或同一信任边界的单元放同一批，便于跨单元一致性核查 |
+| reviewer | **1 个**（每段只有一个，自己分批跑，每批 1–5 个单元） | 跨单元一致性扫描只有它一个读者；两个 reviewer 会同写 `units/_review_<轮次>.md`，后写的覆盖先写的，而主代理只读这一节 |
+| rootcause_reviewer（链推导轮） | 6 | 任务数即派单数，v3/v4 实测均为 6；锚与落点各按 24 条分片、接边最多一个，上界本身已有界，一波派完即可。三类各写独立 `synthesis-<n>.json`，互不触碰 |
+| report_writer | 4–6 人 | 一人一份报告、各写独立文件，互不触碰；summary 要读全部报告，最后单独派 |
 
 任何时刻保持「worker 写、reviewer 读」的产物级互斥：不要为了提高并发让两个角色同时写同一份
-`partial.json`。
+`partial.json`。report_writer 没有这个约束——每人只写自己那一份正文或回交文件，共享记录与索引由主代理统一更新，所以成文阶段可以放开并发。
 
-三档并行的记录、闸门与报告完全相同，只是波数或轮数变多：**全并发**（容量够，按分档一波派完）、
-**受限并发**（有上限，按 `dispatch` 的准入核算分波）、**单执行者**（并行能力不可用或用户未授权）。
+分单元工作默认按宿主可用容量并发执行。容量足时按分档一波派完，容量有限时按 `dispatch` 核算分波。只有宿主不具备子代理能力或用户明确要求单执行者时，才按同一份单元清单顺序执行。三种执行方式的记录、闸门与报告相同。
+
+临时使用额度耗尽不触发单执行者降级，也不改小并发上限。保存已完成产物和未完成范围，额度恢复后按可用容量继续并发，主代理不接管分析或写作。并发名额已满时按主循环延后到下一波；两类限制分别处理。
 
 降级为单执行者按同一份单元清单顺序跑完：`plan` → 模型确认 / `--apply` → `freeze --phase 1` → `freeze --phase 2` → 逐单元 `dispatch` 并按 brief 审 → 预检与回源复核 → `merge` → 登记复核账本。继续完成需要的跨域核查，再按准备闸门、报告待办、最终闸门与快照的顺序交付。顺序执行保留相同记录与复核要求。
 
 
 ## 归因派单与回交
 
-归因任务只位于现有收口环节，按 records.md 的运行协议执行，不加入冻结 units，不改变跨域 confirmed 种子。事实复核由 reviewer 负责；文件组比较、跨文件核对与收口由 rootcause_reviewer 负责。两者各读独立契约。主代理调用脚本生成 brief，使用宿主子代理工具启动并登记代理 ID；dispatch 只记 dispatched，宿主启动确认后才记 running。
+归因任务只位于现有收口环节，按 records.md 的运行协议执行，不加入冻结 units，不改变跨域 confirmed 种子。事实复核由 reviewer 负责；主题综合、跨主题核对、报告组织与收口由 rootcause_reviewer 负责。两者各读独立契约。主代理调用脚本生成 brief，使用宿主子代理工具启动并登记代理 ID；dispatch 只记 dispatched，宿主启动确认后才记 running。
 
-归因者可以并发读同一发现，各写自己的 result 文件；manifest、汇总和正式 apply 由主代理顺序调用工具维护。归因任务和 worker/reviewer/verify/report_writer 共用宿主容量。派单时提供实际 active_agent_ids 和 limit；完成一波就用 collect/status 对账。拒绝或失败写明原因，已启动任务先确认停写再释放名额；不明状态不能直接重派。
+默认按固定框架分配唯一主处理归属，跨主题内容作为 context 读取，不因共享文件/命题重复认领；主题索引未能唯一分配时由模型判断，无映射进入 local。大主题可分批但保持完整索引。归因者各写自己的 result 文件；manifest、汇总和正式 apply 由主代理顺序调用工具维护。归因任务和 worker/reviewer/verify/report_writer 共用宿主容量。派单时提供实际 active_agent_ids 和 limit；完成一波就用 collect/status 对账。拒绝或失败写明原因，已启动任务先确认停写再释放名额；不明状态不能直接重派。
 
 归因发现事实错误时，主代理交回所属 reviewer：撤回复核、订正 partial、预检和 merge --replace、重新登记复核，再重做受影响归因。未变化的临时结果按来源复用；新增 current finding 必须增量比较。报告作者发现事实或归因矛盾也按同一责任路径回交，不在正文里改判。没有新增依据时保留具体 pending，不反复提交同一失败尝试。

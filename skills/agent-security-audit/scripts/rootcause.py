@@ -18,7 +18,7 @@ STRONG_LOCATIONS = 3
 VERDICTS = ('merge', 'distinct')
 ROW_KEYS = {'id', 'verdict', 'statement', 'fix_point', 'finding_ids', 'member_paths',
             'candidates', 'by', 'reason', 'comparisons', 'evidence_ids',
-            'source_digest', 'read_dependencies', 'status', 'legacy_review'}
+            'source_digest', 'read_dependencies', 'status'}
 PATH_KEYS = {'finding_id', 'location', 'difference'}
 ID_RE = re.compile(r'RC-[0-9A-Za-z-]{2,}$')
 
@@ -111,6 +111,19 @@ def candidates(state):
     return sorted(out, key=lambda r: (not r['strong'], not r['cross_unit'], r['key']))
 
 
+def comparison_candidates(state):
+    """Explicit model-recorded relationships require closure; retrieval hits do not."""
+    current = {f['id']: f for f in _current(state)}
+    pairs = set()
+    for fid, finding in current.items():
+        for row in finding.get('related_findings', []):
+            other = row.get('finding_id')
+            if other in current and other != fid:
+                pairs.add(tuple(sorted((fid, other))))
+    return [{'key': 'relation:' + '+'.join(pair), 'finding_ids': list(pair),
+             'basis': ['已登记的发现关系，须作具体比较']} for pair in sorted(pairs)]
+
+
 def no_proposition(state, rows):
     """The findings the proposition signal cannot see, and which of them have no lead."""
     local = sorted(fid for fid, owned in _modes(state).items() if not owned)
@@ -124,28 +137,18 @@ def no_proposition(state, rows):
 def closure(state, rows=None):
     """Which strong candidates must be answered, and whether an answer named every member.
 
-    Grandfathered per unit, not per workspace. `queue.legacy_freeze_contract` marks a
-    record as migrated for good, so skipping the whole row on it would mean a workspace
-    that was ever migrated is never held to this again — including a round done entirely
-    under this contract, which is where the long-lived workspaces are. A strong candidate
-    is exempt only when every member belongs to a unit that merged under an older
-    contract: that is the entire strong slice on a migrated audit, and none of it for a
-    unit merged since. `incomplete` is deliberately not limited to the strong ones —
-    answering a candidate at all is a choice, and a half-answer is the shape the report
-    todos actually took, some of the findings the requirement named rather than all.
+    `incomplete` is deliberately not limited to the strong ones — answering a candidate
+    at all is a choice, and a half-answer is the shape the report todos actually took,
+    some of the findings the requirement named rather than all.
     """
     rows = candidates(state) if rows is None else rows
     index = {row['key']: row for row in rows}
-    legacy = {unit['id'] for unit in state.get('units') or []
-              if unit.get('legacy_schema_version')}
     by_key = defaultdict(list)
     for cause in state.get('root_causes') or []:
         for key in cause.get('candidates') or []:
             by_key[str(key)].append(cause)
     strong = [row for row in rows if row['strong']]
-    exempt = [row['key'] for row in strong
-              if all(('U-' + (id_owner(fid) or '')) in legacy for fid in row['finding_ids'])]
-    mandatory = [row['key'] for row in strong if row['key'] not in set(exempt)]
+    mandatory = [row['key'] for row in strong]
     incomplete = []
     for row in rows:
         answers = by_key.get(row['key']) or []
@@ -160,7 +163,6 @@ def closure(state, rows=None):
              for cause in state.get('root_causes') or []
              for key in cause.get('candidates') or [] if str(key) not in index]
     return {'strong': [row['key'] for row in strong], 'mandatory': mandatory,
-            'grandfathered': exempt,
             'open_mandatory': [key for key in mandatory if not by_key.get(key)],
             'incomplete': incomplete, 'stale_candidates': stale,
             'adjudicated': {key: [str(a.get('id')) for a in answers]
@@ -174,6 +176,7 @@ def digest(state, rows=None):
                         'dispositions': state.get('finding_dispositions', []),
                         'chains': state.get('chains', []), 'framework': state.get('framework'),
                         'targets': state.get('targets', []),
+                        **({'report_plan': state['report_plan']} if state.get('report_plan') is not None else {}),
                         'todos': [{k: v for k, v in t.items() if k not in {'status', 'reason'}}
                                   for t in state.get('report_todos', [])]})
 
@@ -285,10 +288,10 @@ def apply_adjudication(workspace, state, payload):
     if not isinstance(payload, dict):
         raise ValueError('裁决必须是对象')
     allowed = {'base_sha256', 'by', 'root_causes', 'finding_dispositions',
-               'retire_root_cause_ids', 'run_id', 'run_digest', 'resolutions', 'chains'}
+               'retire_root_cause_ids', 'run_id', 'run_digest', 'resolutions', 'chains', 'chain_updates', 'report_plan'}
     if set(payload) - allowed:
         raise ValueError('未知裁决字段：' + ', '.join(sorted(set(payload) - allowed)))
-    if not payload.get('root_causes') and not payload.get('finding_dispositions') and not payload.get('retire_root_cause_ids') and not payload.get('chains'):
+    if not payload.get('root_causes') and not payload.get('finding_dispositions') and not payload.get('retire_root_cause_ids') and not payload.get('chains') and not payload.get('chain_updates') and 'report_plan' not in payload:
         raise ValueError('rootcause --apply needs nonempty decisions')
     content_hash = fingerprint(payload)
     commits = state.get('attribution_commits', [])
@@ -353,11 +356,29 @@ def apply_adjudication(workspace, state, payload):
     incoming_chains = payload.get('chains', [])
     if not isinstance(incoming_chains, list):
         raise ValueError('chains 必须为数组')
-    chain_ids = {c['id'] for c in working.get('chains', [])}
-    for chain in incoming_chains:
+    existing_chains = {c['id']: c for c in working.get('chains', [])}
+    updates = payload.get('chain_updates', [])
+    if not isinstance(updates, list):
+        raise ValueError('chain_updates 必须为数组')
+    proposed = [(c, False) for c in incoming_chains]
+    for update in updates:
+        if not isinstance(update, dict) or set(update) != {'previous_sha256', 'chain'} or not isinstance(update['chain'], dict):
+            raise ValueError('chain_updates 每项需要 previous_sha256 与完整 chain')
+        previous = existing_chains.get(update['chain'].get('id'))
+        if previous is None or update['previous_sha256'] != fingerprint(previous):
+            raise ValueError('链订正来源已变化或目标不存在')
+        if update['chain'].get('unit_id') != previous.get('unit_id'):
+            raise ValueError('链订正不得改变单元归属')
+        if previous.get('unit_id'):
+            raise ValueError('有单元归属的链须通过所属完整partial替换，避免源产物与正式记录分叉')
+        proposed.append((update['chain'], True))
+    chain_ids = set()
+    for chain, replacing in proposed:
+        if not isinstance(chain, dict):
+            problems.append('chain 必须为对象'); continue
         cid = chain.get('id')
-        if not isinstance(chain, dict) or not cid or cid in chain_ids:
-            problems.append('链 ID 缺失或已存在：' + str(cid)); continue
+        if not isinstance(cid, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', cid) or cid in chain_ids or (cid in existing_chains and not replacing):
+            problems.append('链 ID 缺失、重复或已存在：' + str(cid)); continue
         chain_ids.add(cid)
         if not str(chain.get('title', '')).strip():
             problems.append(str(cid) + ': 链缺少标题')
@@ -365,8 +386,10 @@ def apply_adjudication(workspace, state, payload):
             problems.append(str(cid) + ': entry_exposure 必须是 EXT/ADJ/INT')
         steps = chain.get('steps') or []
         if not isinstance(steps, list) or not steps:
-            problems.append(str(cid) + ': 链缺少步骤')
+            problems.append(str(cid) + ': 链缺少步骤'); continue
         for step in steps:
+            if not isinstance(step, dict):
+                problems.append(str(cid) + ': 每跳必须为对象'); continue
             if not str(step.get('description', '')).strip():
                 problems.append(str(cid) + ': 每跳需要衔接论证（step.description：谁触发、必要配置、为何能从上一跳到达）')
             refs = [step.get(k) for k in ('check_id', 'finding_id') if step.get(k)]
@@ -377,7 +400,12 @@ def apply_adjudication(workspace, state, payload):
                 rid = step.get(kind_key)
                 if rid and (rid not in pool or not ok(pool[rid])):
                     problems.append(str(cid) + ': 跳引用无效或非 confirmed/current：' + str(rid))
-        working.setdefault('chains', []).append(dict(chain, by=payload.get('by')))
+        replacement = dict(chain, by=payload.get('by'))
+        if replacing:
+            history.append({'at': now(), 'record': copy.deepcopy(existing_chains[cid])})
+            working['chains'] = [replacement if c['id'] == cid else c for c in working['chains']]
+        else:
+            working.setdefault('chains', []).append(replacement)
         source_maps = indexes(working)
     dispositions = payload.get('finding_dispositions', [])
     if not isinstance(dispositions, list):
@@ -412,7 +440,15 @@ def apply_adjudication(workspace, state, payload):
             problems.append(row['finding_id'] + ': 替代关系尚未闭合')
     if problems:
         raise ValueError('；'.join(problems))
-    result = {'applied': len(incoming), 'dispositions': len(dispositions),
+    if 'report_plan' in payload:
+        from report_plan import bind_plan
+        if working.get('report_plan') is not None:
+            history.append({'at': now(), 'record': {'report_plan': working['report_plan']}})
+        working['report_plan'] = bind_plan(working, payload['report_plan'], view)
+    if payload.get('run_id'):
+        from rootcause_run import record_disputes
+        record_disputes(workspace, working, payload, now())
+    result = {'applied': len(incoming), 'dispositions': len(dispositions), 'updated_chains': len(updates),
               'root_causes': len(existing), 'replaced': sorted(changed_ids & {r['id'] for r in state.get('root_causes', [])}),
               'grouped_findings': len(owners), 'candidate_coverage': closure(working),
               'relinked': sorted(f['id'] for f in state['findings'] if f.get('root_cause_id') and f.get('root_cause_id') != owners.get(f['id'])),

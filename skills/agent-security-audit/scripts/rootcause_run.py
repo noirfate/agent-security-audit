@@ -45,18 +45,124 @@ def load(workspace, run_id):
 
 def packet(state, ids, groups=None, candidate_rows=None, maps=None, kind='analysis', instructions=None):
     from rootcause import candidates
+    from report_plan import related_chains, chain_dependencies
+    from attribution import latest_dispositions, build_vulnerability_view
+    maps = maps or indexes(state)
     facts = finding_packet(state, ids, maps)
     selected = set(ids)
     facts.update(finding_ids=sorted(selected), file_groups=groups or [],
                  target_id=state['target_id'], targets=state.get('targets', []),
                  candidates=[r for r in (candidate_rows if candidate_rows is not None else candidates(state)) if selected & set(r['finding_ids'])],
                  root_causes=[r for r in state.get('root_causes', []) if selected & set(r.get('finding_ids', []))],
-                 chains=[r for r in state.get('chains', []) if any(s.get('finding_id') in selected for s in r.get('steps', []))],
+                 chains=related_chains(state, selected),
                  report_todos=[t for t in state.get('report_todos', [])
                                if selected & set(re.findall(r'(?<![A-Za-z0-9_-])(F-[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])', t.get('instruction', '')))])
+    dispositions = latest_dispositions(state)
+    facts['finding_dispositions'] = [dispositions[fid] for fid in sorted(selected) if fid in dispositions]
+    if kind == 'report-organization':
+        if '_attribution_view' not in maps:
+            maps['_attribution_view'] = build_vulnerability_view(state)
+        view = maps['_attribution_view']
+        facts['effective_vulnerabilities'] = [v for v in view['vulnerabilities'] if selected & set(v['finding_ids'])]
+        facts['attribution_pending'] = [r for r in view['pending'] if r['finding_id'] in selected]
+        # report_plan is validated against every chain in the workspace, so a packet
+        # filtered by owner findings cannot satisfy the contract it is asked to meet:
+        # measured, 66 of 69 arrived and the reviewer had to read the record for the
+        # rest before its plan would apply at all.
+        facts['chains'] = list(state.get('chains', []))
+    facts['chain_sources'] = chain_dependencies(state, facts['chains'], maps)
+    facts['framework'] = state.get('framework')
+    instance_ids = {iid for c in facts['checks'] for iid in c.get('instance_ids', [])}
+    facts['instance_sources'] = {iid: next((r for r in state.get('instances', []) if r['id'] == iid), None) for iid in sorted(instance_ids)}
     if kind != 'analysis' or instructions:
         facts.update(kind=kind, instructions=instructions or '')
     return facts
+
+
+def framework_task_plan(workspace, state, request=None, packet_bytes=160000):
+    """Build a topic index first; ambiguous ownership is a model decision."""
+    from knowledge import baseline_dir, load_bundle, objects
+    from audit import write_json
+    from rootcause import digest
+    bundle, _, _ = load_bundle(baseline_dir(workspace, state['framework']['baseline_id']))
+    catalog = objects(bundle)
+    topics = {row['id']: row['name'] for key in ('layers', 'domains') for row in bundle.get(key, [])}
+    maps = indexes(state)
+    rows = []
+    for f in sorted(state.get('findings', []), key=lambda row: row['id']):
+        if f.get('status') != 'current':
+            continue
+        object_ids, instance_ids = set(), set()
+        for cid in f.get('check_ids', []):
+            check = maps['checks'].get(cid, {})
+            mode = bundle.get('failure_modes', {}).get(check.get('failure_mode_id'), {})
+            if mode.get('object_id'):
+                object_ids.add(mode['object_id'])
+            instance_ids.update(check.get('instance_ids', []))
+        for iid in instance_ids:
+            object_ids.update(maps['instances'].get(iid, {}).get('framework_object_ids', []))
+        candidates = sorted({oid.split('.')[0] for oid in object_ids if oid in catalog and oid.split('.')[0] in topics})
+        rows.append({'finding_id': f['id'], 'title': f['title'],
+                     'object_ids': sorted(object_ids), 'topic_candidates': candidates,
+                     'instance_ids': sorted(instance_ids),
+                     'instances': [maps['instances'][iid].get('name', iid) for iid in sorted(instance_ids) if iid in maps['instances']],
+                     'mapping_gap': not candidates})
+    base = fingerprint({'facts': digest(state),
+                        **{key: sorted(state.get(key, []), key=lambda r: r['id'])
+                           for key in ('instances', 'connections', 'assets', 'attackers')}})
+    route_dir = Path(workspace) / 'units/_reviews/rootcause/routing'
+    index_path = route_dir / (base + '.json')
+    index_data = {'version': 1, 'base_sha256': base, 'topics': topics, 'findings': rows,
+                  'source_path': str((Path(workspace) / 'audit.json').resolve()),
+                  'instructions': '为每个发现选择一个主主题；其余主题仅作上下文。依据实际失效控制说明理由，不按第一项或编号排序决定。无法映射时用local并说明缺口。'}
+    assignments = (request or {}).get('topic_assignments')
+    if assignments is None:
+        ambiguous = [r for r in rows if len(r['topic_candidates']) > 1]
+        assignments = [{'finding_id': r['finding_id'],
+                        'topic_id': r['topic_candidates'][0] if len(r['topic_candidates']) == 1 else 'local' if not r['topic_candidates'] else None,
+                        'reason': '唯一已有对象主题' if len(r['topic_candidates']) == 1 else '框架映射缺口，需本地比较' if not r['topic_candidates'] else ''}
+                       for r in rows]
+        if ambiguous:
+            write_json(index_path, {**index_data, 'topic_assignments': assignments})
+            return {'routing_required': True, 'base_sha256': base,
+                    'topic_index_path': str(index_path), 'unassigned_findings': [r['finding_id'] for r in ambiguous],
+                    'next': '模型读取主题索引和必要源记录，另存补全topic_assignments的JSON，再用rootcause --prepare --input提交；不需要用户逐条选择。'}
+    if request is not None and request.get('base_sha256') != base:
+        raise ValueError('主题路由来源已变化，重新比较后提交')
+    if not isinstance(assignments, list) or any(not isinstance(r, dict) for r in assignments):
+        raise ValueError('topic_assignments 必须为对象数组')
+    expected = {r['finding_id'] for r in rows}
+    if sorted(r.get('finding_id', '') for r in assignments) != sorted(expected):
+        raise ValueError('主题主归属必须完整且唯一')
+    by_topic = {}
+    for r in assignments:
+        topic = r.get('topic_id')
+        if topic not in topics and topic != 'local':
+            raise ValueError('无效主主题：' + str(topic))
+        if not isinstance(r.get('reason'), str) or not r['reason'].strip():
+            raise ValueError('主题主归属缺少判断理由')
+        by_topic.setdefault(topic, []).append(r['finding_id'])
+    write_json(index_path, {**index_data, 'topic_assignments': assignments})
+    tasks = []
+    def make(topic, owner_ids):
+        context = {r.get('finding_id') for fid in owner_ids
+                    for r in maps['findings'][fid].get('related_findings', [])} & expected
+        context -= set(owner_ids)
+        return {'finding_ids': sorted(set(owner_ids) | context), 'owner_finding_ids': sorted(owner_ids),
+                'context_finding_ids': sorted(context), 'topic_id': topic,
+                'topic_index_path': str(index_path), 'reason': '在固定框架主题内比较具体失效，索引提供完整跨文件邻居'}
+    for topic, ids in sorted(by_topic.items()):
+        batch = []
+        for fid in sorted(ids):
+            proposed = batch + [fid]
+            candidate = make(topic, proposed)
+            size = len(json.dumps(finding_packet(state, candidate['finding_ids'], maps), ensure_ascii=False).encode())
+            if batch and size > packet_bytes:
+                tasks.append(make(topic, batch)); batch = []
+            batch.append(fid)
+        if batch:
+            tasks.append(make(topic, batch))
+    return {'mode': 'framework', 'tasks': tasks, 'topic_index_path': str(index_path)}
 
 
 def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
@@ -71,6 +177,10 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
         if manifest['base_sha256'] != digest(state):
             raise ValueError('已有 run 来源不同；保留旧运行并创建新运行')
         return status(workspace, state, run_id)
+    if task_plan is None or 'topic_assignments' in task_plan:
+        task_plan = framework_task_plan(workspace, state, task_plan, packet_bytes)
+        if task_plan.get('routing_required'):
+            return task_plan
     groups = file_groups(state)
     from rootcause import candidates
     candidate_rows, maps = candidates(state), indexes(state)
@@ -83,10 +193,23 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
         for row in task_plan['tasks']:
             if not row.get('reason') or not row.get('finding_ids'):
                 raise ValueError('自定义比较任务需要 finding_ids 和 reason')
+            if row.get('kind') not in {None, 'analysis', 'reconciliation', 'synthesis-forward', 'synthesis-sink', 'synthesis-edges', 'report-organization'}:
+                raise ValueError('未知归因任务类型')
             if row.get('kind') not in (None, 'analysis'):
                 if not isinstance(row.get('instructions'), str) or not row['instructions'].strip():
                     raise ValueError('非 analysis 任务需要 instructions')
-            tasks.append(make(row['finding_ids'], row.get('groups'), row.get('kind') or 'analysis', row.get('instructions')))
+            data = make(row['finding_ids'], row.get('groups'), row.get('kind') or 'analysis', row.get('instructions'))
+            # Normalise once, here: an explicit task plan names only finding_ids, so
+            # owners is derived at plan-read time rather than re-derived on every read.
+            owners = row.get('owner_finding_ids') or row['finding_ids']
+            context = row.get('context_finding_ids', [])
+            if (len(set(owners)) != len(owners) or len(set(context)) != len(context) or set(owners) & set(context)
+                    or set(owners) | set(context) != set(row['finding_ids'])):
+                raise ValueError('主处理成员与上下文必须为输入成员的互斥分区')
+            data.update(owner_finding_ids=sorted(owners), context_finding_ids=sorted(context))
+            for key in ('topic_id', 'topic_index_path'):
+                if key in row: data[key] = row[key]
+            tasks.append(data)
     else:
         current_groups, current_ids = [], set()
         for group in groups:
@@ -105,7 +228,11 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
         raise ValueError('任务必须覆盖全部 current finding 且无额外成员')
     if partial and not covered <= current:
         raise ValueError('partial 计划的成员也必须是 current finding')
-    manifest = {'version': 1, 'run_id': run_id, 'created_at': now(), 'status': 'prepared',
+    if task_plan and task_plan.get('mode') == 'framework':
+        claimed = [fid for t in tasks for fid in t['owner_finding_ids']]
+        if sorted(claimed) != sorted(current):
+            raise ValueError('框架任务主成员必须完整且唯一')
+    manifest = {'version': 2, 'run_id': run_id, 'created_at': now(), 'status': 'prepared',
                 'source_sha256': fingerprint(state), 'base_sha256': digest(state),
                 'finding_ids': sorted(current), 'tasks': {}, 'packet_bytes': packet_bytes,
                 'global_report_todo_ids': [t['id'] for t in state.get('report_todos', [])
@@ -122,6 +249,8 @@ def prepare(workspace, state, run_id=None, task_plan=None, packet_bytes=160000):
             write_json(staging / rel, data)
             manifest['tasks'][tid] = {'id': tid, 'kind': data.get('kind', 'analysis'),
                                       'finding_ids': data['finding_ids'],
+                                      'owner_finding_ids': data.get('owner_finding_ids') or data['finding_ids'],
+                                      'protocol_version': 2,
                                       'input_path': rel, 'input_digest': fingerprint(data),
                                       'state': 'planned', 'attempts': [], 'selected_attempt': None}
             if partial:
@@ -157,11 +286,29 @@ def stale_reasons(state, data, material_cache=None):
     selected = set(data['finding_ids'])
     causes = [r for r in state.get('root_causes', []) if selected & set(r.get('finding_ids', []))]
     if causes != data.get('root_causes', []): reasons.append('相关旧归因已改变')
+    if 'finding_dispositions' in data:
+        from attribution import latest_dispositions
+        dispositions = latest_dispositions(state)
+        if [dispositions[fid] for fid in sorted(selected) if fid in dispositions] != data['finding_dispositions']:
+            reasons.append('相关归因处置已改变')
     if data.get('targets', []) != state.get('targets', []): reasons.append('目标位置或版本已改变')
+    if 'framework' in data and data['framework'] != state.get('framework'): reasons.append('框架基线已改变')
+    if 'instance_sources' in data:
+        current_instances = {r['id']: r for r in state.get('instances', [])}
+        if any(current_instances.get(iid) != row for iid, row in data['instance_sources'].items()): reasons.append('实例职责或对象映射已改变')
+    from report_plan import related_chains
+    actual_chains = (related_chains(state, selected) if 'framework' in data else
+                     [c for c in state.get('chains', []) if any(s.get('finding_id') in selected for s in c.get('steps', []))])
+    if actual_chains != data.get('chains', []): reasons.append('相关链及其条件已改变')
+    if 'chain_sources' in data:
+        from report_plan import chain_dependencies
+        if chain_dependencies(state, actual_chains) != data['chain_sources']:
+            reasons.append('链检查、反证或材料依赖已改变')
     from audit import material_path
     from knowledge import digest
     material_cache = {} if material_cache is None else material_cache
-    for mid, material in data.get('materials', {}).items():
+    source_materials = {**data.get('materials', {}), **data.get('chain_sources', {}).get('materials', {})}
+    for mid, material in source_materials.items():
         if not material: continue
         key = (mid, material.get('sha256'))
         if key not in material_cache:
@@ -227,7 +374,7 @@ def dispatch(workspace, state, run_id, task_id, capacity):
     if len(ids) + reserved + 1 > limit:
         raise ValueError('宿主容量已满；等待在跑任务返回，不启动新代理')
     n = len(task['attempts']) + 1
-    stem = 'synthesis' if task.get('kind') not in (None, 'analysis', 'reconciliation') else 'result'
+    stem = 'synthesis' if task.get('kind') in {'synthesis-forward', 'synthesis-sink', 'synthesis-edges'} else 'result'
     rel = 'tasks/%s/%s-%d.json' % (task_id, stem, n)
     brief_rel = 'tasks/%s/brief-%d.md' % (task_id, n)
     role = SKILL / 'references/roles/rootcause_reviewer.md'
@@ -235,7 +382,7 @@ def dispatch(workspace, state, run_id, task_id, capacity):
               '运行：%s；任务：%s；类型：%s；尝试：%d。\n\n'
               '输入：%s\n\n唯一结果文件：%s\n\n'
               'input_digest：%s\n\n审计工作区：%s\n\n'
-              '只写本任务的临时 JSON；全部 finding 都要有建议或明确 pending。'
+              '只写本任务的临时 JSON；owner_finding_ids 逐条处置，context 仅供比较。'
               '事实订正交回主代理，不改共享记录，不运行 rootcause --apply。'
               '完成消息只回一行摘要及结果文件绝对路径。\n') % (
                   role.resolve(), run_id, task_id, task['kind'], n,
@@ -252,7 +399,35 @@ def dispatch(workspace, state, run_id, task_id, capacity):
 
 def validate_result(state, task, result, attempt, run_id):
     if not isinstance(result, dict): raise ValueError('结果必须为对象')
-    if task.get('kind') not in (None, 'analysis', 'reconciliation'):
+    kind = task.get('kind') or 'analysis'
+    if kind not in {'analysis', 'reconciliation', 'synthesis-forward', 'synthesis-sink', 'synthesis-edges', 'report-organization'}:
+        raise ValueError('未知归因任务类型：' + str(kind))
+    if task.get('protocol_version', 1) >= 2:
+        origin = attempt.get('origin', {})
+        expected = {'run_id': origin.get('run_id', run_id), 'task_id': origin.get('task_id', task['id']),
+                    'attempt': origin.get('attempt', attempt['n']), 'input_digest': task['input_digest']}
+        if any(result.get(k) != v for k, v in expected.items()):
+            raise ValueError('结果的任务、尝试或输入指纹不匹配')
+    if kind == 'report-organization':
+        from report_plan import validate_proposal
+        allowed = {'run_id', 'task_id', 'attempt', 'input_digest', 'reviewer', 'report_plan', 'read_dependencies', 'fact_corrections', 'open_items'}
+        if set(result) - allowed or not str(result.get('reviewer', '')).strip():
+            raise ValueError('报告组织结果字段或reviewer无效')
+        validate_proposal(state, result.get('report_plan'))
+        problems = dependency_errors(state, result.get('read_dependencies', []))
+        known = {f['id'] for f in state.get('findings', [])}
+        for key in ('fact_corrections', 'open_items'):
+            rows = result.get(key, [])
+            if not isinstance(rows, list):
+                problems.append(key + '必须为数组'); continue
+            for row in rows:
+                if (not isinstance(row, dict) or not isinstance(row.get('finding_ids'), list)
+                        or not row['finding_ids'] or any(fid not in known for fid in row['finding_ids'])
+                        or not str(row.get('reason', '')).strip()):
+                    problems.append(key + '需要实际成员与理由')
+        if problems: raise ValueError('；'.join(problems))
+        return
+    if kind in {'synthesis-forward', 'synthesis-sink', 'synthesis-edges'}:
         maps = indexes(state)
         problems = []
         proposals = result.get('proposals')
@@ -296,7 +471,7 @@ def validate_result(state, task, result, attempt, run_id):
         if not isinstance(result.get(key, []), list): raise ValueError(key + ' 必须为数组')
     assessments = result.get('assessments', [])
     if (any(not isinstance(a, dict) for a in assessments)
-            or sorted(a.get('finding_id', '') for a in assessments) != sorted(task['finding_ids'])):
+            or sorted(a.get('finding_id', '') for a in assessments) != sorted(task['owner_finding_ids'])):
         raise ValueError('临时结果必须逐条覆盖任务 finding，不允许遗漏、重复或额外成员')
     maps = indexes(state)
     for kind in ('cross_file_leads', 'fact_corrections', 'open_items'):
@@ -305,9 +480,18 @@ def validate_result(state, task, result, attempt, run_id):
                 raise ValueError(kind + ': 必须指明 finding_ids 和 reason')
             if any(fid not in maps['findings'] for fid in item['finding_ids']):
                 raise ValueError(kind + ': 未知 finding 引用')
+    cited = re.compile(r'\b(?:E|CHK)-[A-Za-z0-9]+-\d+\b')
     for a in assessments:
         if a.get('proposed_kind') not in KINDS or not str(a.get('reason', '')).strip():
             raise ValueError('assessment 缺少性质或理由')
+        # A pending reason is the only thing the next round inherits, and prose like
+        # 「需核安全边界」 inherits nothing — measured once, 0 of 88 pending reasons named
+        # a record and 53 of 78 issues came back as repeats. Every pending finding has
+        # checks or evidence of its own to point at, so this is answerable by construction.
+        if a['proposed_kind'] == 'pending' and not any(
+                ref in maps['evidence'] or ref in maps['checks']
+                for ref in cited.findall(str(a.get('reason', '')))):
+            raise ValueError('待定理由须点名具体证据或检查：' + str(a.get('finding_id')))
     for group in result.get('group_proposals', []):
         members = group.get('finding_ids', [])
         if len(members) < 2 or len(set(members)) != len(members) or not set(members) <= set(task['finding_ids']):
@@ -320,43 +504,43 @@ def validate_result(state, task, result, attempt, run_id):
 
 
 def _issues(state, results):
-    from rootcause import candidates
-    issues = {}
+    """Reconcile explicit judgments and relations, not all raw retrieval hits."""
+    from rootcause import comparison_candidates
+    issues, groups, by_finding = {}, [], {}
     def add(kind, ids, basis):
         ids = sorted(set(ids))
-        key = 'I-' + fingerprint([kind, ids, basis])[:20]
-        issues[key] = {'id': key, 'kind': kind, 'finding_ids': ids, 'basis': basis}
-    by_finding, groups = {}, []
+        key = 'I-' + fingerprint([kind, ids])[:20]
+        row = issues.setdefault(key, {'id': key, 'kind': kind, 'finding_ids': ids, 'basis': []})
+        if basis not in row['basis']:
+            row['basis'].append(basis)
+    comparisons = []
     for tid, result in sorted(results.items()):
         for row in result.get('assessments', []):
             by_finding.setdefault(row['finding_id'], []).append((tid, row))
-        for group in result.get('group_proposals', []):
-            groups.append((tid, set(group['finding_ids'])))
+        groups.extend((tid, set(g['finding_ids'])) for g in result.get('group_proposals', []))
+        comparisons.extend(result.get('comparisons', []))
         for kind in ('cross_file_leads', 'fact_corrections', 'open_items'):
-            for item in result.get(kind, []):
-                add(kind, item.get('finding_ids', [item['finding_id']] if item.get('finding_id') else []),
-                    {'task_id': tid, 'item': item})
+            for row in result.get(kind, []):
+                add(kind, row.get('finding_ids', []), {'task_id': tid, 'item': row})
     for fid, rows in by_finding.items():
-        meanings = {(r['proposed_kind'], r.get('target_finding_id')) for _, r in rows}
-        if len(meanings) > 1: add('disposition_conflict', [fid], {'task_ids': sorted(t for t, _ in rows)})
+        if len({(r['proposed_kind'], r.get('target_finding_id')) for _, r in rows}) > 1:
+            add('disposition_conflict', [fid], {'task_ids': sorted(t for t, _ in rows)})
     for i, (tid, group) in enumerate(groups):
         for other_tid, other in groups[i+1:]:
             if group & other and group != other:
-                add('overlapping_groups', group | other, {'task_ids': sorted({tid, other_tid}),
-                                                       'groups': sorted([sorted(group), sorted(other)])})
-    comparisons = [c for result in results.values() for c in result.get('comparisons', [])]
-    for row in candidates(state):
-        ids = set(row['finding_ids'])
-        answered = any(ids <= set(c.get('finding_ids', [])) and c.get('conclusion') in {'same', 'distinct', 'grouped'}
-                       and c.get('reason') for c in comparisons)
-        if not answered:
-            add('candidate_comparison', ids, {'candidate_key': row['key'], 'basis': row['basis']})
-    for c in comparisons:
-        if c.get('conclusion') != 'distinct': continue
-        for tid, group in groups:
-            if len(group & set(c.get('finding_ids', []))) >= 2:
-                add('merge_distinct_conflict', group | set(c['finding_ids']), {'task_id': tid, 'comparison': c})
-    return [issues[k] for k in sorted(issues)]
+                add('overlapping_groups', group | other,
+                    {'task_ids': sorted({tid, other_tid}), 'groups': sorted([sorted(group), sorted(other)])})
+    for candidate in comparison_candidates(state) if by_finding else []:
+        ids = set(candidate['finding_ids'])
+        if not any(ids <= set(c.get('finding_ids', [])) and c.get('conclusion') in {'same', 'distinct', 'grouped'} and c.get('reason') for c in comparisons):
+            add('candidate_comparison', ids, {'candidate_key': candidate['key']})
+    for comparison in comparisons:
+        if comparison.get('conclusion') == 'distinct':
+            for tid, group in groups:
+                if len(group & set(comparison.get('finding_ids', []))) >= 2:
+                    add('merge_distinct_conflict', group | set(comparison['finding_ids']),
+                        {'task_id': tid, 'comparison': comparison})
+    return [issues[key] for key in sorted(issues)]
 
 
 def collect(workspace, state, run_id, events=None):
@@ -403,9 +587,11 @@ def collect(workspace, state, run_id, events=None):
         data = task_input(root, task)
         attempt = next(a for a in task['attempts'] if a['n'] == task['selected_attempt'])
         result = read(inside(root, attempt['result_path']))
-        validate_result(state, task, result, attempt, run_id)
-        if fingerprint(result) != attempt['result_sha256'] or stale_reasons(state, data, material_cache):
+        if (fingerprint(result) != attempt['result_sha256']
+                or stale_reasons(state, data, material_cache)
+                or dependency_errors(state, result.get('read_dependencies', []))):
             stale.append(tid); continue
+        validate_result(state, task, result, attempt, run_id)
         all_results[tid] = result
         if task['kind'] == 'analysis': results[tid] = result
     issues = _issues(source, results)
@@ -425,10 +611,12 @@ def collect(workspace, state, run_id, events=None):
         rel = 'tasks/' + tid + '/input.json'
         write_json(inside(root, rel), data)
         working['tasks'][tid] = {'id': tid, 'kind': 'reconciliation', 'finding_ids': data['finding_ids'],
+                                 'owner_finding_ids': data['finding_ids'],
                                  'input_path': rel, 'input_digest': fingerprint(data), 'state': 'planned',
                                  'attempts': [], 'selected_attempt': None, 'issue_id': issue['id']}
     all_issues = {i['id']: i for i in issues}
-    for issue in _issues(source, all_results): all_issues.setdefault(issue['id'], issue)
+    for issue in _issues(source, all_results):
+        all_issues[issue['id']] = issue  # The combined pass includes every accepted basis.
     summary = {'run_id': run_id, 'issues': [all_issues[k] for k in sorted(all_issues)], 'stale_tasks': stale,
                'missing_analysis_tasks': sorted(tid for tid, task in working['tasks'].items()
                                                 if task['kind'] == 'analysis' and tid not in results),
@@ -463,6 +651,19 @@ def validate_submission(workspace, state, payload):
     resolutions = {r.get('issue_id'): r for r in payload.get('resolutions', [])}
     if set(resolutions) != {i['id'] for i in summary['issues']}:
         raise ValueError('最终 resolutions 必须核对全部汇总问题')
+    if manifest['tasks'] and all(t['kind'] == 'report-organization' for t in manifest['tasks'].values()):
+        if 'report_plan' not in payload:
+            raise ValueError('报告组织运行必须提交report_plan')
+        # Only *unresolved* issues block. Rejecting a resolved fact_correction as well
+        # deadlocks against the staged-report rule: attribution is designed to leave
+        # fact_corrections behind, so report organisation could never run once one
+        # existed. Measured — the one round that got through had only open_items,
+        # which was luck rather than design.
+        unresolved = [i['id'] for i in summary['issues']
+                      if resolutions[i['id']].get('resolution') != 'resolved']
+        if unresolved:
+            raise ValueError('报告组织仍有未闭合事项，先回交复核：' + '、'.join(unresolved[:4]))
+        return
     dispositions = {r['finding_id']: r for r in payload.get('finding_dispositions', [])}
     if set(dispositions) & current != current:
         raise ValueError('运行提交必须处置全部 current finding')
@@ -473,6 +674,46 @@ def validate_submission(workspace, state, payload):
         if (row['resolution'] == 'pending' or issue['kind'] in {'fact_corrections', 'open_items'}) and any(
                 dispositions[fid]['kind'] != 'pending' for fid in issue['finding_ids'] if fid in current):
             raise ValueError('事实订正或未解决问题必须保持 pending，先回交复核')
+
+
+def record_disputes(workspace, working, payload, timestamp):
+    """Carry unresolved disputes out of the run directory and into the record.
+
+    `validate_submission` already forces a finding named by a fact_corrections or
+    open_items issue to stay pending, so the tie exists at submission time. What did
+    not exist is memory: the worklist lives in the run directory, a new run builds a
+    fresh one, and the same dispute comes back looking new. Measured on one real
+    closure, 53 of 78 issues were repeats and only the model knew — it wrote the
+    previous id into prose that no script reads.
+
+    No new identity is minted. The issue id is already content-addressed over
+    (kind, sorted finding_ids), so the same dispute keeps the same id across runs and
+    `runs` is simply the list of rounds it has survived.
+    """
+    from knowledge import read
+    root, _, _ = load(workspace, payload['run_id'])
+    summary = read(root / 'reconciliation/worklist.json')
+    rows = {row['id']: row for row in working.setdefault('fact_disputes', [])}
+    verdicts = {r.get('issue_id'): r for r in payload.get('resolutions', [])}
+    for issue in summary['issues']:
+        if issue['kind'] not in {'fact_corrections', 'open_items'}:
+            continue
+        verdict = verdicts.get(issue['id']) or {}
+        row = rows.get(issue['id'])
+        if row is None:
+            row = {'id': issue['id'], 'kind': issue['kind'], 'runs': [],
+                   'finding_ids': [], 'status': 'open', 'reason': ''}
+            rows[issue['id']] = row
+            working['fact_disputes'].append(row)
+        row['finding_ids'] = list(issue['finding_ids'])
+        row['reason'] = verdict.get('reason') or row.get('reason') or ''
+        if payload.get('run_id') and payload['run_id'] not in row['runs']:
+            row['runs'].append(payload['run_id'])
+        if verdict.get('resolution') == 'resolved':
+            row['status'], row['resolved_at'] = 'resolved', timestamp
+        else:
+            row['status'] = 'open'
+            row.pop('resolved_at', None)
 
 
 def record_receipt(workspace, run_id, result):

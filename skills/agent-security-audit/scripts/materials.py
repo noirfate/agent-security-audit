@@ -57,9 +57,7 @@ def _format_controls(text):
     return any(unicodedata.category(c) == 'Cf' for c in set(text))
 
 
-def decode(raw, encoding=None):
-    if len(raw) > MAX_BYTES:
-        raise ValueError('Material exceeds bounded decoding size')
+def _text_encoding(raw, encoding=None):
     if encoding:
         try:
             encoding = codecs.lookup(encoding).name
@@ -74,6 +72,13 @@ def decode(raw, encoding=None):
         encoding = 'utf-16'
     else:
         encoding = 'utf-8-sig'
+    return encoding
+
+
+def decode(raw, encoding=None):
+    if len(raw) > MAX_BYTES:
+        raise ValueError('Material exceeds bounded decoding size')
+    encoding = _text_encoding(raw, encoding)
     text = raw.decode(encoding, errors='strict')
     # Via `_count`, not a per-character loop. The helpers and their exhaustive
     # equivalence tests were added earlier without this line being changed to call them,
@@ -98,6 +103,37 @@ def recovered_view(text):
         if candidate != text and ratio(candidate) - ratio(text) >= .25 and '\x00' not in candidate:
             return {'transform': encoding + ' -> utf-8', 'text': candidate}
     return None
+
+
+def physical_line_count(path, encoding=None, recovered=False):
+    """Validate line extents with bounded memory, including large text bundles.
+
+    LF, CRLF and CR delimit physical lines; Unicode separators inside source
+    strings do not. Reversible recovered views retain the existing decode cap.
+    """
+    path = Path(path)
+    with path.open('rb') as handle:
+        if recovered:
+            text, _ = decode(handle.read(MAX_BYTES + 1), encoding)
+            candidate = recovered_view(text)
+            if not candidate:
+                raise ValueError('recovered view no longer available')
+            text = candidate['text'].replace('\r\n', '\n').replace('\r', '\n')
+            return text.count('\n') + int(bool(text) and not text.endswith('\n'))
+        encoding = _text_encoding(handle.read(4), encoding)
+    lines = characters = controls = 0
+    last = ''
+    with path.open('r', encoding=encoding, errors='strict', newline=None) as handle:
+        for text in iter(lambda: handle.read(65536), ''):
+            if '\x00' in text:
+                raise ValueError('Binary control characters; a text view is unavailable')
+            characters += len(text)
+            controls += _count(text, _CONTROL)
+            lines += text.count('\n')
+            last = text[-1:]
+    if controls > max(1, characters * .02):
+        raise ValueError('Binary control characters; a text view is unavailable')
+    return lines + int(bool(characters) and last != '\n')
 
 
 def inspect(path, raw=None):
