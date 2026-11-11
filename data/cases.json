@@ -21246,5 +21246,148 @@
         "reason": "resume 是参数注入的载体；公告没有证明跨主体读取会话或恢复会话授权失效，不据参数名称挂载会话隔离命题。"
       }
     ]
+  },
+  "PUB-048": {
+    "id": "PUB-048",
+    "title": "ChatGPT Lockdown Mode bypass through HTML-preview popup sandbox permissions",
+    "date": "2026-11-05",
+    "year": 2026,
+    "category": "research-demonstrated",
+    "description": "Check Point Research 的 Alexey Bukhteyev 披露：ChatGPT 的 HTML 预览采用嵌套 iframe，并用重定义的 window.open 拦截弹窗，但 sandbox 仍允许 allow-popups 和 allow-popups-to-escape-sandbox。攻击页面可从新建子 iframe 取得未被包装的 contentWindow.open，打开不继承沙箱限制的窗口，绕过预览审批和 Lockdown Mode 的外发限制。入口包括恶意提示、恶意 GPT 与含恶意预览的共享聊天。\n\n普通浏览器通常需要用户点击才能打开弹窗；研究中的 Electron 版 ChatGPT Classic 不要求用户手势，恶意 GPT 可零点击外传会话。弹窗还可伪装更新或登录窗口，用于恶意软件下载和凭据钓鱼；Classic 中下载文件仍需额外点击。\n\n研究者称，OpenAI 于 2026-09-18 告知已从外层预览 iframe 移除上述两个权限，并经研究者复测确认所述利用方式失效。这是研究演示，不等同于已发生在野攻击。",
+    "attack_vector": "不可信预览通过子 iframe 的原生弹窗能力绕过当前窗口的 JavaScript 拦截；宽松的 sandbox 权限使新窗口脱离限制。",
+    "impact": "会话数据可静默外传，并可显示钓鱼或恶意下载诱饵；零点击条件限于文中测试的 ChatGPT Classic。",
+    "mitigations": [
+      "采用已披露的修复：从外层 HTML 预览 iframe 移除 allow-popups 与 allow-popups-to-escape-sandbox。",
+      "项目建议：在浏览器权限边界限制弹窗与外部请求，核查子 iframe、新窗口及桌面客户端是否保持相同限制，不仅依赖当前 window 的函数包装。"
+    ],
+    "references": [
+      {
+        "title": "Check Point Research：ChatGPT Lockdown Mode Bypass（Alexey Bukhteyev，2026-11-05）",
+        "url": "https://research.checkpoint.com/2026/chatgpt-lockdown-mode-bypass-phishing-malware-delivery-and-silent-data-exfiltration/",
+        "type": "research"
+      }
+    ],
+    "name_zh": "ChatGPT Lockdown Mode：HTML预览弹窗绕过隔离与外发限制",
+    "source": "manual",
+    "source_name": "人工采集",
+    "risk_ids": [
+      "LLM10",
+      "LLM02",
+      "ASI09"
+    ],
+    "mapping_status": "project-interpretation",
+    "object_mappings": [
+      {
+        "object_id": "A1.2",
+        "reason": "模型生成的HTML在预览中执行；子iframe的原生弹窗能力与宽松sandbox权限使活动内容越过预期呈现和外发边界。",
+        "basis": "案例正文",
+        "fm_id": "FM-A1.2-01"
+      }
+    ],
+    "object_mapping_exclusions": [
+      {
+        "object_id": "A7.1",
+        "reason": "已披露的是客户端HTML预览与弹窗的隔离失效，未证明宿主或容器逃逸，不据sandbox一词挂载运行环境逃逸。"
+      }
+    ]
+  },
+  "PUB-049": {
+    "id": "PUB-049",
+    "title": "ChatGPT code-execution runtime: DNS tunneling enables silent data exfiltration and a remote shell",
+    "date": "2026-03-30",
+    "year": 2026,
+    "category": "research-demonstrated",
+    "description": "Check Point Research 披露：ChatGPT 代码执行环境阻断常规出站连接，却仍允许 DNS 解析。恶意提示或自定义 GPT 可让运行时将会话内容编码进子域查询，经解析链送到攻击者端，且不触发外发告警或批准。演示中的医疗 GPT 泄露了上传报告中的身份信息及模型生成的医疗评估。\n\nDNS 响应还可回传命令片段，与容器内进程组成双向通道；研究者展示了代码执行用 Linux 容器内的远程 shell，命令与结果绕过正常聊天中的模型检查。这不证明已逃逸到宿主。\n\n研究者报告问题后，OpenAI 表示已在内部发现根因，并于 2026-02-20 完成修复部署；原文未披露具体修补实现。本条记录研究演示，数据范围取决于运行时可获得的会话内容。",
+    "attack_vector": "攻击者控制提示或GPT指令，使受限代码运行时把DNS查询与响应作为隐蔽双向传输通道。",
+    "impact": "当前会话文本、上传文件的提取内容或模型生成结论可无审批外传；攻击者还可在代码执行容器内远程执行命令。",
+    "mitigations": [
+      "修复状态：据研究者披露，OpenAI 已于 2026-02-20 完成部署，具体实现未公开。",
+      "项目建议：把DNS查询与响应纳入出站策略和观测，限制允许的解析目标；分别核查常规连接与DNS等基础设施通道，不能用HTTP受阻推定没有外发能力。"
+    ],
+    "references": [
+      {
+        "title": "Check Point Research：ChatGPT Data Leakage via a Hidden Outbound Channel in the Code Execution Runtime（2026-03-30）",
+        "url": "https://research.checkpoint.com/2026/chatgpt-data-leakage-via-a-hidden-outbound-channel-in-the-code-execution-runtime/",
+        "type": "research"
+      }
+    ],
+    "name_zh": "ChatGPT代码执行环境：DNS隧道静默外传与容器内远程shell",
+    "source": "manual",
+    "source_name": "人工采集",
+    "risk_ids": [
+      "LLM01",
+      "LLM02",
+      "ASI05"
+    ],
+    "mapping_status": "project-interpretation",
+    "object_mappings": [
+      {
+        "object_id": "A7.3",
+        "reason": "常规出站连接被阻断时DNS解析仍放行；会话数据可编码进查询并经解析链到达攻击者，响应还可回传命令。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.3-03"
+      }
+    ],
+    "object_mapping_exclusions": [
+      {
+        "object_id": "A7.1",
+        "reason": "远程shell位于原本承载代码执行的Linux容器内；所证实的缺陷是DNS出站边界失效，未证明取得宿主或其他租户的执行能力。"
+      }
+    ]
+  },
+  "PUB-050": {
+    "id": "PUB-050",
+    "title": "Claude Code extension on Cursor Marketplace: tampered packages install an SSH backdoor",
+    "date": "2026-10-29",
+    "year": 2026,
+    "category": "real-world",
+    "description": "Cursor 确认，2026-10-29 其扩展市场分发的 Anthropic.claude-code 2.1.312、2.1.313 中，macOS 与 Windows 包遭恶意修改。通告指出这些恶意版本并非 Anthropic 开发，未发现官方分发版本或其他扩展受影响。Phorion 于 10-30 发表分析、10-31 补充版本范围，并已把受影响渠道更正为 Cursor Marketplace。\n\nPhorion 发现 extension.js 前置的 IIFE 在模块加载时、正常 activate 回调之前执行，以 IDE 用户权限写入 ~/.ssh/authorized_keys，建立转发到本机 SSH 的反向隧道，并设置独立于 IDE 的持久化；macOS 使用用户 LaunchAgent。信标报告主机信息与环境变量名称，不收集这些变量的值。样本还含 Linux 分支，但官方确认的受影响分发包是 macOS 与 Windows。\n\n远程登录成功依赖本机 SSH 可用；macOS 状态检查在普通用户下会误判，可能跳过服务启用，不能把隧道或持久化落地等同于攻击者已登录。Cursor 称已下架受影响版本、轮换密钥并重建市场，也已协调关闭攻击服务器；终端上的 SSH 公钥与持久化仍需清理。",
+    "attack_vector": "扩展分发链交付被篡改的原生代码包；IDE 加载模块即执行植入代码，无须用户发起 Claude 对话或调用工具。",
+    "impact": "以当前用户权限植入 SSH 认证材料、持久化并发送主机信息；本机 SSH 可用时可形成远程访问链。披露未证明所有安装主机均遭成功登录或权限提升。",
+    "mitigations": [
+      "按 Cursor 通告核对来源渠道、版本和包摘要；隔离有载荷执行迹象的主机，停止使用受影响版本。",
+      "清除隧道进程、未授权 SSH 公钥及持久化脚本和启动项，复核 SSH 状态；仅卸载扩展不足以清除独立后门。",
+      "依据主机执行和登录证据评估后续访问，从可信环境轮换受影响凭据；结合文件与进程遥测检查 IDE 扩展宿主对 SSH 文件的写入。"
+    ],
+    "references": [
+      {
+        "title": "Phorion：Official Claude Code Extension Compromise: Security Advisory（Calum Hall，2026-10-30，更新于10-31）",
+        "url": "https://phorion.io/blog/offical-claude-code-vsx-compromise/",
+        "type": "research"
+      },
+      {
+        "title": "Cursor 官方安全通告：Anthropic.claude-code 2.1.312／2.1.313 恶意包（2026-10-29）",
+        "url": "https://cursor.com/blog/claude-code-extension-security-notice",
+        "type": "vendor"
+      }
+    ],
+    "name_zh": "Cursor扩展市场：Claude Code包遭篡改并植入SSH后门",
+    "source": "manual",
+    "source_name": "人工采集",
+    "risk_ids": [
+      "ASI04",
+      "ASI05"
+    ],
+    "mapping_status": "project-interpretation",
+    "object_mappings": [
+      {
+        "object_id": "A7.5",
+        "reason": "Cursor扩展市场分发被恶意修改的Claude Code包，用户安装或更新后由IDE实际加载并激活植入代码。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.5-01"
+      },
+      {
+        "object_id": "A7.1",
+        "reason": "被篡改的本地Agent扩展利用IDE用户权限修改宿主SSH认证文件并设置持久化；远程登录是否完成还取决于本机SSH状态及后续访问证据。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.1-05"
+      }
+    ],
+    "object_mapping_exclusions": [
+      {
+        "object_id": "A2.5",
+        "reason": "植入点是IDE原生扩展的JavaScript模块，披露未涉及Skill指令或规则文件投毒。"
+      }
+    ]
   }
 }

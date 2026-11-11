@@ -10,7 +10,7 @@
   },
   "counts": {
     "duplicate-of": 7,
-    "mapped": 233,
+    "mapped": 236,
     "out-of-scope": 29
   },
   "entries": {
@@ -862,6 +862,15 @@
       "status": "mapped"
     },
     "PUB-047": {
+      "status": "mapped"
+    },
+    "PUB-048": {
+      "status": "mapped"
+    },
+    "PUB-049": {
+      "status": "mapped"
+    },
+    "PUB-050": {
       "status": "mapped"
     }
   }
