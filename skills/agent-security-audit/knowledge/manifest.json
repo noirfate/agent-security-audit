@@ -8,8 +8,8 @@
     "data/architecture.json": "09fa999dd0437f79c76b0e6b3338a5fd85bc950c102b1a37b64f0ebddc7753ad",
     "data/atlas-selection-review.json": "2b1eaf40ddabc9dd85095a8b1a8889b500e899bc45710826fab6f116aa4e5435",
     "data/audit-profile.json": "6317d4780a90678185d5700f7ef992aaa2b9c7f7df1c55aa30a4ecbd1d8fd2f1",
-    "data/case-object-review.json": "2c0444750454328bcb1b2792827f47b5b9ee7c7ca6c986d8acfd7bec37f1f533",
-    "data/cases.json": "719c9c139f2e70d9822a42eb185eefa2628f2a15dc0b62f72d462d9c098a3561",
+    "data/case-object-review.json": "18192770ff8ce96325b8c59359cd7bfd2e2a158626e064319792a39e70e5d49b",
+    "data/cases.json": "7a59f52369008d5419b83d1c4422e29dbd7e81e3991f6db7be922db06d311da8",
     "data/defense.json": "03d213081dbb2ddc5a2ba0b18351227f856c5454a87fbb2d677a0d7241e24fa4",
     "data/failure-modes.json": "bd3b0426818583a75a7846d8ed776dd6229ea462d58a6a9078d1cc22bb3cf94c",
     "data/finding-schema.json": "fc126fb9e265d7e3b598cecf563731c4036177da41a041367541b77d5518482f",
@@ -24,6 +24,6 @@
     "data-contract.json": "c1b6121229dd4d6be211159ce877d7e1147f1f8b64d1f67e3969773669d79e05"
   },
   "files": {
-    "framework.json": "107e34c2d98bc24379b9b6804d8c1a5cafc6d1dec0df5a5ba683bdea2964cac1"
+    "framework.json": "f25d95e76a8421a67c04f74c554d514131ba89bde872be0b2aee2be18d71dcc3"
   }
 }

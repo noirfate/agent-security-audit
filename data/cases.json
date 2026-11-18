@@ -21389,5 +21389,80 @@
         "reason": "植入点是IDE原生扩展的JavaScript模块，披露未涉及Skill指令或规则文件投毒。"
       }
     ]
+  },
+  "PUB-051": {
+    "id": "PUB-051",
+    "title": "Microsoft agent-framework on PyPI: compromised releases steal credentials through Python startup hooks",
+    "date": "2026-11-17",
+    "year": 2026,
+    "category": "real-world",
+    "description": "Socket reported compromised agent-framework releases 1.26.1 and 1.26.2 on PyPI. Installed .pth hooks start background collection during Python startup without an explicit framework import. Version 1.26.1 uses agent_framework_meta.pth and _telemetry.py; 1.26.2 moves to af_runtime_diag.pth and af_runtime_diag.py while restoring the original package initializer.\n\nCollectors target environment secrets, credential files and /proc/*/environ, request Azure identity tokens, and add GitHub Actions OIDC requests in 1.26.2. Compressed, Base64-encoded data is POSTed to webhook.site. The disclosure does not establish the initial publishing compromise or victim count.",
+    "description_zh": "Socket 于 2026-11-17 披露，PyPI 上的 agent-framework 1.26.1、1.26.2 被植入凭据窃取代码。安装后，Python 启动处理 .pth 文件时即在后台启动采集，无须显式导入框架。1.26.1 使用 agent_framework_meta.pth 和包内 _telemetry.py；1.26.2 改用 af_runtime_diag.pth 与 af_runtime_diag.py，并恢复原包初始化文件。\n\n采集目标包括环境变量中的秘密、凭据文件及 /proc/*/environ；载荷主动请求 Azure 身份令牌，1.26.2 还增加 GitHub Actions OIDC 令牌请求。数据压缩、Base64 编码后经 POST 外传至 webhook.site。披露未说明发布链最初如何失陷及实际受害数量。",
+    "attack_vector": "A compromised dependency gains execution through interpreter startup processing.",
+    "attack_vector_zh": "被污染的依赖包借解释器启动处理获得执行机会，触发点早于正常业务调用。",
+    "impact": "Developer and CI/CD credentials may be exposed; accessible files, process environments and token issuance depend on host permissions and identity configuration.",
+    "impact_zh": "开发机与 CI/CD 凭据可能泄露；实际可读文件、进程环境及可申请令牌受宿主权限与身份配置约束，不能把所有采集目标视为已成功窃取。",
+    "mitigations": [
+      "Socket advises removing both affected releases and rotating potentially exposed credentials.",
+      "Project recommendation: review complete installed artifacts, including .pth hooks and imported modules; checking only the package initializer misses alternate startup entry points.",
+      "Project recommendation: separate dependency installation from credential-bearing workloads; minimize process-visible secrets and token permissions, constrain egress, and correlate token issuance with network telemetry."
+    ],
+    "mitigations_zh": [
+      "按 Socket 建议停用并移除两个受影响版本，轮换可能暴露的凭据。",
+      "项目建议：核查完整安装制品中的 .pth 钩子及其导入模块；仅检查包初始化文件会遗漏其他启动入口。",
+      "项目建议：将依赖安装与持有凭据的工作负载隔离，最小化进程可见秘密和令牌权限，约束出站目的地，并关联令牌签发与网络记录。"
+    ],
+    "references": [
+      {
+        "title": "Socket Research Team：Microsoft’s agent-framework PyPI package Compromised with Credential Stealer（2026-11-17）",
+        "url": "https://socket.dev/blog/agent-framework-pypi-package-compromised-with-credential-stealer",
+        "type": "research"
+      }
+    ],
+    "name_zh": "Microsoft agent-framework：PyPI恶意版本借Python启动钩子窃取凭据",
+    "source": "manual",
+    "source_name": "人工采集",
+    "risk_ids": [
+      "ASI04",
+      "ASI05",
+      "ASI03"
+    ],
+    "mapping_status": "project-interpretation",
+    "object_mappings": [
+      {
+        "object_id": "A7.5",
+        "reason": "PyPI 发布的框架包携带启动钩子，下游安装后由解释器激活恶意内容；发布链初始入侵方式未披露。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.5-01"
+      },
+      {
+        "object_id": "A7.4",
+        "reason": "恶意依赖读取环境中的秘密并请求云身份令牌，落点是凭据被非预期代码取得；这不证明身份服务本身存在认证或签发漏洞。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.4-03"
+      },
+      {
+        "object_id": "A7.2",
+        "reason": "采集器搜集本地凭据文件，文件系统是秘密材料的读取落点；实际暴露范围需按文件存在性和有效权限核对。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.2-02"
+      },
+      {
+        "object_id": "A7.1",
+        "reason": "载荷通过 /proc/*/environ 采集同环境其他进程的秘密，涉及进程间信息可见性；不能据此推定已突破宿主权限或发生容器逃逸。",
+        "basis": "案例正文",
+        "fm_id": "FM-A7.1-06"
+      }
+    ],
+    "object_mapping_exclusions": [
+      {
+        "object_id": "A2.5",
+        "reason": "载荷位于 Python 分发包及启动钩子，披露未涉及 Skill 指令或规则制品投毒。"
+      },
+      {
+        "object_id": "A4.6",
+        "reason": "已披露的触发链是解释器加载已安装的 .pth 文件，未证明由 Agent 的代码或脚本工具调用引发执行，不把普通运行时启动等同于工具执行器失效。"
+      }
+    ]
   }
 }
